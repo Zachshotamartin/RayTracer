@@ -1,0 +1,600 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		6C7B950D2C9A640A00C44D21 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 6C7B950C2C9A640A00C44D21 /* AppDelegate.m */; };
+		6C7B95102C9A640B00C44D21 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6C7B950F2C9A640B00C44D21 /* ViewController.m */; };
+		6C7B95132C9A640B00C44D21 /* RayTracer.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 6C7B95112C9A640B00C44D21 /* RayTracer.xcdatamodeld */; };
+		6C7B95152C9A640C00C44D21 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6C7B95142C9A640C00C44D21 /* Assets.xcassets */; };
+		6C7B95182C9A640C00C44D21 /* Base in Resources */ = {isa = PBXBuildFile; fileRef = 6C7B95172C9A640C00C44D21 /* Base */; };
+		6C7B951A2C9A640C00C44D21 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 6C7B95192C9A640C00C44D21 /* main.m */; };
+		6C7B95252C9A640C00C44D21 /* RayTracerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6C7B95242C9A640C00C44D21 /* RayTracerTests.m */; };
+		6C7B952F2C9A640C00C44D21 /* RayTracerUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6C7B952E2C9A640C00C44D21 /* RayTracerUITests.m */; };
+		6C7B95312C9A640C00C44D21 /* RayTracerUITestsLaunchTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6C7B95302C9A640C00C44D21 /* RayTracerUITestsLaunchTests.m */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		6C7B95212C9A640C00C44D21 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6C7B95002C9A640A00C44D21 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6C7B95072C9A640A00C44D21;
+			remoteInfo = RayTracer;
+		};
+		6C7B952B2C9A640C00C44D21 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6C7B95002C9A640A00C44D21 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6C7B95072C9A640A00C44D21;
+			remoteInfo = RayTracer;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		6C7B95082C9A640A00C44D21 /* RayTracer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RayTracer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6C7B950B2C9A640A00C44D21 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
+		6C7B950C2C9A640A00C44D21 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
+		6C7B950E2C9A640A00C44D21 /* ViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ViewController.h; sourceTree = "<group>"; };
+		6C7B950F2C9A640B00C44D21 /* ViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ViewController.m; sourceTree = "<group>"; };
+		6C7B95122C9A640B00C44D21 /* RayTracer.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = RayTracer.xcdatamodel; sourceTree = "<group>"; };
+		6C7B95142C9A640C00C44D21 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		6C7B95172C9A640C00C44D21 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		6C7B95192C9A640C00C44D21 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		6C7B951B2C9A640C00C44D21 /* RayTracer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RayTracer.entitlements; sourceTree = "<group>"; };
+		6C7B95202C9A640C00C44D21 /* RayTracerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RayTracerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		6C7B95242C9A640C00C44D21 /* RayTracerTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RayTracerTests.m; sourceTree = "<group>"; };
+		6C7B952A2C9A640C00C44D21 /* RayTracerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RayTracerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		6C7B952E2C9A640C00C44D21 /* RayTracerUITests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RayTracerUITests.m; sourceTree = "<group>"; };
+		6C7B95302C9A640C00C44D21 /* RayTracerUITestsLaunchTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RayTracerUITestsLaunchTests.m; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		6C7B95052C9A640A00C44D21 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6C7B951D2C9A640C00C44D21 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6C7B95272C9A640C00C44D21 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		6C7B94FF2C9A640A00C44D21 = {
+			isa = PBXGroup;
+			children = (
+				6C7B950A2C9A640A00C44D21 /* RayTracer */,
+				6C7B95232C9A640C00C44D21 /* RayTracerTests */,
+				6C7B952D2C9A640C00C44D21 /* RayTracerUITests */,
+				6C7B95092C9A640A00C44D21 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		6C7B95092C9A640A00C44D21 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				6C7B95082C9A640A00C44D21 /* RayTracer.app */,
+				6C7B95202C9A640C00C44D21 /* RayTracerTests.xctest */,
+				6C7B952A2C9A640C00C44D21 /* RayTracerUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		6C7B950A2C9A640A00C44D21 /* RayTracer */ = {
+			isa = PBXGroup;
+			children = (
+				6C7B950B2C9A640A00C44D21 /* AppDelegate.h */,
+				6C7B950C2C9A640A00C44D21 /* AppDelegate.m */,
+				6C7B950E2C9A640A00C44D21 /* ViewController.h */,
+				6C7B950F2C9A640B00C44D21 /* ViewController.m */,
+				6C7B95142C9A640C00C44D21 /* Assets.xcassets */,
+				6C7B95162C9A640C00C44D21 /* Main.storyboard */,
+				6C7B95192C9A640C00C44D21 /* main.m */,
+				6C7B951B2C9A640C00C44D21 /* RayTracer.entitlements */,
+				6C7B95112C9A640B00C44D21 /* RayTracer.xcdatamodeld */,
+			);
+			path = RayTracer;
+			sourceTree = "<group>";
+		};
+		6C7B95232C9A640C00C44D21 /* RayTracerTests */ = {
+			isa = PBXGroup;
+			children = (
+				6C7B95242C9A640C00C44D21 /* RayTracerTests.m */,
+			);
+			path = RayTracerTests;
+			sourceTree = "<group>";
+		};
+		6C7B952D2C9A640C00C44D21 /* RayTracerUITests */ = {
+			isa = PBXGroup;
+			children = (
+				6C7B952E2C9A640C00C44D21 /* RayTracerUITests.m */,
+				6C7B95302C9A640C00C44D21 /* RayTracerUITestsLaunchTests.m */,
+			);
+			path = RayTracerUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		6C7B95072C9A640A00C44D21 /* RayTracer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6C7B95342C9A640C00C44D21 /* Build configuration list for PBXNativeTarget "RayTracer" */;
+			buildPhases = (
+				6C7B95042C9A640A00C44D21 /* Sources */,
+				6C7B95052C9A640A00C44D21 /* Frameworks */,
+				6C7B95062C9A640A00C44D21 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = RayTracer;
+			productName = RayTracer;
+			productReference = 6C7B95082C9A640A00C44D21 /* RayTracer.app */;
+			productType = "com.apple.product-type.application";
+		};
+		6C7B951F2C9A640C00C44D21 /* RayTracerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6C7B95372C9A640C00C44D21 /* Build configuration list for PBXNativeTarget "RayTracerTests" */;
+			buildPhases = (
+				6C7B951C2C9A640C00C44D21 /* Sources */,
+				6C7B951D2C9A640C00C44D21 /* Frameworks */,
+				6C7B951E2C9A640C00C44D21 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				6C7B95222C9A640C00C44D21 /* PBXTargetDependency */,
+			);
+			name = RayTracerTests;
+			productName = RayTracerTests;
+			productReference = 6C7B95202C9A640C00C44D21 /* RayTracerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		6C7B95292C9A640C00C44D21 /* RayTracerUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6C7B953A2C9A640C00C44D21 /* Build configuration list for PBXNativeTarget "RayTracerUITests" */;
+			buildPhases = (
+				6C7B95262C9A640C00C44D21 /* Sources */,
+				6C7B95272C9A640C00C44D21 /* Frameworks */,
+				6C7B95282C9A640C00C44D21 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				6C7B952C2C9A640C00C44D21 /* PBXTargetDependency */,
+			);
+			name = RayTracerUITests;
+			productName = RayTracerUITests;
+			productReference = 6C7B952A2C9A640C00C44D21 /* RayTracerUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		6C7B95002C9A640A00C44D21 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1540;
+				TargetAttributes = {
+					6C7B95072C9A640A00C44D21 = {
+						CreatedOnToolsVersion = 15.4;
+					};
+					6C7B951F2C9A640C00C44D21 = {
+						CreatedOnToolsVersion = 15.4;
+						TestTargetID = 6C7B95072C9A640A00C44D21;
+					};
+					6C7B95292C9A640C00C44D21 = {
+						CreatedOnToolsVersion = 15.4;
+						TestTargetID = 6C7B95072C9A640A00C44D21;
+					};
+				};
+			};
+			buildConfigurationList = 6C7B95032C9A640A00C44D21 /* Build configuration list for PBXProject "RayTracer" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 6C7B94FF2C9A640A00C44D21;
+			productRefGroup = 6C7B95092C9A640A00C44D21 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				6C7B95072C9A640A00C44D21 /* RayTracer */,
+				6C7B951F2C9A640C00C44D21 /* RayTracerTests */,
+				6C7B95292C9A640C00C44D21 /* RayTracerUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		6C7B95062C9A640A00C44D21 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6C7B95152C9A640C00C44D21 /* Assets.xcassets in Resources */,
+				6C7B95182C9A640C00C44D21 /* Base in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6C7B951E2C9A640C00C44D21 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6C7B95282C9A640C00C44D21 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		6C7B95042C9A640A00C44D21 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6C7B95132C9A640B00C44D21 /* RayTracer.xcdatamodeld in Sources */,
+				6C7B95102C9A640B00C44D21 /* ViewController.m in Sources */,
+				6C7B951A2C9A640C00C44D21 /* main.m in Sources */,
+				6C7B950D2C9A640A00C44D21 /* AppDelegate.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6C7B951C2C9A640C00C44D21 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6C7B95252C9A640C00C44D21 /* RayTracerTests.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6C7B95262C9A640C00C44D21 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6C7B95312C9A640C00C44D21 /* RayTracerUITestsLaunchTests.m in Sources */,
+				6C7B952F2C9A640C00C44D21 /* RayTracerUITests.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		6C7B95222C9A640C00C44D21 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6C7B95072C9A640A00C44D21 /* RayTracer */;
+			targetProxy = 6C7B95212C9A640C00C44D21 /* PBXContainerItemProxy */;
+		};
+		6C7B952C2C9A640C00C44D21 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6C7B95072C9A640A00C44D21 /* RayTracer */;
+			targetProxy = 6C7B952B2C9A640C00C44D21 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		6C7B95162C9A640C00C44D21 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				6C7B95172C9A640C00C44D21 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		6C7B95322C9A640C00C44D21 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.5;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		6C7B95332C9A640C00C44D21 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.5;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		6C7B95352C9A640C00C44D21 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = RayTracer/RayTracer.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = AQV3WQN83Q;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.zachsmartin.RayTracer;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Debug;
+		};
+		6C7B95362C9A640C00C44D21 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = RayTracer/RayTracer.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = AQV3WQN83Q;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.zachsmartin.RayTracer;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
+		6C7B95382C9A640C00C44D21 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = AQV3WQN83Q;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.zachsmartin.RayTracerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/RayTracer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/RayTracer";
+			};
+			name = Debug;
+		};
+		6C7B95392C9A640C00C44D21 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = AQV3WQN83Q;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.zachsmartin.RayTracerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/RayTracer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/RayTracer";
+			};
+			name = Release;
+		};
+		6C7B953B2C9A640C00C44D21 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = AQV3WQN83Q;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.zachsmartin.RayTracerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TEST_TARGET_NAME = RayTracer;
+			};
+			name = Debug;
+		};
+		6C7B953C2C9A640C00C44D21 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = AQV3WQN83Q;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.zachsmartin.RayTracerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TEST_TARGET_NAME = RayTracer;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		6C7B95032C9A640A00C44D21 /* Build configuration list for PBXProject "RayTracer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6C7B95322C9A640C00C44D21 /* Debug */,
+				6C7B95332C9A640C00C44D21 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		6C7B95342C9A640C00C44D21 /* Build configuration list for PBXNativeTarget "RayTracer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6C7B95352C9A640C00C44D21 /* Debug */,
+				6C7B95362C9A640C00C44D21 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		6C7B95372C9A640C00C44D21 /* Build configuration list for PBXNativeTarget "RayTracerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6C7B95382C9A640C00C44D21 /* Debug */,
+				6C7B95392C9A640C00C44D21 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		6C7B953A2C9A640C00C44D21 /* Build configuration list for PBXNativeTarget "RayTracerUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6C7B953B2C9A640C00C44D21 /* Debug */,
+				6C7B953C2C9A640C00C44D21 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCVersionGroup section */
+		6C7B95112C9A640B00C44D21 /* RayTracer.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				6C7B95122C9A640B00C44D21 /* RayTracer.xcdatamodel */,
+			);
+			currentVersion = 6C7B95122C9A640B00C44D21 /* RayTracer.xcdatamodel */;
+			path = RayTracer.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
+	};
+	rootObject = 6C7B95002C9A640A00C44D21 /* Project object */;
+}
