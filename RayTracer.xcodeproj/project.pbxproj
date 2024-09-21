@@ -55,6 +55,7 @@
 /* Begin PBXFileReference section */
 		6C754BBB2C9E8AE20096C59A /* interval.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = interval.h; sourceTree = "<group>"; };
 		6C754BBC2C9E8BA00096C59A /* camera.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = camera.h; sourceTree = "<group>"; };
+		6C754BBD2C9F5D360096C59A /* material.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = material.h; sourceTree = "<group>"; };
 		6C7B95082C9A640A00C44D21 /* RayTracer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RayTracer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6C7B950E2C9A640A00C44D21 /* ViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ViewController.h; sourceTree = "<group>"; };
 		6C7B950F2C9A640B00C44D21 /* ViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ViewController.m; sourceTree = "<group>"; };
@@ -144,6 +145,7 @@
 				6C7B954F2C9E31FB00C44D21 /* sdl_window.h */,
 				6C754BBB2C9E8AE20096C59A /* interval.h */,
 				6C754BBC2C9E8BA00096C59A /* camera.h */,
+				6C754BBD2C9F5D360096C59A /* material.h */,
 			);
 			path = RayTracer;
 			sourceTree = "<group>";

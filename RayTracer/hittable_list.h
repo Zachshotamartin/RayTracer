@@ -1,6 +1,7 @@
 #ifndef HITTABLE_LIST_H
 #define HITTABLE_LIST_H
 
+class material;
 
 class hit_record {
   public:
@@ -8,7 +9,8 @@ class hit_record {
     vec3 normal;
     double t;
     bool front_face;
-
+    shared_ptr<material> mat;
+    
     void set_face_normal(const ray& r, const vec3& outward_normal) {
         front_face = dot(r.d(), outward_normal) < 0;
         if (front_face) {

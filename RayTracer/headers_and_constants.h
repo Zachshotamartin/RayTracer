@@ -31,7 +31,10 @@ inline double random_double() {
     static std::mt19937 generator;
     return distribution(generator);
 }
-
+inline double random_double(double min, double max) {
+    // Returns a random real in [min,max).
+    return min + (max-min)*random_double();
+}
 
 // All Headers
 #include "interval.h"
@@ -41,8 +44,11 @@ inline double random_double() {
 #include "hittable_list.h"
 
 #include "sphere.h"
+
 #include "color.h"
+#include "material.h"
 #include "camera.h"
+
 
 
 #endif

@@ -8,6 +8,7 @@ class camera {
     double aspect_ratio = 1.0;  // Ratio of image width over height
     int    image_width  = 100;  // Rendered image width in pixel count
     int    samples_per_pixel = 10;
+    int    max_depth         = 10;   // Maximum number of ray bounces into scene
     void display(const hittable& world) {
         initialize();
         
@@ -19,15 +20,15 @@ class camera {
                 color pixel_color(0,0,0);
                 for (int sample = 0; sample < samples_per_pixel; sample++) {
                     ray r = get_ray(x, y);
-                    pixel_color += ray_color(r, world);
+                    pixel_color += ray_color(r, max_depth, world);
                 }
                 pixel_color *= pixel_samples_scale;
                 
                 static const interval intensity(0.000, 0.999);
                 
-                SDL_Color col{static_cast<Uint8>(int(256 * intensity.clamp(pixel_color.x()))),
-                    static_cast<Uint8>(int(256 * intensity.clamp(pixel_color.y()))),
-                    static_cast<Uint8>(int(256 * intensity.clamp(pixel_color.z()))),
+                SDL_Color col{static_cast<Uint8>(int(256 * intensity.clamp(linear_to_gamma(pixel_color.x())))),
+                    static_cast<Uint8>(int(256 * intensity.clamp(linear_to_gamma(pixel_color.y())))),
+                    static_cast<Uint8>(int(256 * intensity.clamp(linear_to_gamma(pixel_color.z())))),
                     255}; // Alpha is set to 255 (fully opaque)
                 
                 setDrawColor(col);
@@ -99,17 +100,26 @@ class camera {
         return vec3(random_double() - 0.5, random_double() - 0.5, 0);
     }
     
-    color ray_color(const ray& r, const hittable& world) const {
-            hit_record rec;
+    color ray_color(const ray& r, int depth, const hittable& world) const {
+        // If we've exceeded the ray bounce limit, no more light is gathered.
+        if (depth <= 0)
+            return color(0,0,0);
 
-            if (world.hit(r, interval(0, infinity), rec)) {
-                return 0.5 * (rec.normal + color(1,1,1));
+        hit_record rec;
+
+        if (world.hit(r, interval(0.001, infinity), rec)) {
+            ray scattered;
+            color attenuation;
+            if (rec.mat->scatter(r, rec, attenuation, scattered)) {
+                return attenuation * ray_color(scattered, depth-1, world);
             }
-
-            vec3 unit_direction = to_unit_vector(r.d());
-            auto a = 0.5*(unit_direction.y() + 1.0);
-            return (1.0-a)*color(1.0, 1.0, 1.0) + a*color(0.5, 0.7, 1.0);
+            return color(0,0,0);
         }
+
+        vec3 unit_direction = to_unit_vector(r.d());
+        auto a = 0.5*(unit_direction.y() + 1.0);
+        return (1.0-a)*color(1.0, 1.0, 1.0) + a*color(0.5, 0.7, 1.0);
+    }
 };
 
 #endif
