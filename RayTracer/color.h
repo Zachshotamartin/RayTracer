@@ -1,12 +1,8 @@
-//
-//  color.h
-//  RayTracer
-//
-//  Created by Zachary Martin on 9/18/24.
-//
-
 #ifndef color_h
 #define color_h
 
+
+// Created to differentiate a positional / ray vec3 from color vector
+using color = vec3;
 
 #endif /* color_h */

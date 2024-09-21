@@ -7,15 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		6C7B950D2C9A640A00C44D21 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 6C7B950C2C9A640A00C44D21 /* AppDelegate.m */; };
 		6C7B95102C9A640B00C44D21 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6C7B950F2C9A640B00C44D21 /* ViewController.m */; };
 		6C7B95132C9A640B00C44D21 /* RayTracer.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 6C7B95112C9A640B00C44D21 /* RayTracer.xcdatamodeld */; };
 		6C7B95152C9A640C00C44D21 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6C7B95142C9A640C00C44D21 /* Assets.xcassets */; };
-		6C7B95182C9A640C00C44D21 /* Base in Resources */ = {isa = PBXBuildFile; fileRef = 6C7B95172C9A640C00C44D21 /* Base */; };
-		6C7B951A2C9A640C00C44D21 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 6C7B95192C9A640C00C44D21 /* main.m */; };
 		6C7B95252C9A640C00C44D21 /* RayTracerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6C7B95242C9A640C00C44D21 /* RayTracerTests.m */; };
 		6C7B952F2C9A640C00C44D21 /* RayTracerUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6C7B952E2C9A640C00C44D21 /* RayTracerUITests.m */; };
 		6C7B95312C9A640C00C44D21 /* RayTracerUITestsLaunchTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6C7B95302C9A640C00C44D21 /* RayTracerUITestsLaunchTests.m */; };
+		6C7B953E2C9A659500C44D21 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6C7B953D2C9A659500C44D21 /* main.cpp */; };
+		6C7B95422C9A666900C44D21 /* SDL2_image.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6C7B95402C9A666900C44D21 /* SDL2_image.framework */; };
+		6C7B95432C9A666900C44D21 /* SDL2_image.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 6C7B95402C9A666900C44D21 /* SDL2_image.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		6C7B95442C9A666900C44D21 /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6C7B95412C9A666900C44D21 /* SDL2.framework */; };
+		6C7B95452C9A666900C44D21 /* SDL2.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 6C7B95412C9A666900C44D21 /* SDL2.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -35,22 +37,43 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		6C7B95462C9A666900C44D21 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				6C7B95432C9A666900C44D21 /* SDL2_image.framework in Embed Frameworks */,
+				6C7B95452C9A666900C44D21 /* SDL2.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		6C7B95082C9A640A00C44D21 /* RayTracer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RayTracer.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		6C7B950B2C9A640A00C44D21 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
-		6C7B950C2C9A640A00C44D21 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
 		6C7B950E2C9A640A00C44D21 /* ViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ViewController.h; sourceTree = "<group>"; };
 		6C7B950F2C9A640B00C44D21 /* ViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ViewController.m; sourceTree = "<group>"; };
 		6C7B95122C9A640B00C44D21 /* RayTracer.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = RayTracer.xcdatamodel; sourceTree = "<group>"; };
 		6C7B95142C9A640C00C44D21 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		6C7B95172C9A640C00C44D21 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		6C7B95192C9A640C00C44D21 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		6C7B951B2C9A640C00C44D21 /* RayTracer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RayTracer.entitlements; sourceTree = "<group>"; };
 		6C7B95202C9A640C00C44D21 /* RayTracerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RayTracerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6C7B95242C9A640C00C44D21 /* RayTracerTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RayTracerTests.m; sourceTree = "<group>"; };
 		6C7B952A2C9A640C00C44D21 /* RayTracerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RayTracerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6C7B952E2C9A640C00C44D21 /* RayTracerUITests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RayTracerUITests.m; sourceTree = "<group>"; };
 		6C7B95302C9A640C00C44D21 /* RayTracerUITestsLaunchTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RayTracerUITestsLaunchTests.m; sourceTree = "<group>"; };
+		6C7B953D2C9A659500C44D21 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		6C7B95402C9A666900C44D21 /* SDL2_image.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = SDL2_image.framework; sourceTree = "<group>"; };
+		6C7B95412C9A666900C44D21 /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = SDL2.framework; sourceTree = "<group>"; };
+		6C7B95482C9B7ED300C44D21 /* vec3.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = vec3.h; sourceTree = "<group>"; };
+		6C7B95492C9B8F3300C44D21 /* color.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = color.h; sourceTree = "<group>"; };
+		6C7B954A2C9B90A300C44D21 /* ray.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ray.h; sourceTree = "<group>"; };
+		6C7B954B2C9BDB3400C44D21 /* sphere.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sphere.h; sourceTree = "<group>"; };
+		6C7B954C2C9BDBCB00C44D21 /* hittable_list.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = hittable_list.h; sourceTree = "<group>"; };
+		6C7B954E2C9CC7B900C44D21 /* headers_and_constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = headers_and_constants.h; sourceTree = "<group>"; };
+		6C7B954F2C9E31FB00C44D21 /* sdl_window.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sdl_window.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,6 +81,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6C7B95422C9A666900C44D21 /* SDL2_image.framework in Frameworks */,
+				6C7B95442C9A666900C44D21 /* SDL2.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -85,6 +110,7 @@
 				6C7B95232C9A640C00C44D21 /* RayTracerTests */,
 				6C7B952D2C9A640C00C44D21 /* RayTracerUITests */,
 				6C7B95092C9A640A00C44D21 /* Products */,
+				6C7B953F2C9A666800C44D21 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -101,15 +127,19 @@
 		6C7B950A2C9A640A00C44D21 /* RayTracer */ = {
 			isa = PBXGroup;
 			children = (
-				6C7B950B2C9A640A00C44D21 /* AppDelegate.h */,
-				6C7B950C2C9A640A00C44D21 /* AppDelegate.m */,
+				6C7B953D2C9A659500C44D21 /* main.cpp */,
 				6C7B950E2C9A640A00C44D21 /* ViewController.h */,
 				6C7B950F2C9A640B00C44D21 /* ViewController.m */,
 				6C7B95142C9A640C00C44D21 /* Assets.xcassets */,
-				6C7B95162C9A640C00C44D21 /* Main.storyboard */,
-				6C7B95192C9A640C00C44D21 /* main.m */,
 				6C7B951B2C9A640C00C44D21 /* RayTracer.entitlements */,
 				6C7B95112C9A640B00C44D21 /* RayTracer.xcdatamodeld */,
+				6C7B95482C9B7ED300C44D21 /* vec3.h */,
+				6C7B95492C9B8F3300C44D21 /* color.h */,
+				6C7B954A2C9B90A300C44D21 /* ray.h */,
+				6C7B954B2C9BDB3400C44D21 /* sphere.h */,
+				6C7B954C2C9BDBCB00C44D21 /* hittable_list.h */,
+				6C7B954E2C9CC7B900C44D21 /* headers_and_constants.h */,
+				6C7B954F2C9E31FB00C44D21 /* sdl_window.h */,
 			);
 			path = RayTracer;
 			sourceTree = "<group>";
@@ -131,6 +161,15 @@
 			path = RayTracerUITests;
 			sourceTree = "<group>";
 		};
+		6C7B953F2C9A666800C44D21 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				6C7B95402C9A666900C44D21 /* SDL2_image.framework */,
+				6C7B95412C9A666900C44D21 /* SDL2.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -141,6 +180,7 @@
 				6C7B95042C9A640A00C44D21 /* Sources */,
 				6C7B95052C9A640A00C44D21 /* Frameworks */,
 				6C7B95062C9A640A00C44D21 /* Resources */,
+				6C7B95462C9A666900C44D21 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -235,7 +275,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				6C7B95152C9A640C00C44D21 /* Assets.xcassets in Resources */,
-				6C7B95182C9A640C00C44D21 /* Base in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -260,10 +299,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6C7B953E2C9A659500C44D21 /* main.cpp in Sources */,
 				6C7B95132C9A640B00C44D21 /* RayTracer.xcdatamodeld in Sources */,
 				6C7B95102C9A640B00C44D21 /* ViewController.m in Sources */,
-				6C7B951A2C9A640C00C44D21 /* main.m in Sources */,
-				6C7B950D2C9A640A00C44D21 /* AppDelegate.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -298,17 +336,6 @@
 			targetProxy = 6C7B952B2C9A640C00C44D21 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
-
-/* Begin PBXVariantGroup section */
-		6C7B95162C9A640C00C44D21 /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				6C7B95172C9A640C00C44D21 /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
-/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		6C7B95322C9A640C00C44D21 /* Debug */ = {
@@ -437,6 +464,10 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = AQV3WQN83Q;
 				ENABLE_HARDENED_RUNTIME = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMainStoryboardFile = Main;
@@ -463,6 +494,10 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = AQV3WQN83Q;
 				ENABLE_HARDENED_RUNTIME = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMainStoryboardFile = Main;
