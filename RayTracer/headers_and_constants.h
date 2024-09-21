@@ -7,7 +7,7 @@
 #include <limits>
 #include <memory>
 #include <vector>
-
+#include <random>
 // C++ Std Usings
 
 using std::make_shared;
@@ -26,16 +26,23 @@ inline double degrees_to_radians(double degrees) {
 inline double discriminant(double a, double b, double c) {
     return (b * b) - a * c;
 }
+inline double random_double() {
+    static std::uniform_real_distribution<double> distribution(0.0, 1.0);
+    static std::mt19937 generator;
+    return distribution(generator);
+}
 
 
 // All Headers
-
+#include "interval.h"
 #include "sdl_window.h"
 #include "vec3.h"
 #include "ray.h"
 #include "hittable_list.h"
+
 #include "sphere.h"
 #include "color.h"
+#include "camera.h"
 
 
 #endif
