@@ -36,6 +36,7 @@ inline double random_double(double min, double max) {
     return min + (max-min)*random_double();
 }
 
+    
 // All Headers
 #include "interval.h"
 #include "sdl_window.h"
