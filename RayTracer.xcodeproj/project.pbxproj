@@ -54,6 +54,7 @@
 
 /* Begin PBXFileReference section */
 		6C423B9F2CA218570014C2EC /* cube.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cube.h; sourceTree = "<group>"; };
+		6C423BA02CA397B50014C2EC /* light.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = light.h; sourceTree = "<group>"; };
 		6C754BBB2C9E8AE20096C59A /* interval.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = interval.h; sourceTree = "<group>"; };
 		6C754BBC2C9E8BA00096C59A /* camera.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = camera.h; sourceTree = "<group>"; };
 		6C754BBD2C9F5D360096C59A /* material.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = material.h; sourceTree = "<group>"; };
@@ -148,6 +149,7 @@
 				6C754BBC2C9E8BA00096C59A /* camera.h */,
 				6C754BBD2C9F5D360096C59A /* material.h */,
 				6C423B9F2CA218570014C2EC /* cube.h */,
+				6C423BA02CA397B50014C2EC /* light.h */,
 			);
 			path = RayTracer;
 			sourceTree = "<group>";

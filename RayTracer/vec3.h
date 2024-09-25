@@ -167,4 +167,5 @@ inline vec3 refract(const vec3& uv, const vec3& n, double etai_over_etat) {
     
     return r_out_perp + r_out_parallel;
 }
+
 #endif /* vec3_h */

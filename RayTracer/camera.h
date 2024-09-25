@@ -2,7 +2,7 @@
 #define CAMERA_H
 
 #include "hittable_list.h"
-
+#include "light.h"
 class camera {
   public:
     double aspect_ratio = 1.0;  // Ratio of image width over height
@@ -16,7 +16,7 @@ class camera {
     double defocus_angle = 0;  // Variation angle of rays through each pixel
     double focus_dist = 10;    // Distance from camera lookfrom point to plane of perfect focus
     
-    void display(const hittable& world) {
+    void display(const hittable& world, light_list& lights) {
         initialize();
         
         std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
@@ -27,7 +27,7 @@ class camera {
                 color pixel_color(0,0,0);
                 for (int sample = 0; sample < samples_per_pixel; sample++) {
                     ray r = get_ray(x, y);
-                    pixel_color += ray_color(r, max_depth, world);
+                    pixel_color += ray_color(r, max_depth, world, lights);
                 }
                 pixel_color *= pixel_samples_scale;
                 
@@ -131,18 +131,18 @@ class camera {
         return center + (p[0] * defocus_disk_u) + (p[1] * defocus_disk_v);
     }
     
-    color ray_color(const ray& r, int depth, const hittable& world) const {
+    color ray_color(const ray& r, int depth, const hittable& world, light_list& lights) const {
         // If we've exceeded the ray bounce limit, no more light is gathered.
         if (depth <= 0)
             return color(0,0,0);
 
         hit_record rec;
-
+        
         if (world.hit(r, interval(0.001, infinity), rec)) {
             ray scattered;
             color attenuation;
             if (rec.mat->scatter(r, rec, attenuation, scattered)) {
-                return attenuation * ray_color(scattered, depth-1, world);
+                return attenuation * ray_color(scattered, depth-1, world, lights) * lights.calculate_lighting(scattered.o(), rec.normal, world);
             }
             return color(0,0,0);
         }

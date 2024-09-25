@@ -1,7 +1,11 @@
 #ifndef MATERIAL_H
 #define MATERIAL_H
 
-#include "hittable_list.h"
+#include "color.h"
+#include "ray.h"
+
+// Forward declare hit_record to avoid circular dependency
+class hit_record;
 
 class material
 {
