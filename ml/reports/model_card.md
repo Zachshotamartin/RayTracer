@@ -113,6 +113,10 @@ training uses noisy/a-trous history, while deployment reuses predictions; this
 mismatch needs further training research. These smoke weights are local artifacts,
 not the bundled recommended model.
 
+The [issue audit and improvement plan](../../docs/neural-reconstruction-improvement-plan.md)
+separates measured failures, implementation constraints and untested risks, and
+defines the next training, evaluation and deployment experiments.
+
 Model SHA-256: `ec0f7176b5a785959e7f65603385a4618068b088e3f2d6f6368a8b050a08fa19`.
 Checkpoint SHA-256: `49ab1e4eb8ff8b25ad0327739dda7c6a2dd15a9fadbcf1766a7e2c1d4caa64d2`.
 Development-tree provenance limits are documented in the [dataset card](dataset_card.md).

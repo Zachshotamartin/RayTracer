@@ -5,6 +5,10 @@ integration. The main result is a substantial reduction in raw image error; the
 custom model does not outperform a-trous at the measured time-to-quality target,
 and Open Image Denoise provides better image quality in this experiment.
 
+See the [issue audit and improvement plan](../../docs/neural-reconstruction-improvement-plan.md)
+for the next iteration: edge/detail preservation, broader training coverage,
+progressive and temporal stability, learned upscaling and measured acceleration.
+
 ## Labeled result images
 
 | Raw path tracing · 4 samples/pixel | A-trous denoising · 4 samples/pixel |

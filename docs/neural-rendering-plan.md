@@ -7,6 +7,10 @@ Trainable 2× and temporal variants have end-to-end smoke coverage; their resear
 quality gates remain open. See the [labeled results index](../ml/reports/README.md) and
 [model card](../ml/reports/model_card.md) for actual evidence and limits.
 
+The [2026-09-06 issue audit and improvement plan](neural-reconstruction-improvement-plan.md)
+defines the next iteration from these results, including corner/detail preservation
+and explicit qualification gates. This document retains the original research design.
+
 The [ML project structure](ml-project-structure.md) specifies the package layout,
 dataset contract, experiment tracking, checkpoints, automation, and deliverables.
 

@@ -46,6 +46,11 @@ Across **all 360 test images** (1–32 samples/pixel, five held-out layouts):
 The custom model improves average image error over raw and a-trous, while a-trous
 retains better structural similarity. OIDN has the strongest quality in this study.
 At the measured joint quality target, **a-trous is faster than our model**.
+
+The [model improvement plan](docs/neural-reconstruction-improvement-plan.md) audits
+edge/detail loss and the other known limitations, with prioritized experiments and
+quality, stability and speed gates for the next model.
+
 The [full results and error image](ml/reports/README.md),
 [model card](ml/reports/model_card.md), and [timing report](ml/reports/timing.md)
 include the evidence and limitations. The 2× and temporal modes have working smoke

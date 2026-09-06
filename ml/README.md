@@ -12,6 +12,10 @@ runs establish functionality, not a demonstrated speed or flicker advantage.
 See [model card](reports/model_card.md), [dataset card](reports/dataset_card.md),
 and [experiment ledger](reports/experiments.md) for measured results and limits.
 
+The [next model improvement plan](../docs/neural-reconstruction-improvement-plan.md)
+maps the edge/detail, material, temporal, upscaling and performance concerns to
+specific experiments and acceptance gates. Those changes are planned, not trained.
+
 | Raw path tracing · 4 samples/pixel | A-trous denoising · 4 samples/pixel |
 | :---: | :---: |
 | ![Raw path tracing at 4 samples per pixel](reports/figures/pilot-4spp-raw.png) | ![A-trous denoising of the same 4-sample input](reports/figures/pilot-4spp-atrous.png) |
