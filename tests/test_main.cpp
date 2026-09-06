@@ -29,6 +29,10 @@ frame_snapshot render(const std::string &name, int threads, bool bvh = true, int
     opts.max_depth = 12;
     opts.threads = threads;
     opts.use_bvh = bvh;
+    if (name == "caustics") {
+        opts.caustic_photons = 80000;
+        opts.caustic_radius = 0.15;
+    }
     render_session session(make_scene(name, opts.seed), opts);
     session.wait();
     auto result = session.capture();
@@ -338,7 +342,7 @@ int main(int argc, char **argv) {
         {"worker and BVH determinism", determinism},
         {"pause, resume, cancellation, and teardown", cancellation},
         {"input validation", validation},
-        {"three scene image regressions", [] { golden_images(false); }}};
+        {"four scene image regressions", [] { golden_images(false); }}};
     int failed = 0;
     for (const auto &[name, test] : tests) {
         try {

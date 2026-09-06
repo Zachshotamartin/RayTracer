@@ -1,0 +1,9 @@
+# Original sample asset authored for this project.
+newmtl clay
+Kd 0.65 0.24 0.12
+illum 2
+newmtl brass
+Kd 0.82 0.58 0.25
+Pm 1
+Pr 0.25
+illum 3

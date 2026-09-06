@@ -1,5 +1,6 @@
 #include "scene.h"
 #include "cube.h"
+#include "mesh.h"
 #include "sphere.h"
 
 using std::make_shared;
@@ -96,7 +97,40 @@ scene studio() {
     s.view.defocus_angle = 0.12;
     return s;
 }
+scene caustics_scene() {
+    scene s;
+    s.name = "caustics";
+    s.env.sky = false;
+    auto floor = make_shared<lambertian>(color(0.7, 0.72, 0.75));
+    s.objects.add(make_shared<quad>(point3(-10, 0, 10), vec3(20, 0, 0), vec3(0, 0, -20), floor));
+    s.objects.add(make_shared<sphere>(point3(0, 1.05, 0), 1, make_shared<dielectric>(1.5)));
+    s.objects.add(make_shared<cube>(point3(-2, 0.65, -0.7), vec3(1, 1.3, 1), vec3(1, 0, 0),
+                                    vec3(0, 1, 0), vec3(0, 0, 1),
+                                    make_shared<lambertian>(color(0.15, 0.3, 0.5))));
+    s.lights.add(make_shared<PointLight>(point3(-1.5, 4.5, -2), color(1, 0.93, 0.78), 30));
+    s.view.lookfrom = point3(4, 4.5, 7);
+    s.view.lookat = point3(0, 0.3, 0);
+    s.view.vfov = 40;
+    return s;
+}
 } // namespace
+scene make_mesh_scene(const std::filesystem::path &path, std::string &warnings) {
+    auto mesh = load_obj(path, true);
+    warnings = mesh.warnings;
+    scene s;
+    s.name = "mesh";
+    s.env.sky = false;
+    s.env.background = color(0.04, 0.05, 0.06);
+    s.objects = std::move(mesh.geometry);
+    s.objects.add(make_shared<quad>(point3(-5, -0.01, 5), vec3(10, 0, 0), vec3(0, 0, -10),
+                                    make_shared<lambertian>(make_shared<checker_texture>(
+                                        0.75, color(0.25, 0.27, 0.3), color(0.45, 0.47, 0.5)))));
+    area(s, point3(-3, 5, -2), vec3(5, 0, 0), vec3(0, 0, 5), color(7, 6.5, 5.5));
+    s.view.lookfrom = point3(4, 2.8, 5);
+    s.view.lookat = point3(0, 0.8, 0);
+    s.view.vfov = 35;
+    return s;
+}
 scene make_scene(const std::string &name, std::uint64_t seed) {
     if (name == "demo")
         return demo();
@@ -104,9 +138,12 @@ scene make_scene(const std::string &name, std::uint64_t seed) {
         return field(seed);
     if (name == "studio")
         return studio();
-    throw std::invalid_argument("Unknown scene '" + name + "'; choose demo, field, or studio");
+    if (name == "caustics")
+        return caustics_scene();
+    throw std::invalid_argument("Unknown scene '" + name +
+                                "'; choose demo, field, studio, or caustics");
 }
 const std::vector<std::string> &scene_names() {
-    static const std::vector<std::string> names{"demo", "field", "studio"};
+    static const std::vector<std::string> names{"demo", "field", "studio", "caustics"};
     return names;
 }

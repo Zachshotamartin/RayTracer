@@ -127,6 +127,7 @@ struct sdl_window::impl {
     int texture_width = 0, texture_height = 0, last_samples = -1;
     double last_exposure = infinity;
     std::string last_scene, last_title;
+    bool last_denoised = false;
     ~impl() {
         SDL_DestroyTexture(texture);
         SDL_DestroyRenderer(renderer);
@@ -138,7 +139,7 @@ sdl_window::sdl_window(int width, int height) : impl_(std::make_unique<impl>()) 
     SDL_SetMainReady();
     check(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) == 0, "Initialize SDL");
     int display_width = std::clamp(width, 800, 1280);
-    int display_height = display_width * height / width + 100;
+    int display_height = display_width * height / width + 124;
     impl_->window =
         SDL_CreateWindow("RayTracer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, display_width,
                          display_height, SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
@@ -181,6 +182,15 @@ window_actions sdl_window::poll() {
         case SDLK_s:
             result.save = true;
             break;
+        case SDLK_d:
+            result.denoise = true;
+            break;
+        case SDLK_c:
+            result.caustics = true;
+            break;
+        case SDLK_g:
+            result.glass_shadows = true;
+            break;
         case SDLK_1:
             result.scene_index = 0;
             break;
@@ -189,6 +199,9 @@ window_actions sdl_window::poll() {
             break;
         case SDLK_3:
             result.scene_index = 2;
+            break;
+        case SDLK_4:
+            result.scene_index = 3;
             break;
         case SDLK_EQUALS:
         case SDLK_PLUS:
@@ -223,7 +236,7 @@ void sdl_window::present(const frame_snapshot &frame, const render_stats &stats,
         SDL_SetTextureScaleMode(s.texture, SDL_ScaleModeLinear);
     }
     if (resized || frame.samples != s.last_samples || exposure != s.last_exposure ||
-        scene != s.last_scene) {
+        scene != s.last_scene || frame.denoised != s.last_denoised) {
         auto pixels = frame.rgb(exposure);
         void *target_pixels = nullptr;
         int pitch = 0;
@@ -236,13 +249,14 @@ void sdl_window::present(const frame_snapshot &frame, const render_stats &stats,
         s.last_samples = frame.samples;
         s.last_exposure = exposure;
         s.last_scene = scene;
+        s.last_denoised = frame.denoised;
     }
     int width, height;
     SDL_GetWindowSize(s.window, &width, &height);
     SDL_RenderSetLogicalSize(s.renderer, width, height);
     SDL_SetRenderDrawColor(s.renderer, 15, 19, 20, 255);
     SDL_RenderClear(s.renderer);
-    int available = std::max(1, height - 100);
+    int available = std::max(1, height - 124);
     double scale = std::min(double(width) / frame.width, double(available) / frame.height);
     SDL_Rect image{(width - int(frame.width * scale)) / 2,
                    (available - int(frame.height * scale)) / 2, int(frame.width * scale),
@@ -258,13 +272,14 @@ void sdl_window::present(const frame_snapshot &frame, const render_stats &stats,
     int status_scale = line.str().size() * 12 <= static_cast<std::size_t>(width - 32) ? 2 : 1;
     text(s.renderer, 16, available + 15, line.str(), status_scale);
     SDL_SetRenderDrawColor(s.renderer, 162, 174, 172, 255);
-    text(s.renderer, 16, available + 40, "1 DEMO  2 FIELD  3 STUDIO | SPACE PAUSE  R RESTART", 2);
-    text(s.renderer, 16, available + 58, "S SAVE | ESC CANCEL | Q QUIT | +/- EXPOSURE", 2);
+    text(s.renderer, 16, available + 40, "1 DEMO  2 FIELD  3 STUDIO  4 CAUSTICS | SPACE PAUSE", 2);
+    text(s.renderer, 16, available + 58, "D DENOISE | R RESTART | S SAVE | ESC CANCEL | Q QUIT", 2);
+    text(s.renderer, 16, available + 76, "C CAUSTICS | G GLASS SHADOWS | +/- EXPOSURE", 2);
     SDL_SetRenderDrawColor(s.renderer, 213, 191, 129, 255);
     std::ostringstream footer;
     footer << "EXPOSURE " << std::showpos << std::fixed << std::setprecision(2) << exposure << "   "
-           << notice;
-    text(s.renderer, 16, available + 78, footer.str(), 2);
+           << (frame.denoised ? "FILTERED  " : "RAW  ") << notice;
+    text(s.renderer, 16, available + 100, footer.str(), 2);
     // Keep the native title stable during each state. Rapid title changes make
     // accessibility snapshots unstable; continuously changing numbers live in the HUD.
     auto title = "RayTracer - " + scene + " / " + status;

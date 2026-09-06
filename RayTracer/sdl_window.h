@@ -4,7 +4,8 @@
 #include <memory>
 #include <string>
 struct window_actions {
-    bool quit = false, cancel = false, pause = false, restart = false, save = false;
+    bool quit = false, cancel = false, pause = false, restart = false, save = false,
+         denoise = false, caustics = false, glass_shadows = false;
     int scene_index = -1;
     double exposure_delta = 0;
 };

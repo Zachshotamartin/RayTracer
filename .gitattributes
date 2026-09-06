@@ -1,3 +1,5 @@
 # Reference images must retain exact bytes on every checkout platform.
 *.ppm binary
 *.png binary
+*.hdr binary
+*.pfm binary

@@ -1,9 +1,9 @@
 # RayTracer
 
 A C++20 CPU path tracer with a progressive SDL viewer and a portable headless
-renderer. It traces diffuse, reflective, and refractive materials; samples area
-lights with multiple importance sampling; and renders reproducibly across CPU
-worker counts.
+renderer. It supports OBJ meshes, diffuse/reflective/refractive materials, area
+lights, caustic photon mapping, edge-aware denoising, and linear HDR export.
+Rendering is reproducible across CPU worker counts.
 
 ![Jade and brass studio: textured sphere, glass, and a rotated metal box](docs/renders/studio.png)
 
@@ -34,7 +34,9 @@ cmake --build build-headless --config Release --parallel
 ./build-headless/raytracer --scene studio --width 960 --samples 128 --output renders/studio.png
 ```
 
-The headless build has no SDL, image-library, or asset-download requirement.
+The headless build has no SDL, external image-package, or asset-download requirement.
+OBJ parsing and PNG/HDR encoding use the vendored headers listed in
+[third-party notices](third_party/README.md).
 CMake presets `release`, `headless`, and `sanitize` are also available when Ninja
 is installed.
 
@@ -55,10 +57,13 @@ render status, completed samples, elapsed wall time, worker count, and exposure.
 
 | Key | Action |
 | --- | --- |
-| `1`, `2`, `3` | Switch to demo, sphere field, or studio |
+| `1`, `2`, `3`, `4` | Switch to demo, sphere field, studio, or the caustic demonstration |
+| `D` | Toggle denoising for preview and export |
+| `C` | Toggle caustic photon mapping; restarts rendering |
+| `G` | Toggle approximate glass shadow transmission; restarts rendering |
 | `Space` | Pause/resume |
 | `R` | Restart the current scene with the same seed |
-| `S` | Save the latest complete pass as PNG + JSON |
+| `S` | Save the latest complete pass in the selected format + JSON |
 | `Esc` | Cancel rendering and keep the preview |
 | `Q` / window close | Quit |
 | `+`, `-` | Adjust display exposure by 0.25 stops |
@@ -67,6 +72,10 @@ Completed renders export automatically. Use `--output` to choose a path;
 otherwise the destination is `renders/SCENE.png`. Saving or rerendering to the same
 path replaces that image and its metadata. Exposure changes affect preview/export
 without restarting the paths; press `S` to save the adjusted image.
+HDR/PFM exports always retain linear radiance without exposure or tone mapping.
+`C` and `G` select separate lighting modes to avoid counting transmitted light
+twice. `4` enables a 300,000-photon caustic demonstration; the CLI exposes the
+scene and photon settings independently.
 
 When Finder launches the app with `/` as its working directory, exports instead
 use `~/Library/Application Support/RayTracer/renders/`. An explicit `--output`
@@ -92,6 +101,63 @@ and BVH/linear traversal within a build. JSON sidecars record all rendering
 options needed to reproduce the image. Compiler/platform floating-point
 differences are handled with tolerances in the reference-image tests.
 
+## Meshes, HDR, and denoising
+
+```sh
+./build/raytracer --mesh assets/meshes/pedestal.obj --denoise
+./build/raytracer --headless --scene studio --samples 256 --output renders/studio.hdr
+./build/raytracer --headless --scene studio --samples 256 --output renders/studio.pfm
+```
+
+OBJ import supports indexed positions, normals, UVs, negative indices, polygon
+triangulation, and a subset of MTL surface materials. The imported object is
+normalized to two units along its longest axis and placed in a lit studio.
+MTL diffuse colors, metallic surfaces, and refractive glass are supported;
+image textures and emissive MTL light registration are reported as unsupported.
+Use triangulated meshes when exact control over polygon tessellation matters.
+
+![Imported OBJ with clay and brass materials](docs/renders/mesh.png)
+
+PNG output now uses compressed DEFLATE while retaining the same tone-mapped RGB
+pixels. Radiance `.hdr` stores RGBE values; `.pfm` stores float32 RGB and is the
+preferred lossless-to-float32 training-data export. Both preserve values above
+one. Every output receives a JSON sidecar with settings and timing.
+
+`--denoise` applies a spatial a-trous filter guided by primary-hit normals,
+depth, and albedo. It reduces diffuse surface noise while protecting edges;
+glass, metal, and emitters are left unfiltered. It does not change accumulated
+samples. The current filter has no temporal history, and its pinhole guide
+approximation is less reliable with strong depth of field.
+
+## Caustics and glass shadows
+
+```sh
+./build/raytracer --scene caustics --caustics 1000000 --caustic-radius 0.08 --denoise
+./build/raytracer --scene caustics --glass-shadows transparent
+```
+
+![Glass focusing light onto the floor using caustic photons](docs/renders/caustics.png)
+
+Caustic mapping traces light through ideal reflections/refractions and gathers
+the resulting flux on diffuse surfaces. The ordinary path estimator excludes
+the corresponding emitter paths to avoid double counting. The map is fixed
+for each render: more camera samples do not increase its photon count. More
+photons and a smaller gather radius can resolve finer caustic detail at a cost
+in memory and tracing time. This is a biased density estimate, not progressive
+photon mapping or a general bidirectional integrator. It supports registered
+point, directional, and quad lights, with diffuse receivers and ideal specular
+chains; rough-metal and environment-light caustics remain outside its scope.
+
+`--glass-shadows transparent` provides a cheaper straight-connection
+approximation with Fresnel transmission and total internal reflection checks.
+It does not bend shadow rays or focus light. Physical caustic mapping and this
+approximation are mutually exclusive. In physical mode, a straight shadow
+connection remains occluded by glass; refracted illumination arrives through
+the photon/path transport instead.
+
+See [rendering extensions](docs/rendering-extensions.md) for estimator details,
+format guarantees, and validation.
+
 ## Scenes
 
 | Preset | What it demonstrates |
@@ -99,6 +165,7 @@ differences are handled with tolerances in the reference-image tests.
 | `demo` | Original five-sphere setup, hollow glass, mirror metal, and directional lighting |
 | `field` | Hundreds of seeded spheres, three material families, depth of field, and BVH scaling |
 | `studio` | Procedural textures, GGX metal, rotated geometry, glass, soft shadows, and two area lights |
+| `caustics` | Point-light refraction through a glass sphere onto a diffuse floor |
 
 ![Restored sphere-field scene](docs/renders/field.png)
 
@@ -130,7 +197,8 @@ python3 scripts/render_gallery.py --binary build/raytracer
 - Median-split BVH and persistent workers processing 16 × 16 tiles.
 - Per-pixel/sample random streams, independent of scheduling and worker count.
 - Complete-pass publication, cancellation, pause/resume, and owned SDL resources.
-- Shared display/export conversion, portable PNG writing, and JSON sidecars.
+- Compressed PNG, linear RGBE/PFM export, and JSON sidecars.
+- OBJ/MTL mesh import, geometry-guided filtering, and a separate caustic photon pass.
 - CMake/CTest, native Xcode tests, and CI for Linux, macOS, and Windows.
 
 See [architecture and numerical details](docs/architecture.md) for the estimator,
@@ -159,7 +227,9 @@ ctest --test-dir build -C Release --output-on-failure
 
 Python 3 enables the CLI/PNG integration suite. The C++ suite covers intersections,
 BVH equivalence, light visibility, material sampling, energy against numerical
-quadrature, deterministic output, pause/cancellation, and three image regressions.
+quadrature, deterministic output, pause/cancellation, and four image regressions.
+Additional tests cover mesh import, filter error reduction, photon energy and
+path partitioning, HDR/PFM decoding, and PNG compression.
 The SDL suite tests texture updates, keyboard controls, and shutdown with its
 dummy driver. Xcode's default **RayTracer** scheme runs native geometry tests.
 The separate **RayTracer UI** scheme contains interactive launch/control tests
@@ -190,7 +260,10 @@ extensions, tests, benchmarks, and studio scene build on that foundation.
 [The Rest of Your Life](https://raytracing.github.io/books/RayTracingTheRestOfYourLife.html)
 are references for acceleration and sampling.
 
-The current renderer uses analytic geometry and a finite path depth. It has no
-mesh importer, denoiser, HDR export, or dedicated caustic sampler; shadow rays treat
-glass as opaque. PNGs use uncompressed DEFLATE for dependency-free portability.
-SDL2 remains under its bundled upstream license.
+The renderer uses analytic primitives and triangle meshes with finite path depth.
+It currently has no image texture loader, participating media, temporal denoiser,
+or learned rendering model. Caustic maps have finite-radius bias, and approximate
+glass shadows do not reproduce refraction. SDL2 remains under its bundled
+upstream license; vendored OBJ/image code retains its own license notices.
+
+The proposed ML mode is described in [the neural rendering plan](docs/neural-rendering-plan.md).

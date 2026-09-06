@@ -1,4 +1,5 @@
 #include "integrator.h"
+#include "caustics.h"
 namespace {
 double power_weight(double a, double b) {
     if (a <= 0)
@@ -8,11 +9,13 @@ double power_weight(double a, double b) {
 }
 } // namespace
 color trace_path(ray r, const hittable &world, const light_list &lights, const environment &env,
-                 int max_depth, sampler &rng, ray_counts &counts) {
+                 int max_depth, sampler &rng, ray_counts &counts, transport_options options) {
     color radiance, throughput(1, 1, 1);
     bool previous_delta = true;
     double previous_pdf = 0;
     point3 previous_origin = r.o();
+    bool diffuse_candidate = false, shadow_candidate = false, has_specular = false,
+         transmission_only = true;
     for (int bounce = 0; bounce < max_depth; ++bounce) {
         ++counts.paths;
         hit_record rec;
@@ -24,7 +27,13 @@ color trace_path(ray r, const hittable &world, const light_list &lights, const e
         double weight = previous_delta
                             ? 1
                             : power_weight(previous_pdf, lights.pdf_for_hit(previous_origin, rec));
-        radiance += throughput * emission * weight;
+        bool replaced = has_specular && lights.owns_emitter(rec.object) &&
+                        ((options.caustics && diffuse_candidate) ||
+                         (options.transparent_shadows && shadow_candidate && transmission_only));
+        if (!replaced)
+            radiance += throughput * emission * weight;
+        if (options.caustics)
+            radiance += throughput * options.caustics->radiance(r.d(), rec, max_depth - bounce - 1);
 
         // Next-event estimation is additive and uses this material's BSDF.
         // MIS balances sampled area lights against paths that hit their geometry.
@@ -36,13 +45,19 @@ color trace_path(ray r, const hittable &world, const light_list &lights, const e
                 color bsdf = rec.mat->evaluate(r.d(), direct.direction, rec);
                 if (!bsdf.near_zero()) {
                     ++counts.shadows;
-                    if (light_list::visible(origin, direct, world)) {
-                        double mis = (direct.delta || bounce + 1 == max_depth)
+                    bool crossed_glass = false;
+                    color visibility =
+                        options.transparent_shadows
+                            ? light_list::transmittance(origin, direct, world, &crossed_glass)
+                            : (light_list::visible(origin, direct, world) ? color(1, 1, 1)
+                                                                          : color{});
+                    if (!visibility.near_zero()) {
+                        double mis = (direct.delta || crossed_glass || bounce + 1 == max_depth)
                                          ? 1
                                          : power_weight(direct.pdf,
                                                         rec.mat->pdf(r.d(), direct.direction, rec));
-                        radiance +=
-                            throughput * bsdf * direct.radiance * (cosine * mis / direct.pdf);
+                        radiance += throughput * bsdf * direct.radiance * visibility *
+                                    (cosine * mis / direct.pdf);
                     }
                 }
             }
@@ -52,6 +67,15 @@ color trace_path(ray r, const hittable &world, const light_list &lights, const e
         scatter_sample scattered;
         if (!rec.mat->sample(r.d(), rec, rng, scattered))
             break;
+        if (!scattered.delta) {
+            diffuse_candidate = rec.mat->is_diffuse();
+            shadow_candidate = true;
+            has_specular = false;
+            transmission_only = true;
+        } else {
+            has_specular = true;
+            transmission_only = transmission_only && scattered.transmitted;
+        }
         throughput = throughput * scattered.weight;
         if (throughput.near_zero())
             break;

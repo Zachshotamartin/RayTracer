@@ -1,5 +1,6 @@
 #include "renderer.h"
 #include "bvh.h"
+#include "caustics.h"
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -22,6 +23,12 @@ void render_settings::validate(double aspect) const {
             "Limits: width 1..8192, samples 1..100000, depth 1..128, threads 0..256");
     if (std::uint64_t(width) * height(aspect) > 16777216)
         throw std::invalid_argument("Image exceeds 16 megapixels");
+    if (caustic_photons < 0 || caustic_photons > 10000000 || !std::isfinite(caustic_radius) ||
+        caustic_radius < 1e-5 || caustic_radius > 100)
+        throw std::invalid_argument("Caustics require 0..10000000 photons and radius 0.00001..100");
+    if (transparent_shadows && caustic_photons)
+        throw std::invalid_argument(
+            "Transparent shadow approximation and caustic mapping are separate modes");
 }
 struct render_session::impl {
     using clock = std::chrono::steady_clock;
@@ -29,8 +36,10 @@ struct render_session::impl {
     render_settings settings;
     std::unique_ptr<camera> view;
     std::shared_ptr<hittable> world;
+    std::unique_ptr<caustic_map> photons;
     int width, height, tile_columns, tile_count, worker_count;
     std::vector<color> accumulation;
+    std::vector<surface_guide> guides;
     std::atomic<std::uint64_t> path_rays{0}, shadow_rays{0};
     mutable std::mutex frame_mutex, error_mutex, pause_mutex;
     std::mutex phase_mutex;
@@ -43,6 +52,7 @@ struct render_session::impl {
     bool stop_after_pass = false, launch_failed = false;
     std::exception_ptr error;
     std::latch launch{1};
+    std::latch prepared{1};
     std::vector<std::thread> workers;
     clock::time_point start;
 
@@ -58,6 +68,8 @@ struct render_session::impl {
                             ? settings.threads
                             : static_cast<int>(std::max(1u, std::thread::hardware_concurrency())));
         accumulation.resize(std::size_t(width) * height);
+        if (settings.collect_guides)
+            guides.resize(accumulation.size());
         published = {width, height, 0, std::vector<color>(accumulation.size())};
         auto build_start = clock::now();
         if (settings.use_bvh && !content.objects.objects.empty())
@@ -71,7 +83,7 @@ struct render_session::impl {
         start = clock::now();
         try {
             for (int i = 0; i < worker_count; ++i)
-                workers.emplace_back([this] { work(); });
+                workers.emplace_back([this, i] { work(i); });
         } catch (...) {
             launch_failed = true;
             launch.count_down();
@@ -105,6 +117,8 @@ struct render_session::impl {
                 for (std::size_t i = 0; i < accumulation.size(); ++i)
                     published.linear[i] = accumulation[i] * scale;
                 statistics.samples = published.samples;
+                if (published.samples == 1 && !guides.empty())
+                    published.guides = guides;
             }
             statistics.seconds = std::chrono::duration<double>(clock::now() - start).count();
             statistics.path_rays = path_rays.load(std::memory_order_relaxed);
@@ -118,10 +132,30 @@ struct render_session::impl {
         if (stop_after_pass)
             finished.store(true, std::memory_order_release);
     }
-    void work() {
+    void work(int worker_index) {
         launch.wait();
         if (launch_failed)
             return;
+        if (worker_index == 0) {
+            try {
+                if (settings.caustic_photons) {
+                    auto begin = clock::now();
+                    photons = std::make_unique<caustic_map>(
+                        *world, content.lights, settings.caustic_photons, settings.max_depth,
+                        settings.caustic_radius, settings.seed, &cancelled);
+                    std::lock_guard lock(frame_mutex);
+                    statistics.photon_seconds =
+                        std::chrono::duration<double>(clock::now() - begin).count();
+                    statistics.emitted_photons = photons->emitted;
+                    statistics.stored_photons = photons->stored();
+                    statistics.photon_rays = photons->traced_rays;
+                }
+            } catch (...) {
+                remember_error();
+            }
+            prepared.count_down();
+        }
+        prepared.wait();
         for (int pass = 0;; ++pass) {
             ray_counts counts;
             try {
@@ -142,11 +176,18 @@ struct render_session::impl {
                             if (cancelled.load(std::memory_order_relaxed))
                                 break;
                             auto index = std::size_t(y) * width + x;
+                            if (pass == 0 && !guides.empty()) {
+                                auto primary = view->center_ray(x, y);
+                                hit_record rec;
+                                if (world->hit(primary, interval(1e-8, infinity), rec))
+                                    guides[index] = {rec.normal, rec.mat->guide_albedo(rec), rec.t,
+                                                     true, rec.mat->is_diffuse()};
+                            }
                             auto rng = sampler::for_pixel(settings.seed, index, pass);
                             auto r = view->get_ray(x, y, rng);
-                            accumulation[index] +=
-                                trace_path(r, *world, content.lights, content.env,
-                                           settings.max_depth, rng, counts);
+                            accumulation[index] += trace_path(
+                                r, *world, content.lights, content.env, settings.max_depth, rng,
+                                counts, {settings.transparent_shadows, photons.get()});
                         }
                 }
             } catch (...) {

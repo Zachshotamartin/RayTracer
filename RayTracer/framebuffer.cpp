@@ -1,6 +1,19 @@
 #include "framebuffer.h"
 #include <array>
+#include <bit>
 #include <fstream>
+#include <limits>
+#include <memory>
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "../third_party/stb_image_write.h"
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
 std::vector<std::uint8_t> frame_snapshot::rgb(double exposure) const {
     std::vector<std::uint8_t> result(linear.size() * 3);
@@ -60,26 +73,13 @@ void write_png(const std::filesystem::path &path, const frame_snapshot &frame, d
         auto begin = pixels.begin() + std::size_t(y) * frame.width * 3;
         raw.insert(raw.end(), begin, begin + frame.width * 3);
     }
-    // RFC 1950/1951: a zlib stream containing uncompressed DEFLATE blocks.
-    // Deliberately dependency-free; output size trades compression for portability.
-    bytes zlib{0x78, 0x01};
-    for (std::size_t offset = 0; offset < raw.size();) {
-        auto length = static_cast<std::uint16_t>(std::min<std::size_t>(65535, raw.size() - offset));
-        zlib.push_back(offset + length == raw.size() ? 1 : 0);
-        zlib.push_back(length & 255);
-        zlib.push_back(length >> 8);
-        auto inverse = static_cast<std::uint16_t>(~length);
-        zlib.push_back(inverse & 255);
-        zlib.push_back(inverse >> 8);
-        zlib.insert(zlib.end(), raw.begin() + offset, raw.begin() + offset + length);
-        offset += length;
-    }
-    std::uint32_t a = 1, b = 0;
-    for (auto byte : raw) {
-        a = (a + byte) % 65521;
-        b = (b + a) % 65521;
-    }
-    be32(zlib, (b << 16) | a);
+    int compressed_size = 0;
+    std::unique_ptr<unsigned char, decltype(&std::free)> compressed(
+        stbi_zlib_compress(raw.data(), static_cast<int>(raw.size()), &compressed_size, 8),
+        std::free);
+    if (!compressed)
+        throw std::runtime_error("PNG compression failed");
+    bytes zlib(compressed.get(), compressed.get() + compressed_size);
     bytes png{137, 80, 78, 71, 13, 10, 26, 10}, header;
     be32(header, frame.width);
     be32(header, frame.height);
@@ -95,4 +95,68 @@ void write_png(const std::filesystem::path &path, const frame_snapshot &frame, d
                static_cast<std::streamsize>(png.size()));
     if (!file)
         throw std::runtime_error("Could not write PNG: " + path.string());
+}
+
+namespace {
+std::vector<float> linear_pixels(const frame_snapshot &frame, bool rgbe) {
+    if (frame.width <= 0 || frame.height <= 0 ||
+        frame.linear.size() != std::size_t(frame.width) * frame.height)
+        throw std::invalid_argument("Invalid framebuffer for linear output");
+    std::vector<float> pixels;
+    pixels.reserve(frame.linear.size() * 3);
+    for (auto pixel : frame.linear)
+        for (int c = 0; c < 3; ++c) {
+            double limit = rgbe ? std::ldexp(1.0, 127) : std::numeric_limits<float>::max();
+            if (!std::isfinite(pixel[c]) || std::fabs(pixel[c]) >= limit || (rgbe && pixel[c] < 0))
+                throw std::invalid_argument("Radiance is outside the export format's range");
+            float value = static_cast<float>(pixel[c]);
+            if (rgbe && double(value) >= limit)
+                throw std::invalid_argument("Rounded radiance exceeds RGBE's range");
+            pixels.push_back(value);
+        }
+    return pixels;
+}
+std::ofstream output_file(const std::filesystem::path &path) {
+    if (!path.parent_path().empty())
+        std::filesystem::create_directories(path.parent_path());
+    std::ofstream out(path, std::ios::binary);
+    if (!out)
+        throw std::runtime_error("Could not open image: " + path.string());
+    return out;
+}
+} // namespace
+void write_hdr(const std::filesystem::path &path, const frame_snapshot &frame) {
+    auto pixels = linear_pixels(frame, true);
+    auto out = output_file(path);
+    auto callback = [](void *context, void *data, int size) {
+        static_cast<std::ofstream *>(context)->write(static_cast<char *>(data), size);
+    };
+    if (!stbi_write_hdr_to_func(callback, &out, frame.width, frame.height, 3, pixels.data()) ||
+        !out)
+        throw std::runtime_error("Could not write HDR: " + path.string());
+}
+void write_pfm(const std::filesystem::path &path, const frame_snapshot &frame) {
+    auto pixels = linear_pixels(frame, false);
+    auto out = output_file(path);
+    out << "PF\n" << frame.width << ' ' << frame.height << "\n-1.0\n";
+    // PFM scanlines run bottom to top. Emit little-endian IEEE float32 explicitly.
+    for (int y = frame.height - 1; y >= 0; --y)
+        for (int x = 0; x < frame.width * 3; ++x) {
+            auto bits = std::bit_cast<std::uint32_t>(pixels[std::size_t(y) * frame.width * 3 + x]);
+            for (int shift = 0; shift < 32; shift += 8)
+                out.put(static_cast<char>((bits >> shift) & 255));
+        }
+    if (!out)
+        throw std::runtime_error("Could not write PFM: " + path.string());
+}
+void write_image(const std::filesystem::path &path, const frame_snapshot &frame, double exposure) {
+    auto extension = path.extension().string();
+    if (extension == ".png")
+        write_png(path, frame, exposure);
+    else if (extension == ".hdr")
+        write_hdr(path, frame);
+    else if (extension == ".pfm")
+        write_pfm(path, frame);
+    else
+        throw std::invalid_argument("Output must end in .png, .hdr, or .pfm");
 }

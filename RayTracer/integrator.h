@@ -4,6 +4,11 @@
 struct ray_counts {
     std::uint64_t paths = 0, shadows = 0;
 };
+class caustic_map;
+struct transport_options {
+    bool transparent_shadows = false;
+    const caustic_map *caustics = nullptr;
+};
 struct environment {
     bool sky = true;
     color background{0, 0, 0};
@@ -15,4 +20,4 @@ struct environment {
     }
 };
 color trace_path(ray r, const hittable &world, const light_list &lights, const environment &env,
-                 int max_depth, sampler &rng, ray_counts &counts);
+                 int max_depth, sampler &rng, ray_counts &counts, transport_options options = {});

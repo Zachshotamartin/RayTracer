@@ -7,6 +7,7 @@ struct scatter_sample {
     color weight; // f * abs(n dot wi) / PDF, including branch probabilities
     double pdf = 0;
     bool delta = false;
+    bool transmitted = false;
 };
 inline vec3 from_local(const vec3 &p, const vec3 &normal) {
     vec3 tangent =
@@ -22,9 +23,20 @@ class material {
     virtual double pdf(const vec3 &, const vec3 &, const hit_record &) const { return 0; }
     virtual color emitted(const hit_record &) const { return {}; }
     virtual bool is_delta() const { return false; }
+    virtual bool is_diffuse() const { return false; }
+    virtual color guide_albedo(const hit_record &) const { return color(1, 1, 1); }
+    virtual color shadow_transmission(const vec3 &, const hit_record &) const { return {}; }
+    virtual bool sample_photon(const vec3 &incoming, const hit_record &rec, sampler &rng,
+                               scatter_sample &out) const {
+        return sample(incoming, rec, rng, out);
+    }
 };
 class lambertian : public material {
   public:
+    bool is_diffuse() const override { return true; }
+    color guide_albedo(const hit_record &rec) const override {
+        return albedo_->value(rec.u, rec.v, rec.p);
+    }
     explicit lambertian(color albedo) : albedo_(std::make_shared<solid_color>(albedo)) {}
     explicit lambertian(std::shared_ptr<texture> albedo) : albedo_(std::move(albedo)) {}
     bool sample(const vec3 &, const hit_record &rec, sampler &rng,
@@ -51,6 +63,7 @@ class lambertian : public material {
 // Isotropic GGX conductor. A roughness of zero is an ideal mirror.
 class metal : public material {
   public:
+    color guide_albedo(const hit_record &) const override { return f0_; }
     metal(color reflectance, double roughness)
         : f0_(reflectance), roughness_(std::clamp(roughness, 0.0, 1.0)),
           alpha_(std::max(0.001, roughness_ * roughness_)) {}
@@ -128,10 +141,26 @@ class dielectric : public material {
         bool reflected = eta * sine > 1 || reflectance(cosine, eta) > rng.uniform();
         out.direction =
             reflected ? reflect(incoming, rec.normal) : refract(incoming, rec.normal, eta);
+        out.transmitted = !reflected;
         out.weight = reflected ? color(1, 1, 1) : color(eta * eta, eta * eta, eta * eta);
         out.pdf = 1;
         out.delta = true;
         return true;
+    }
+    bool sample_photon(const vec3 &incoming, const hit_record &rec, sampler &rng,
+                       scatter_sample &out) const override {
+        sample(incoming, rec, rng, out);
+        // Flux/importance transport has no radiance eta-squared factor.
+        out.weight = color(1, 1, 1);
+        return true;
+    }
+    color shadow_transmission(const vec3 &incoming, const hit_record &rec) const override {
+        double eta = rec.front_face ? 1 / index_ : index_;
+        double cosine = std::clamp(dot(-incoming, rec.normal), 0.0, 1.0);
+        if (eta * std::sqrt(1 - cosine * cosine) > 1)
+            return {};
+        double transmitted = 1 - reflectance(cosine, eta);
+        return color(transmitted, transmitted, transmitted);
     }
     static double reflectance(double cosine, double index) {
         double r = (1 - index) / (1 + index);

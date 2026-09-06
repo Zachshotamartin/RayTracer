@@ -7,6 +7,9 @@ struct render_settings {
     int width = 640, samples = 64, max_depth = 16, threads = 0;
     std::uint64_t seed = 42;
     bool use_bvh = true;
+    bool collect_guides = false, transparent_shadows = false;
+    int caustic_photons = 0;
+    double caustic_radius = 0.12;
     int height(double aspect) const;
     void validate(double aspect) const;
 };
@@ -14,6 +17,8 @@ struct render_stats {
     int samples = 0, workers = 0, objects = 0;
     std::uint64_t path_rays = 0, shadow_rays = 0;
     double seconds = 0, build_seconds = 0;
+    double photon_seconds = 0;
+    std::uint64_t emitted_photons = 0, stored_photons = 0, photon_rays = 0;
 };
 struct render_result {
     frame_snapshot frame;

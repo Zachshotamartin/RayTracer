@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(RayTracer VERSION 2.0.0 LANGUAGES CXX)
+project(RayTracer VERSION 2.1.0 LANGUAGES CXX)
 
 option(RAYTRACER_ENABLE_SDL "Build the SDL desktop viewer" ON)
 option(RAYTRACER_SANITIZERS "Enable address and undefined behavior sanitizers" OFF)
@@ -15,7 +15,8 @@ find_package(Threads REQUIRED)
 
 add_library(raytracer_core
     RayTracer/integrator.cpp RayTracer/scene.cpp
-    RayTracer/renderer.cpp RayTracer/framebuffer.cpp)
+    RayTracer/renderer.cpp RayTracer/framebuffer.cpp
+    RayTracer/mesh.cpp RayTracer/denoiser.cpp RayTracer/caustics.cpp)
 target_include_directories(raytracer_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/RayTracer)
 target_link_libraries(raytracer_core PUBLIC Threads::Threads)
 if(MSVC)
@@ -60,10 +61,15 @@ if(BUILD_TESTING)
     target_link_libraries(raytracer_tests PRIVATE raytracer_core)
     target_compile_definitions(raytracer_tests PRIVATE RT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
     add_test(NAME core COMMAND raytracer_tests)
+    add_executable(raytracer_feature_tests tests/test_features.cpp)
+    target_link_libraries(raytracer_feature_tests PRIVATE raytracer_core)
+    target_compile_definitions(raytracer_feature_tests PRIVATE RT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+    add_test(NAME rendering_features COMMAND raytracer_feature_tests)
+    set_tests_properties(rendering_features PROPERTIES TIMEOUT 90)
     set_tests_properties(core PROPERTIES TIMEOUT 90)
     find_package(Python3 COMPONENTS Interpreter QUIET)
     if(Python3_FOUND)
-        add_test(NAME cli_png COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_cli.py $<TARGET_FILE:raytracer>)
+        add_test(NAME cli_png COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_cli.py $<TARGET_FILE:raytracer> $<TARGET_FILE:raytracer_feature_tests>)
         set_tests_properties(cli_png PROPERTIES TIMEOUT 60)
     endif()
     if(RAYTRACER_ENABLE_SDL)

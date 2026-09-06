@@ -1,5 +1,6 @@
 #pragma once
 #include "color.h"
+#include "material.h"
 #include "quad.h"
 #include <vector>
 struct light_sample {
@@ -9,11 +10,17 @@ struct light_sample {
     double pdf = 0;
     bool delta = true;
 };
+struct emitted_photon {
+    ray path;
+    color flux;
+};
 class light {
   public:
     virtual ~light() = default;
     virtual light_sample sample(const point3 &, sampler &) const = 0;
     virtual double pdf_for_hit(const point3 &, const hit_record &) const { return 0; }
+    virtual emitted_photon emit(const aabb &, sampler &) const = 0;
+    virtual const hittable *emitter() const { return nullptr; }
 };
 class PointLight : public light {
   public:
@@ -26,6 +33,9 @@ class PointLight : public light {
             return {};
         return {d / distance, distance, power_ / (distance * distance), 1, true};
     }
+    emitted_photon emit(const aabb &, sampler &rng) const override {
+        return {ray(position_, random_unit_vector(rng)), power_ * (4 * rt_pi)};
+    }
 
   private:
     point3 position_;
@@ -37,6 +47,13 @@ class DirectionalLight : public light {
         : direction_(-to_unit_vector(direction)), radiance_(c * intensity) {}
     light_sample sample(const point3 &, sampler &) const override {
         return {direction_, infinity, radiance_, 1, true};
+    }
+    emitted_photon emit(const aabb &bounds, sampler &rng) const override {
+        auto center = (bounds.min + bounds.max) / 2;
+        double radius = (bounds.max - bounds.min).length() / 2 + 1e-4;
+        auto disk = from_local(random_in_unit_disk(rng) * radius, direction_);
+        return {ray(center + direction_ * (radius + 1e-4) + disk, -direction_),
+                radiance_ * (rt_pi * radius * radius)};
     }
 
   private:
@@ -69,6 +86,16 @@ class AreaLight : public light {
         double cosine = dot(shape_->normal(), -d / distance);
         return cosine > 0 ? d.dot() / (cosine * shape_->area()) : 0;
     }
+    const hittable *emitter() const override { return shape_.get(); }
+    emitted_photon emit(const aabb &, sampler &rng) const override {
+        auto p = shape_->sample(rng);
+        double u = rng.uniform(), phi = 2 * rt_pi * rng.uniform();
+        auto d = from_local(
+            vec3(std::sqrt(u) * std::cos(phi), std::sqrt(u) * std::sin(phi), std::sqrt(1 - u)),
+            shape_->normal());
+        return {ray(p + shape_->normal() * origin_epsilon(p), d),
+                emission_ * (rt_pi * shape_->area())};
+    }
 
   private:
     std::shared_ptr<quad> shape_;
@@ -78,6 +105,42 @@ class light_list {
   public:
     void add(std::shared_ptr<light> item) { lights_.push_back(std::move(item)); }
     bool empty() const { return lights_.empty(); }
+    bool owns_emitter(const hittable *object) const {
+        for (const auto &item : lights_)
+            if (item->emitter() == object)
+                return true;
+        return false;
+    }
+    emitted_photon emit(const aabb &bounds, sampler &rng) const {
+        if (empty())
+            return {};
+        auto i = std::min(lights_.size() - 1, std::size_t(rng.uniform() * lights_.size()));
+        auto photon = lights_[i]->emit(bounds, rng);
+        photon.flux *= double(lights_.size());
+        return photon;
+    }
+    // A straight connection approximation; refraction bending is handled by photon mapping.
+    static color transmittance(const point3 &origin, const light_sample &sample,
+                               const hittable &world, bool *crossed_glass = nullptr) {
+        if (sample.pdf <= 0)
+            return {};
+        color transmission(1, 1, 1);
+        double start = 1e-8;
+        double end = std::isfinite(sample.distance) ? sample.distance - 4 * origin_epsilon(origin)
+                                                    : infinity;
+        for (int crossing = 0; crossing < 128; ++crossing) {
+            hit_record rec;
+            if (!world.hit(ray(origin, sample.direction), interval(start, end), rec))
+                return transmission;
+            transmission = transmission * rec.mat->shadow_transmission(sample.direction, rec);
+            if (transmission.near_zero())
+                return {};
+            if (crossed_glass)
+                *crossed_glass = true;
+            start = rec.t + origin_epsilon(rec.p);
+        }
+        return {}; // Conservative termination for malformed or extremely layered geometry.
+    }
     light_sample sample(const point3 &p, sampler &rng) const {
         if (empty())
             return {};

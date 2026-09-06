@@ -38,6 +38,9 @@ class camera {
         }
         return ray(origin, to_unit_vector(pixel - origin));
     }
+    ray center_ray(int x, int y) const {
+        return ray(center_, to_unit_vector(pixel00_ + x * du_ + y * dv_ - center_));
+    }
 
   private:
     point3 center_, pixel00_;

@@ -4,22 +4,28 @@ Checked on macOS 26.6.2 / Apple M3 Pro with Apple clang 21 and Xcode 26.6.
 
 | Check | Result |
 | --- | --- |
-| Release CMake desktop build and CTest | 3 suites passed: core, CLI/PNG, SDL viewer |
-| Release headless build and CTest | 2 suites passed; executable has no SDL dependency |
-| AddressSanitizer + UndefinedBehaviorSanitizer | Both headless suites passed |
-| ThreadSanitizer | All 11 core groups passed, including worker teardown and cancellation |
-| Headers compiled independently | 23 headers passed |
+| Release CMake desktop build and CTest | 4 suites passed: core, rendering features, CLI/images, SDL viewer |
+| Release headless build and CTest | 3 suites passed; executable has no SDL dependency |
+| AddressSanitizer + UndefinedBehaviorSanitizer | All 3 headless suites passed |
+| ThreadSanitizer | All 11 core and 5 rendering-feature groups passed, including photon preparation, worker teardown, and cancellation |
+| Headers compiled independently | 27 headers passed |
 | Native Xcode Debug and Release builds | Passed |
 | Native Xcode geometry tests | 3 passed |
 | Native Xcode UI automation | Intermittent window-discovery failures; not treated as a pass |
-| Native viewer checks through desktop interaction | Progressive display, pause, scene switching, restart, save, and quit verified |
-| Gallery and benchmark | Three images inspected; all 9 benchmark renders had identical PNG bytes |
+| Native viewer checks through desktop interaction | Progressive display, pause, scene switching, restart, save, and quit verified; new denoiser, caustic scene, and glass-shadow modes verified |
+| Gallery | Original three images plus the imported mesh and caustic scene inspected; transparent-shadow comparison checked in the viewer |
+| Historical v2.0 benchmark | All 9 benchmark renders had identical PNG bytes under the previous PNG encoding |
 
 The core groups include geometry and BVH equivalence, finite light visibility,
 material sampling, independent numerical integration of area-light energy,
-deterministic execution, concurrency lifecycle, validation, and three reference
-images. CLI tests independently decode PNG files and validate their CRCs and
-metadata, exercise errors, and compare worker/traversal configurations.
+deterministic execution, concurrency lifecycle, validation, and four reference
+images. The three original references remain byte-identical. Rendering-feature
+tests cover OBJ/MTL import, triangle/BVH agreement, denoiser error reduction and
+edge preservation, finite glass transmission, photon-energy normalization,
+independent path-traced energy comparison, and photon-prepass cancellation.
+CLI tests independently decode PNG, RGBE/RLE HDR, and PFM files; validate CRCs,
+row order, radiance above one, metadata, and exposure-independent linear exports;
+exercise errors; and compare worker/traversal configurations.
 
 ## Interactive macOS test limitation
 
