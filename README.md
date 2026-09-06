@@ -266,4 +266,7 @@ or learned rendering model. Caustic maps have finite-radius bias, and approximat
 glass shadows do not reproduce refraction. SDL2 remains under its bundled
 upstream license; vendored OBJ/image code retains its own license notices.
 
-The proposed ML mode is described in [the neural rendering plan](docs/neural-rendering-plan.md).
+The proposed ML extension reconstructs cleaner images from fewer path-traced
+samples, with upscaling and temporal reuse as later stages. See the
+[AI-assisted ray tracing plan](docs/neural-rendering-plan.md). This is a plan;
+no learned model or inference runtime is implemented yet.

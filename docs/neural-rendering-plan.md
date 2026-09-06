@@ -1,157 +1,222 @@
-# Proposed ML rendering mode
+# Proposed AI-assisted ray tracing
 
-Status: plan only. The conventional renderer extensions are implemented first;
-no model has been trained and no neural speedup is claimed.
+Status: revised plan only. Conventional rendering upgrades are pushed. No model
+has been trained, and no ML pipeline or inference runtime is implemented.
 
-## First research question
+The [ML project structure](ml-project-structure.md) specifies the package layout,
+dataset contract, experiment tracking, checkpoints, automation, and deliverables.
 
-Can a compact network predict diffuse indirect lighting on held-out camera paths
-more efficiently than this renderer's low-sample path tracing plus denoising,
-at comparable image quality?
+## Goal and learning task
 
-Build a **neural indirect-light mode** first. It still traces primary visibility
-and direct-light shadow connections, but replaces secondary indirect-light
-paths with a network prediction. This is closest to the geometry-to-shading
-approach in [Deep Shading](https://arxiv.org/abs/1603.06078). It is not a claim
-of rendering without any rays, and it does not require a CUDA GPU or online
-training. [Neural radiance caching](https://research.nvidia.com/publication/2021-06_real-time-neural-radiance-caching-path-tracing)
-is a later alternative that adapts a lighting cache during rendering.
+Train our own small reconstruction model to produce an accurate image from fewer
+real path-traced samples. The renderer continues to calculate geometry, visibility,
+materials, and light paths. The network estimates the clean image those noisy
+measurements are converging toward.
 
-Assume local development/training on the current Apple M3 Pro. Start at
-256 × 144 with pinhole cameras, diffuse materials, a simple room, up to four
-objects, and one or two area lights. Mirrors, glass, caustics, depth of field,
-and arbitrary imported meshes stay outside the first model's supported domain.
-They remain useful conventional renderer features and later stress tests.
+Training pairs come from this renderer: low-sample RGB and geometry/statistics as
+inputs, and independent high-sample RGB as the target. Train offline; during normal
+rendering, use the saved model for inference. A pretrained denoiser is a comparison
+baseline, not a substitute for the project's custom training work.
+
+This replaces the earlier geometry-to-indirect-light proposal. The new model sees
+actual noisy lighting and reconstructs complete RGB. Separate direct/indirect
+labels and a learned scene representation are no longer prerequisites.
+
+This approach is called **learned denoising or ray reconstruction**. Reconstruction
+can also include super resolution, as described in NVIDIA's
+[DLSS Ray Reconstruction research](https://research.nvidia.com/labs/adlr/DLSS4/).
+That is a research reference, not a promise of DLSS performance or compatibility.
+Our implementation targets the current Apple M3 Pro.
+
+One completed pass already samples every pixel once. Early images have noisy
+lighting estimates rather than literal empty pixels. Begin with reconstruction at
+the same resolution; rendering fewer pixels and upscaling comes later. For example,
+8 instead of 128 samples/pixel means 16 times fewer camera-path samples, but not a
+demonstrated 16-times speedup. Inference and other overhead count, and quality must
+be comparable.
 
 ## Runtime design
 
 ```mermaid
 flowchart LR
-    Scene[Scene and camera] --> Geometry[Primary-hit buffers]
-    Scene --> Direct[Cheap direct illumination]
-    Scene --> Context[Light and scene descriptors]
-    Geometry --> Network[Compact neural model]
-    Direct --> Network
-    Context --> Network
-    Network --> Indirect[Predicted indirect RGB]
-    Direct --> Compose[Emission + direct + indirect]
-    Indirect --> Compose
-    Compose --> Viewer[Existing display and exports]
+    Scene[Scene and camera] --> Trace[Ordinary path tracing]
+    Trace --> Raw[Raw linear accumulation]
+    Trace --> Guides[Geometry guides and sample statistics]
+    Raw --> Snapshot[Snapshot after a few passes]
+    Snapshot --> Model[Trained reconstruction model]
+    Guides --> Model
+    Model --> Display[Reconstructed image]
+    Raw --> RawView[Raw view and export]
+    More[Additional real samples] --> Raw
 ```
 
-Keep the model behind a renderer interface, with an optional build dependency.
-The conventional C++ renderer and its tests continue to work without Python or
-an ML runtime. Train in Python/PyTorch using the
-[MPS backend](https://docs.pytorch.org/docs/stable/notes/mps.html), with a CPU
-fallback for tests. Deploy through an ONNX Runtime C++ adapter: CPU is the
-portable baseline; explicitly register and profile its
-[Core ML execution provider](https://onnxruntime.ai/docs/execution-providers/CoreML-ExecutionProvider.html)
-on macOS. Confirm operator coverage, numeric parity, actual provider selection,
-and model-loading overhead in an early deployment spike. Pin a tested toolchain
-combination then, rather than assuming every current exporter/runtime pair works.
+- **Fast render:** trace a selected small budget, reconstruct, and stop. This can
+  save total work if the result meets the required quality.
+- **Progressive preview:** reconstruct early snapshots while tracing continues,
+  refreshing as samples arrive. This reduces time to a useful preview; completing
+  the original tracing budget does not itself reduce total tracing work.
 
-## Milestones and completion criteria
+Never feed predictions into raw accumulation or count them as measured samples.
+Keep raw and reconstructed views/exports separate. Fixed sample budgets come
+first; learned stopping rules and adaptive per-pixel sampling are deferred.
 
-| Step | Work | Evidence required to advance |
+## Milestones
+
+| Stage | Work | Completion evidence |
 | --- | --- | --- |
-| 1. Measurement and export | Add scene/camera JSON, camera trajectories, and separate emission/direct/indirect float buffers | The three radiance components reconstruct the original estimator; configurations round-trip reproducibly |
-| 2. Pilot dataset | Generate 128 views with guide buffers and high-sample references | Inspect targets, verify alignment, estimate render time/disk cost, and quantify remaining reference noise |
-| 3. Baselines and model | Train a small convolutional model, then a U-Net with scene/light conditioning | Overfit a tiny debug set, then improve held-out indirect-light error over a constant/zero predictor |
-| 4. Generalization study | Expand to a few thousand views across a bounded scene family and run ablations | Separate results for new camera paths, unseen lighting, and unseen layouts; no frame or scene leakage |
-| 5. Native inference | Export weights, integrate the C++ runtime, and profile end to end | Python/C++ predictions agree; total latency and memory are measured on the same hardware as baselines |
-| 6. Viewer and release | Add reference/prediction/error views, camera-path playback, reports, and a model card | Reproducible demo, documented failures, supported-domain checks, downloadable versioned weights |
+| 1. Paired data and measurement | Export noisy snapshots, guides, statistics, and independent references | Reproducible scene/camera configuration, aligned buffers, isolated seeds/splits, checked target noise |
+| 2. Train spatial reconstruction | Small convolutional baseline, then a compact U-Net at the same input/output resolution | Debug-set overfit, improved held-out quality, comparisons with raw rendering, a-trous, and a pretrained denoiser |
+| 3. Native preview and fast render | Run saved weights on completed passes in C++ | Python/C++ parity, responsive viewer, unchanged raw samples, measured time to matched quality |
+| 4. Super resolution | Reconstruct full resolution from half-width/half-height radiance | Better quality/time tradeoff than ordinary upscaling, with thin geometry and small lights retained |
+| 5. Temporal reconstruction | Reuse valid history from earlier camera frames | Reduced flicker without unacceptable ghosting or lag after scene changes |
+| 6. Research release | Demo, benchmarks, model card, reproducible training and evaluation | Scoped speed/quality claims, failures, weights, manifests, and checksums |
 
-Do not generate the full dataset until the pilot validates the labels and the
-inference adapter. Dataset generation should be resumable, with an explicit
-disk/time cap. Training and larger data generation need their own measured
-budgets; an image count alone is not a compute estimate.
+Stages 1–3 are the first deliverable. Test a tiny model's deployment path during
+stage 2 before expensive training. Upscaling and history are independently measured
+extensions. Fully neural scene rendering is outside this revised roadmap.
 
-## Data and target definition
+## Dataset and renderer changes
 
-Extend `integrator.cpp` to classify the contributions of one shared estimator,
-preserving its MIS weights. For the diffuse-only first model, direct lighting
-has one surface scattering event between the camera and an emitter/environment;
-indirect lighting has at least two. Do not obtain the target by subtracting an
-independently noisy direct render from a noisy total render.
+Reuse deterministic sampling, completed-pass snapshots, geometry guides, PFM export,
+and the existing a-trous filter. Add versioned scene/camera configurations and a
+dataset exporter. Separate scene-generation seeds from sampling seeds so a new
+noise realization cannot silently change the sphere-field geometry.
 
-Use the new raw PFM export and add multi-buffer export; PNG/RGBE previews are not
-training labels. Each example contains world position, normal, depth, diffuse
-albedo, view direction, validity mask, cheap direct RGB, and reference indirect
-RGB. Emission/background are composed separately. Store scene/camera parameters,
-sampling seeds, renderer commit, settings, and content hashes in a manifest.
-Use float32 arrays with lossless compression and stream batches from disk.
+Start with 128 distinct scene/camera configurations at 256 × 144, using pinhole
+cameras, diffuse materials, analytic objects or simple imported meshes, and varied
+area/point lights. Include silhouettes, contact shadows, color bleeding, dark
+regions, and bright emitters. Split whole camera-path and scene/lighting groups
+before generating noise variants or crops; retain an untouched test set.
 
-Start references at 512 samples/pixel, then compare a subset against 2048 samples
-and an independent seed. Increase the budget if reference noise materially
-affects the metric. Use the ordinary physical path tracer as the initial teacher;
-the new denoiser and finite-radius photon map are useful baselines, not presumed
-ground truth. Split by complete camera paths with spatial gaps, and by complete
-lighting/layout groups for the generalization tests. Fit normalization only on
-training data. Never tune on the final test split.
+For each configuration, save raw snapshots at 1, 2, 4, 8, 16, and 32 samples/pixel
+with several independent noise realizations. Shared-prefix snapshots and sibling
+variants must stay in one split. Reference samples use independent noise seeds,
+initially at 512 samples/pixel. Compare a subset against 2048 samples and independent
+repeat renders; increase the reference budget when remaining noise would obscure
+method differences. Existing denoising and photon mapping are baselines, not
+presumed ground truth. Initial pairs use the ordinary physical path tracer with
+approximate glass shadows and caustic mapping disabled.
 
-## Model
+| Model input | Purpose |
+| --- | --- |
+| Noisy scene-linear RGB | Actual lighting measurements |
+| Normal and albedo | Geometry/material boundaries |
+| Depth, hit mask, material/support mask | Silhouettes, background, unsupported surfaces |
+| Sample count and variance estimate | Amount and variability of evidence |
 
-Begin with a small U-Net, approximately 0.5–2 million parameters, three spatial
-scales, and ordinary convolution/activation/resize operations that export well.
-Predict nonnegative outgoing indirect RGB. Avoid dividing labels by near-zero
-albedo. Train with log-radiance L1 plus a modest linear-radiance reconstruction
-term; add edge/temporal terms only after demonstrating their effect in ablations.
-Record seeds, optimizer settings, validation curves, and checkpoint selection.
+Store scene/camera/light descriptions, separate seeds, renderer version, buffer
+conventions, hashes, and split IDs in the manifest. Accumulate stable sample moments
+alongside radiance, distinguishing sample variance from variance of the mean. At
+one sample, variance is unknown: provide a validity mask rather than treating zero
+as certainty. These statistics do not guarantee reconstruction accuracy.
 
-A visible geometry buffer cannot uniquely determine light arriving from unseen
-objects. Supply an explicit bounded scene descriptor containing object transforms,
-dimensions, colors, room parameters, and light positions/shapes/intensities.
-Encode it into the U-Net's global conditioning. Test removal of this descriptor
-as an ablation. This does not guarantee generalization to arbitrary scenes;
-unsupported layouts/materials must be reported rather than silently accepted.
+Current center-ray guides differ from jittered RGB at silhouettes. Validate
+alignment and collect sample-aligned, anti-aliased normal/albedo guides before
+treating them as clean neural inputs; preserve separate boundary/depth information.
+This also matters for the pretrained baseline: Open Image Denoise documents
+[matching reconstruction filters for color and auxiliary images](https://www.openimagedenoise.org/documentation.html#rt).
+Depth of field is outside the initial supported domain.
 
-## Evaluation
+Use raw linear float labels, not tone-mapped PNG, RGBE previews, or filtered images.
+Fit normalization on training data only; any per-image scale must be available at
+inference and retained to recover HDR output. Stream losslessly compressed arrays.
+Measure pilot storage/render cost before expanding to thousands of configurations;
+make generation resumable with explicit resource budgets.
 
-Compare direct-only rendering; 1/4/16/64-sample path tracing; the same renders with
-the conventional denoiser; and the neural mode. Include a nearest-training-view
-baseline on the camera test to reveal simple memorization. Evaluate isolated
-indirect illumination as well as the full composite. An oracle composite using
-reference indirect light plus the same cheap direct pass exposes the quality
-ceiling imposed by noisy direct lighting.
+## Model, training, and deployment
 
-Report linear-radiance error and fixed-exposure display PSNR/SSIM, per-image
-distributions and worst cases, indirect-light/shadow regions, and motion flicker.
-For flicker, reproject world positions between camera frames and reject
-disocclusions/depth mismatches; raw adjacent-frame differences also contain
-legitimate camera motion. Keep unseen lighting and unseen scene results separate
-from familiar-scene camera interpolation.
+Train a small convolutional baseline, then a U-Net of roughly 0.5–2 million
+parameters with three spatial scales. Use ordinary convolution, activation, resize,
+and skip operations for manageable export. Condition on sample budget, guides,
+and statistics; compare guide/variance ablations with RGB-only input. Predict
+nonnegative scene-linear RGB.
 
-Time scene preparation, visibility/direct buffers, tensor packing/transfers,
-synchronized inference, compositing, and display/upload. Report cold start and
-warm median/p95 latency, peak memory, model size, and amortized training/data
-cost. Exclude the concurrently running reference renderer from neural latency
-measurements, and benchmark both with equivalent hardware access. An initial
-aspiration is a 2× lower total latency at matched quality on the supported camera
-test; this is an experimental target, not a promised result. A negative speedup
-or failure on unseen scenes is still a valid result and belongs in the report.
+Start with log-radiance L1 plus a linear reconstruction term. Measure highlight
+energy and shadow detail as well as display appearance. Avoid generative/adversarial
+losses that reward invented texture over reference accuracy. First overfit a tiny
+debug set; then select checkpoints on validation scenes. Mix sample budgets and
+check that clean/high-sample inputs retain detail. Record seeds, optimizer settings,
+learning curves, training time, and checkpoint-selection criteria.
 
-## Product and repository integration
+The first supported domain is diffuse scenes. Mirrors, glass, rough metals, depth
+of field, and sharp caustics form a separate stress set. Keep raw pixels or the
+conventional path for unsupported materials/scenes and label the fallback. Report
+both supported-region and full-image quality: diffuse-only gains are not evidence
+of whole-scene speedups. Expand training when references and guides are adequate.
 
-Add a mode selector alongside the existing path tracer, with reference,
-prediction, indirect-only, and error views. References are loaded or rendered
-explicitly; label unavailable/stale references by scene and camera hash. Display
-the active mode, model version, total latency, and any unsupported input.
-Changing a model or scene invalidates cached tensors/references. Run inference
-off the SDL event thread and discard stale results after camera changes.
+Train on the Mac with PyTorch's [MPS backend](https://docs.pytorch.org/docs/stable/notes/mps.html)
+and a CPU fallback. Deploy optionally through ONNX Runtime C++: CPU provides a
+portable baseline; profile the [Core ML execution provider](https://onnxruntime.ai/docs/execution-providers/CoreML-ExecutionProvider.html)
+on macOS. Verify operator coverage, actual execution device, parity, model-loading
+cost, and supported image sizes in an early spike. Pin the tested toolchain then.
+The conventional renderer must build and run without Python or an ML runtime.
 
-Proposed files: `RayTracer/render_backend.h`, `RayTracer/neural_renderer.cpp`,
+## Progressive integration
+
+Offer raw, current-filter, and AI-reconstruction views, plus reference/error views
+when scene, camera, and integrator match an available reference. Show actual traced
+samples and elapsed time. Reconstructed exports record model version, input sample
+count, inference time, and fallback status; raw exports remain available.
+
+Run inference off the SDL event thread on immutable snapshots, with at most one
+pending newest snapshot. Begin at 1/2/4/8/16/32 samples with a wall-time throttle.
+Keep the last valid preview while inference runs and discard obsolete results.
+Invalidate on scene, camera, resolution, integrator, or model changes. Exposure
+stays a display transform. Missing/invalid models fall back with clear status.
+
+Inspect static progressive previews for popping. Early predictions can miss rare
+light paths or blur detail; more evidence does not guarantee monotonically better
+predictions. Never silently substitute predictions for accumulated measurements.
+
+Proposed additions: `RayTracer/reconstruction.h`, `RayTracer/neural_denoiser.cpp`,
 `RayTracer/feature_buffers.cpp`, `ml/data/`, `ml/models/`, `ml/train.py`,
-`ml/evaluate.py`, and `ml/export.py`. Add CPU smoke tests with a tiny test model,
-export/parity tests, dataset schema/split tests, and renderer-mode regression
-tests. Keep large datasets/checkpoints outside Git; publish selected weights and
-manifests as versioned release artifacts with checksums and a model card.
+`ml/evaluate.py`, and `ml/export.py`. Test raw-output invariance, buffer alignment,
+seed/split isolation, export parity, invalid models, stale results, and cancellation.
+Keep datasets/checkpoints outside Git and publish selected weights with checksums
+and a model card. This plan introduces no source code or dependencies.
 
-## Later experiment: a genuinely ray-to-color mode
+## Upscaling and temporal extensions
 
-After the first study, a separate fixed-scene experiment can predict RGB from
-camera ray origin/direction without geometric intersections at inference. This
-matches the direction of
-[Light Field Networks](https://scenerepresentations.org/publications/lfns/).
-It should have its own dataset, held-out viewpoints, runtime counters, and
-failure analysis. It is a different learned representation, not a toggle that
-automatically gives the first shading network zero-intersection rendering.
+First try 2× in each dimension: 256 × 144 noisy radiance to 512 × 288 reconstructed
+output. Train aligned low/high-resolution pairs with documented pixel footprints
+and jitter. Compare bilinear/bicubic and denoise-then-upscale baselines. Evaluate
+optional full-resolution geometry guides and count their additional visibility
+rays and memory. Enlarging an image alone does not demonstrate recovered detail.
+
+For camera motion, add trajectories, reprojection/motion information, history masks,
+and sequence training. Reject disocclusions, depth/normal mismatches, camera cuts,
+and changed lights/geometry. Surface motion alone does not track every reflected
+or refracted image. Compare against non-learned temporal filtering; inspect ghosting,
+lag, and newly visible surfaces. [Recurrent Monte Carlo denoising research](https://research.nvidia.com/publication/2017-07_interactive-reconstruction-monte-carlo-image-sequences-using-recurrent)
+provides a reference for learning temporal reconstruction from sparse samples.
+
+Successive static passes have overlapping samples. Do not treat cumulative means
+as independent frames and repeatedly accumulate the same evidence. The first model
+is stateless across passes; animation history requires a separate sampling design.
+
+## Evaluation and success criteria
+
+Compare raw path tracing across budgets, the existing a-trous filter, our model,
+and an optional pretrained [Open Image Denoise RT baseline](https://www.openimagedenoise.org/documentation.html#rt).
+OIDN exposes CPU and Metal devices; verify availability and record the device and
+auxiliary preprocessing cost. Publish this comparison even if OIDN performs better.
+
+Report linear HDR error, fixed-exposure display PSNR/SSIM, difficult-region errors,
+per-image distributions, and worst cases. Separate held-out cameras, new lighting,
+unseen layouts, and unsupported materials. Compare equal resolution, sample budget,
+and wall time, and plot quality against total time. Choose quality thresholds on
+validation data before testing. Measure **time to matched quality**, including
+failures to reach the threshold; avoid selecting only favorable scenes or metrics.
+
+Include scene preparation, tracing, guide/statistics collection, snapshot copies,
+packing/transfers, synchronized inference, compositing, and display upload. Report
+cold start, warm median/p95, memory, model size, data-generation cost, and training
+time. Measure first-useful-preview latency separately from fixed-budget completion.
+For continued refinement, count every inference update and contention with tracing.
+Give each method equivalent hardware access; load references outside timed runs.
+
+Success means a reproducible improvement over the current filter's time/quality
+tradeoff on held-out supported scenes. A 2× reduction in time to matched quality is
+an initial stretch target, not a promise. Upscaling/history must also preserve thin
+geometry, small bright features, and stability after history invalidation. State
+hardware, resolution, sample budgets, and quality criteria for every speed claim.
