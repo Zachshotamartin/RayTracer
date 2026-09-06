@@ -4,6 +4,9 @@
 #include <fstream>
 #include <sstream>
 #define TINYOBJLOADER_IMPLEMENTATION
+// Use upstream's portable parser: the embedded fast_float fails MSVC C++20
+// constexpr validation. Keep the parser consistent across platforms.
+#define TINYOBJLOADER_DISABLE_FAST_FLOAT
 #if defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
