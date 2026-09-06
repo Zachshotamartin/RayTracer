@@ -1,5 +1,28 @@
 # Local validation
 
+## ML release (v3.0.0)
+
+- 20 Python ML tests pass, including exact CPU checkpoint resume, paired data,
+  split/schema/checksum validation, native export parity, temporal reprojection,
+  2× output, model fallback and scene serialization. Ruff checks pass.
+- Five Release CTest suites pass with SDL + ONNX enabled, including asynchronous
+  final save, sequence completion, fallback and shutdown through SDL's dummy driver.
+- Three headless ASan/UBSan suites pass with ML inference disabled; conventional
+  builds retain their dependency-free runtime path.
+- Native arm64 Xcode Release build with ONNX succeeds. Direct desktop interaction
+  verifies AI/raw, matching reference and error modes. The Core ML probe numerically
+  matches CPU (max absolute difference 3.58e-7 at 64×36), but emits dynamic-shape
+  compiler warnings; CPU remains the validated baseline.
+- The current renderer reproduces every feature value of the selected original
+  pilot example `g0027-v000-n0-s4` exactly.
+- A real 2,304-example pilot, 50-epoch MPS training, 360-image test/OIDN comparison
+  and 20-view native timing sweep are recorded under `ml/reports/`.
+
+CI adds locked CPU ML training/export/native checks to the existing platform matrix.
+Large training runs and hardware timing stay outside CI.
+
+## Conventional baseline (v2.1.0)
+
 Checked on macOS 26.6.2 / Apple M3 Pro with Apple clang 21 and Xcode 26.6.
 
 | Check | Result |

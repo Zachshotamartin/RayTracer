@@ -8,6 +8,8 @@ struct render_settings {
     std::uint64_t seed = 42;
     bool use_bvh = true;
     bool collect_guides = false, transparent_shadows = false;
+    bool collect_features = false;
+    std::string history_key;
     int caustic_photons = 0;
     double caustic_radius = 0.12;
     int height(double aspect) const;
@@ -16,6 +18,7 @@ struct render_settings {
 struct render_stats {
     int samples = 0, workers = 0, objects = 0;
     std::uint64_t path_rays = 0, shadow_rays = 0;
+    std::uint64_t feature_rays = 0;
     double seconds = 0, build_seconds = 0;
     double photon_seconds = 0;
     std::uint64_t emitted_photons = 0, stored_photons = 0, photon_rays = 0;

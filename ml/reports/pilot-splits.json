@@ -1,0 +1,40 @@
+{
+  "train": [
+    "layout-0000",
+    "layout-0001",
+    "layout-0002",
+    "layout-0003",
+    "layout-0004",
+    "layout-0005",
+    "layout-0006",
+    "layout-0007",
+    "layout-0008",
+    "layout-0009",
+    "layout-0010",
+    "layout-0011",
+    "layout-0012",
+    "layout-0013",
+    "layout-0014",
+    "layout-0015",
+    "layout-0016",
+    "layout-0017",
+    "layout-0018",
+    "layout-0019",
+    "layout-0020",
+    "layout-0021"
+  ],
+  "val": [
+    "layout-0022",
+    "layout-0023",
+    "layout-0024",
+    "layout-0025",
+    "layout-0026"
+  ],
+  "test": [
+    "layout-0027",
+    "layout-0028",
+    "layout-0029",
+    "layout-0030",
+    "layout-0031"
+  ]
+}

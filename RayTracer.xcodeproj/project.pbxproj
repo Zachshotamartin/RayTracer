@@ -22,6 +22,9 @@
 		0F3CA6A56B68E9C8148808E4 /* mesh.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 35BDB9DDD966837ADC61929B /* mesh.cpp */; };
 		37A1DEFAEBF15F5FA052EBB0 /* caustics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7033396FE83F057AD755C613 /* caustics.cpp */; };
 		EEC7FAC27E535FB3F3F3FF5B /* denoiser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C3099B61735F586A8549EF81 /* denoiser.cpp */; };
+		40CD5E9DEA08E4396AFD8D78 /* scene_file.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DCB68987F37A1DF91EE913C6 /* scene_file.cpp */; };
+		B37DFAA9BC196B98E4F9585D /* feature_buffers.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81A0BCFE120C7035DDB885DF /* feature_buffers.cpp */; };
+		F555FF73A520BED8FA5FA51D /* neural_denoiser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 63661C9F519794ED124E4DF0 /* neural_denoiser.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -100,6 +103,12 @@
 		AE1801E702611133F178ED8D /* caustics.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = caustics.h; sourceTree = "<group>"; };
 		C3099B61735F586A8549EF81 /* denoiser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = denoiser.cpp; sourceTree = "<group>"; };
 		BE5D970A5C7FF910A8AE85F8 /* denoiser.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = denoiser.h; sourceTree = "<group>"; };
+		DCB68987F37A1DF91EE913C6 /* scene_file.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = scene_file.cpp; sourceTree = "<group>"; };
+		439947CDC58902EDA11CF199 /* scene_file.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = scene_file.h; sourceTree = "<group>"; };
+		81A0BCFE120C7035DDB885DF /* feature_buffers.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = feature_buffers.cpp; sourceTree = "<group>"; };
+		88AF28FEB8B5B3772501DC99 /* feature_buffers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = feature_buffers.h; sourceTree = "<group>"; };
+		63661C9F519794ED124E4DF0 /* neural_denoiser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = neural_denoiser.cpp; sourceTree = "<group>"; };
+		9E154D97524EEB757EB9AE71 /* reconstruction.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = reconstruction.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -153,6 +162,12 @@
 			isa = PBXGroup;
 			children = (
 				6C7B953D2C9A659500C44D21 /* main.cpp */,
+				9E154D97524EEB757EB9AE71 /* reconstruction.h */,
+				63661C9F519794ED124E4DF0 /* neural_denoiser.cpp */,
+				88AF28FEB8B5B3772501DC99 /* feature_buffers.h */,
+				81A0BCFE120C7035DDB885DF /* feature_buffers.cpp */,
+				439947CDC58902EDA11CF199 /* scene_file.h */,
+				DCB68987F37A1DF91EE913C6 /* scene_file.cpp */,
 				BE5D970A5C7FF910A8AE85F8 /* denoiser.h */,
 				C3099B61735F586A8549EF81 /* denoiser.cpp */,
 				AE1801E702611133F178ED8D /* caustics.h */,
@@ -348,6 +363,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				6C7B953E2C9A659500C44D21 /* main.cpp in Sources */,
+				F555FF73A520BED8FA5FA51D /* neural_denoiser.cpp in Sources */,
+				B37DFAA9BC196B98E4F9585D /* feature_buffers.cpp in Sources */,
+				40CD5E9DEA08E4396AFD8D78 /* scene_file.cpp in Sources */,
 				EEC7FAC27E535FB3F3F3FF5B /* denoiser.cpp in Sources */,
 				37A1DEFAEBF15F5FA052EBB0 /* caustics.cpp in Sources */,
 				0F3CA6A56B68E9C8148808E4 /* mesh.cpp in Sources */,

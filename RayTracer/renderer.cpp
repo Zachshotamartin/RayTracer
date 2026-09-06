@@ -40,6 +40,8 @@ struct render_session::impl {
     int width, height, tile_columns, tile_count, worker_count;
     std::vector<color> accumulation;
     std::vector<surface_guide> guides;
+    std::vector<frame_snapshot::feature> feature_sums;
+    std::vector<color> sample_means, sample_m2;
     std::atomic<std::uint64_t> path_rays{0}, shadow_rays{0};
     mutable std::mutex frame_mutex, error_mutex, pause_mutex;
     std::mutex phase_mutex;
@@ -70,7 +72,16 @@ struct render_session::impl {
         accumulation.resize(std::size_t(width) * height);
         if (settings.collect_guides)
             guides.resize(accumulation.size());
+        if (settings.collect_features) {
+            feature_sums.resize(accumulation.size());
+            sample_means.resize(accumulation.size());
+            sample_m2.resize(accumulation.size());
+        }
         published = {width, height, 0, std::vector<color>(accumulation.size())};
+        published.camera = content.view;
+        published.history_key = settings.history_key;
+        if (settings.collect_features)
+            published.features.resize(accumulation.size());
         auto build_start = clock::now();
         if (settings.use_bvh && !content.objects.objects.empty())
             world = std::make_shared<bvh_node>(content.objects.objects);
@@ -116,6 +127,21 @@ struct render_session::impl {
                 double scale = 1.0 / published.samples;
                 for (std::size_t i = 0; i < accumulation.size(); ++i)
                     published.linear[i] = accumulation[i] * scale;
+                for (std::size_t i = 0; i < feature_sums.size(); ++i) {
+                    auto g = feature_sums[i];
+                    g.albedo *= scale;
+                    g.normal *= scale;
+                    g.depth *= scale;
+                    g.coverage *= scale;
+                    g.support *= scale;
+                    g.variance =
+                        published.samples > 1
+                            ? sample_m2[i] / (double(published.samples) * (published.samples - 1))
+                            : color();
+                    published.features[i] = g;
+                }
+                statistics.feature_rays =
+                    std::uint64_t(published.samples + 1) * feature_sums.size() + guides.size();
                 statistics.samples = published.samples;
                 if (published.samples == 1 && !guides.empty())
                     published.guides = guides;
@@ -185,9 +211,29 @@ struct render_session::impl {
                             }
                             auto rng = sampler::for_pixel(settings.seed, index, pass);
                             auto r = view->get_ray(x, y, rng);
-                            accumulation[index] += trace_path(
-                                r, *world, content.lights, content.env, settings.max_depth, rng,
-                                counts, {settings.transparent_shadows, photons.get()});
+                            if (!feature_sums.empty()) {
+                                hit_record rec;
+                                auto &g = feature_sums[index];
+                                if (world->hit(r, interval(1e-8, infinity), rec)) {
+                                    g.albedo += rec.mat->guide_albedo(rec);
+                                    g.normal += rec.normal;
+                                    g.depth += rec.t;
+                                    g.coverage += 1;
+                                    g.support += rec.mat->is_diffuse() ? 1 : 0;
+                                }
+                                if (pass == 0 && world->hit(view->center_ray(x, y),
+                                                            interval(1e-8, infinity), rec))
+                                    g.position = rec.p;
+                            }
+                            auto sample = trace_path(r, *world, content.lights, content.env,
+                                                     settings.max_depth, rng, counts,
+                                                     {settings.transparent_shadows, photons.get()});
+                            accumulation[index] += sample;
+                            if (!feature_sums.empty()) {
+                                auto delta = sample - sample_means[index];
+                                sample_means[index] += delta / double(pass + 1);
+                                sample_m2[index] += delta * (sample - sample_means[index]);
+                            }
                         }
                 }
             } catch (...) {

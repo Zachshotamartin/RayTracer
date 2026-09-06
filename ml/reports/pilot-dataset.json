@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "config": {
+    "schema_version": 1,
+    "seed": 42,
+    "groups": 32,
+    "views": 4,
+    "width": 256,
+    "budgets": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32
+    ],
+    "noise_realizations": 3,
+    "reference_samples": 512,
+    "reference_check_samples": 2048,
+    "reference_checks": 4,
+    "scale": 1,
+    "depth": 16,
+    "threads": 8,
+    "max_seconds": 7200,
+    "max_gib": 10
+  },
+  "renderer_sha256": "9cd8468c0fab5a90c915ac612c14022b1f99c66d9a02076be329ed50b840efa0",
+  "fingerprint": "5c67cf13f1d68e673e2db84aeaa551a23e67b1958f9ef1161ce513160f99075f",
+  "renderer_commit": "b6883a947712ee4695fe5aeaf5de10e91d75b2ab",
+  "estimate": {
+    "configurations": 128,
+    "examples": 2304,
+    "reference_images": 128,
+    "uncompressed_input_gib": 6.328125,
+    "max_seconds": 7200,
+    "max_gib": 10
+  },
+  "created_unix": 1788733321.948003
+}

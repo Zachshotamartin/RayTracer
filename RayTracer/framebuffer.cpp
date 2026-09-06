@@ -160,3 +160,37 @@ void write_image(const std::filesystem::path &path, const frame_snapshot &frame,
     else
         throw std::invalid_argument("Output must end in .png, .hdr, or .pfm");
 }
+
+frame_snapshot read_pfm(const std::filesystem::path &path) {
+    std::ifstream in(path, std::ios::binary);
+    std::string magic;
+    int width = 0, height = 0;
+    double scale = 0;
+    in >> magic >> width >> height >> scale;
+    char newline = static_cast<char>(in.get());
+    if (newline == '\r')
+        newline = static_cast<char>(in.get());
+    if (!in || magic != "PF" || width < 1 || height < 1 ||
+        std::uint64_t(width) * height > 16777216 || !std::isfinite(scale) || scale == 0 ||
+        newline != '\n')
+        throw std::invalid_argument("Invalid RGB PFM header");
+    frame_snapshot result{width, height, 0, std::vector<color>(std::size_t(width) * height)};
+    for (int y = height - 1; y >= 0; --y)
+        for (int x = 0; x < width; ++x)
+            for (int c = 0; c < 3; ++c) {
+                std::uint32_t bits = 0;
+                for (int i = 0; i < 4; ++i) {
+                    int byte = in.get();
+                    if (byte == EOF)
+                        throw std::invalid_argument("Truncated PFM");
+                    bits |= std::uint32_t(byte) << (scale < 0 ? 8 * i : 8 * (3 - i));
+                }
+                double value = std::bit_cast<float>(bits) * std::abs(scale);
+                if (!std::isfinite(value))
+                    throw std::invalid_argument("Non-finite PFM");
+                result.linear[std::size_t(y) * width + x][c] = value;
+            }
+    if (in.peek() != EOF)
+        throw std::invalid_argument("Trailing PFM data");
+    return result;
+}

@@ -207,6 +207,35 @@ void caustic_partition() {
     require(baseline.x() > 0.04, "Independent path-traced caustic reference is empty");
     near(mapped.x(), baseline.x(), baseline.x() * 0.16);
 }
+void feature_statistics() {
+    std::vector<frame_snapshot> frames;
+    render_settings settings;
+    settings.width = 16;
+    settings.threads = 2;
+    settings.seed = 43;
+    settings.max_depth = 8;
+    settings.collect_features = true;
+    for (int n = 1; n <= 4; ++n) {
+        settings.samples = n;
+        render_session session(make_scene("demo", 7), settings);
+        session.wait();
+        frames.push_back(session.snapshot());
+    }
+    for (std::size_t i = 0; i < frames.back().linear.size(); ++i) {
+        color m2;
+        for (int n = 1; n <= 4; ++n) {
+            auto sample = double(n) * frames[n - 1].linear[i];
+            if (n > 1)
+                sample -= double(n - 1) * frames[n - 2].linear[i];
+            auto delta = sample - frames.back().linear[i];
+            m2 += delta * delta;
+        }
+        for (int c = 0; c < 3; ++c) {
+            near(frames[0].features[i].variance[c], 0);
+            near(frames.back().features[i].variance[c], m2[c] / 12, 1e-10);
+        }
+    }
+}
 void fixtures(const std::filesystem::path &root) {
     frame_snapshot frame{16, 2, 1, std::vector<color>(32, color(0.5, 2, 8))};
     frame.linear[0] = color(0, 0, 0);
@@ -226,6 +255,8 @@ int main(int argc, char **argv) {
             fixtures(argv[2]);
             return 0;
         }
+        feature_statistics();
+        std::cout << "PASS independent prefix-derived feature variance\n";
         geometry();
         std::cout << "PASS triangles, OBJ/MTL, indices, and mesh BVH\n";
         filtering();

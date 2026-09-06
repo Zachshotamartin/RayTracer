@@ -128,6 +128,8 @@ struct sdl_window::impl {
     double last_exposure = infinity;
     std::string last_scene, last_title;
     bool last_denoised = false;
+    bool last_reconstructed = false;
+    int last_comparison_view = 0;
     ~impl() {
         SDL_DestroyTexture(texture);
         SDL_DestroyRenderer(renderer);
@@ -185,6 +187,15 @@ window_actions sdl_window::poll() {
         case SDLK_d:
             result.denoise = true;
             break;
+        case SDLK_n:
+            result.neural = true;
+            break;
+        case SDLK_v:
+            result.reference = true;
+            break;
+        case SDLK_e:
+            result.error_view = true;
+            break;
         case SDLK_c:
             result.caustics = true;
             break;
@@ -236,7 +247,9 @@ void sdl_window::present(const frame_snapshot &frame, const render_stats &stats,
         SDL_SetTextureScaleMode(s.texture, SDL_ScaleModeLinear);
     }
     if (resized || frame.samples != s.last_samples || exposure != s.last_exposure ||
-        scene != s.last_scene || frame.denoised != s.last_denoised) {
+        scene != s.last_scene || frame.denoised != s.last_denoised ||
+        frame.reconstructed != s.last_reconstructed ||
+        frame.comparison_view != s.last_comparison_view) {
         auto pixels = frame.rgb(exposure);
         void *target_pixels = nullptr;
         int pitch = 0;
@@ -250,6 +263,8 @@ void sdl_window::present(const frame_snapshot &frame, const render_stats &stats,
         s.last_exposure = exposure;
         s.last_scene = scene;
         s.last_denoised = frame.denoised;
+        s.last_reconstructed = frame.reconstructed;
+        s.last_comparison_view = frame.comparison_view;
     }
     int width, height;
     SDL_GetWindowSize(s.window, &width, &height);
@@ -274,11 +289,17 @@ void sdl_window::present(const frame_snapshot &frame, const render_stats &stats,
     SDL_SetRenderDrawColor(s.renderer, 162, 174, 172, 255);
     text(s.renderer, 16, available + 40, "1 DEMO  2 FIELD  3 STUDIO  4 CAUSTICS | SPACE PAUSE", 2);
     text(s.renderer, 16, available + 58, "D DENOISE | R RESTART | S SAVE | ESC CANCEL | Q QUIT", 2);
-    text(s.renderer, 16, available + 76, "C CAUSTICS | G GLASS SHADOWS | +/- EXPOSURE", 2);
+    text(s.renderer, 16, available + 76, "N AI | V REF | E ERROR | C CAUSTICS | G GLASS | +/- EV",
+         2);
     SDL_SetRenderDrawColor(s.renderer, 213, 191, 129, 255);
     std::ostringstream footer;
     footer << "EXPOSURE " << std::showpos << std::fixed << std::setprecision(2) << exposure << "   "
-           << (frame.denoised ? "FILTERED  " : "RAW  ") << notice;
+           << (frame.comparison_view == 1   ? "REFERENCE  "
+               : frame.comparison_view == 2 ? "ERROR 4X  "
+               : frame.reconstructed        ? "AI  "
+               : frame.denoised             ? "FILTERED  "
+                                            : "RAW  ")
+           << notice;
     text(s.renderer, 16, available + 100, footer.str(), 2);
     // Keep the native title stable during each state. Rapid title changes make
     // accessibility snapshots unstable; continuously changing numbers live in the HUD.

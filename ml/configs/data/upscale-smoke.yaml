@@ -1,0 +1,14 @@
+schema_version: 1
+seed: 123
+groups: 6
+views: 2
+width: 64
+budgets: [1, 4, 16]
+noise_realizations: 1
+reference_samples: 128
+reference_checks: 0
+scale: 2
+depth: 12
+threads: 4
+max_seconds: 600
+max_gib: 1

@@ -1,0 +1,9 @@
+split: test
+budgets: [1, 4, 16, 64]
+repeats: 3
+threads: 4
+provider: cpu
+max_configurations: 0
+timeout_seconds: 300
+# Initial thresholds; calibrate on validation data before publishing test claims.
+quality: {psnr: 28.0, ssim: 0.9}

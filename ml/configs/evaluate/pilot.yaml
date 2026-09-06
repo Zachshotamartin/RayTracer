@@ -1,0 +1,8 @@
+split: test
+budgets: [1, 4, 16, 32, 64]
+repeats: 3
+threads: 4
+provider: cpu
+quality: {psnr: 32, ssim: 0.90}
+threshold_note: Chosen after pilot validation, before native test timing. Joint target requires both metrics; every tested budget and failure is retained.
+timeout_seconds: 300

@@ -32,3 +32,29 @@ jobs:
       - run: cmake -S . -B build -DRAYTRACER_ENABLE_SDL=OFF -DRAYTRACER_SANITIZERS=ON -DCMAKE_BUILD_TYPE=Debug
       - run: cmake --build build --parallel
       - run: ctest --test-dir build --output-on-failure
+  machine-learning:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install locked CPU training environment
+        run: |
+          python3 -m venv /tmp/rtml-uv
+          /tmp/rtml-uv/bin/pip install uv==0.8.9
+          /tmp/rtml-uv/bin/uv sync --project ml --python 3.12 --extra dev --locked
+      - name: Install pinned optional inference runtime
+        run: |
+          curl -fL https://github.com/microsoft/onnxruntime/releases/download/v1.29.0/onnxruntime-linux-x64-1.29.0.tgz -o /tmp/onnxruntime.tgz
+          echo 'c3fddc4f139a045b0c4902c57410f0694f1c2fdf9b6939fbe38b1aeae7cd14ba  /tmp/onnxruntime.tgz' | sha256sum -c -
+          tar -xzf /tmp/onnxruntime.tgz -C /tmp
+          cmake -S . -B build-ml -DCMAKE_BUILD_TYPE=Release -DRAYTRACER_ENABLE_SDL=OFF -DRAYTRACER_ENABLE_ONNX=ON -DONNXRUNTIME_ROOT=/tmp/onnxruntime-linux-x64-1.29.0
+          cmake --build build-ml --parallel 2
+      - name: Validate data, training, resume, export, and native reconstruction
+        env:
+          RAYTRACER_BINARY: build-ml/raytracer
+          RAYTRACER_NEURAL_BINARY: ${{ github.workspace }}/build-ml/raytracer
+        run: |
+          ml/.venv/bin/ruff check ml/src ml/tests
+          ml/.venv/bin/ruff format --check ml/src ml/tests
+          ml/.venv/bin/pytest -q ml/tests
+          ctest --test-dir build-ml --output-on-failure

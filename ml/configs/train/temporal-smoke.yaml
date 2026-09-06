@@ -1,0 +1,11 @@
+seed: 42
+device: auto
+cpu_threads: 2
+model: {kind: unet, width: 16, scale: 1, inputs: all, temporal: true}
+crop: 32
+batch_size: 4
+epochs: 30
+patience: 10
+learning_rate: 0.001
+weight_decay: 0.0001
+max_seconds: 600

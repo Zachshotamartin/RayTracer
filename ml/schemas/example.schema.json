@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RayTracer training example v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "configuration",
+    "group",
+    "split",
+    "cohort",
+    "frame",
+    "scene",
+    "scene_sha256",
+    "path",
+    "sha256",
+    "reference",
+    "reference_sha256",
+    "input_seed",
+    "target_seed",
+    "samples",
+    "reference_samples",
+    "scale",
+    "stats",
+    "reference_stats"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]{1,128}$"
+    },
+    "configuration": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]{1,128}$"
+    },
+    "group": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]{1,128}$"
+    },
+    "cohort": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]{1,128}$"
+    },
+    "split": {
+      "enum": [
+        "train",
+        "val",
+        "test"
+      ]
+    },
+    "scene_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "reference_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "frame": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "input_seed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "target_seed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "samples": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "reference_samples": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "scale": {
+      "enum": [
+        1,
+        2
+      ]
+    },
+    "scene": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "camera"
+      ]
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reference": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stats": {
+      "type": "object"
+    },
+    "reference_stats": {
+      "type": "object"
+    }
+  }
+}

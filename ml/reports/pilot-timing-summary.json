@@ -1,0 +1,152 @@
+{
+  "config": {
+    "split": "test",
+    "budgets": [
+      1,
+      4,
+      16,
+      32,
+      64
+    ],
+    "repeats": 3,
+    "threads": 4,
+    "provider": "cpu",
+    "quality": {
+      "psnr": 32,
+      "ssim": 0.9
+    },
+    "threshold_note": "Chosen after pilot validation, before native test timing. Joint target requires both metrics; every tested budget and failure is retained.",
+    "timeout_seconds": 300
+  },
+  "renderer_sha256": "b51aaa42db42833074655400b262581bd21e5a34b7367e82443d5a72fd38805e",
+  "model_sha256": "ec0f7176b5a785959e7f65603385a4618068b088e3f2d6f6368a8b050a08fa19",
+  "configurations": 20,
+  "matched_quality": [
+    {
+      "configuration": "g0027-v000",
+      "raw": null,
+      "atrous": 0.073639541,
+      "neural": 0.168943291
+    },
+    {
+      "configuration": "g0027-v001",
+      "raw": null,
+      "atrous": 0.077034333,
+      "neural": 0.166616625
+    },
+    {
+      "configuration": "g0027-v002",
+      "raw": null,
+      "atrous": 0.077663083,
+      "neural": 0.176997916
+    },
+    {
+      "configuration": "g0027-v003",
+      "raw": null,
+      "atrous": 0.078948791,
+      "neural": 0.177134292
+    },
+    {
+      "configuration": "g0028-v000",
+      "raw": null,
+      "atrous": 0.079485584,
+      "neural": 0.177494041
+    },
+    {
+      "configuration": "g0028-v001",
+      "raw": null,
+      "atrous": 0.081701209,
+      "neural": 0.175129625
+    },
+    {
+      "configuration": "g0028-v002",
+      "raw": null,
+      "atrous": 0.083114375,
+      "neural": 0.171020042
+    },
+    {
+      "configuration": "g0028-v003",
+      "raw": null,
+      "atrous": 0.085162583,
+      "neural": 0.179841
+    },
+    {
+      "configuration": "g0029-v000",
+      "raw": null,
+      "atrous": 0.078932667,
+      "neural": 0.096654958
+    },
+    {
+      "configuration": "g0029-v001",
+      "raw": null,
+      "atrous": 0.081116625,
+      "neural": 0.096695292
+    },
+    {
+      "configuration": "g0029-v002",
+      "raw": null,
+      "atrous": 0.082751375,
+      "neural": 0.097758584
+    },
+    {
+      "configuration": "g0029-v003",
+      "raw": null,
+      "atrous": 0.085406583,
+      "neural": 0.176391625
+    },
+    {
+      "configuration": "g0030-v000",
+      "raw": null,
+      "atrous": 0.075050458,
+      "neural": 0.092671875
+    },
+    {
+      "configuration": "g0030-v001",
+      "raw": null,
+      "atrous": 0.077203708,
+      "neural": 0.093577625
+    },
+    {
+      "configuration": "g0030-v002",
+      "raw": null,
+      "atrous": 0.079774333,
+      "neural": 0.098507709
+    },
+    {
+      "configuration": "g0030-v003",
+      "raw": null,
+      "atrous": 0.081628,
+      "neural": 0.096436708
+    },
+    {
+      "configuration": "g0031-v000",
+      "raw": 0.399380125,
+      "atrous": 0.074266166,
+      "neural": 0.092463875
+    },
+    {
+      "configuration": "g0031-v001",
+      "raw": 0.33344775,
+      "atrous": 0.076180041,
+      "neural": 0.102167625
+    },
+    {
+      "configuration": "g0031-v002",
+      "raw": 0.317386,
+      "atrous": 0.07524025,
+      "neural": 0.095469542
+    },
+    {
+      "configuration": "g0031-v003",
+      "raw": null,
+      "atrous": 0.075665625,
+      "neural": 0.096972792
+    }
+  ],
+  "timing_scope": "same-process repeated frames: BVH, tracing, aligned features, inference, image write; excludes display and one-time JSON scene loading. Cold adds model load. Process total is reported separately.",
+  "failures": {
+    "raw": 17,
+    "atrous": 0,
+    "neural": 0
+  }
+}

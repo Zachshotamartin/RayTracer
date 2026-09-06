@@ -4,3 +4,10 @@ build*/
 *.xcuserstate
 xcuserdata/
 __pycache__/
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+/artifacts/
+/ml/artifacts/
+/ml/.coverage

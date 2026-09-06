@@ -1,9 +1,9 @@
 # ML project structure
 
-Status: implementation blueprint. The paths and entry points below are proposed;
-the dataset generator, training package, and learned model do not exist yet.
-The [AI-assisted ray tracing plan](neural-rendering-plan.md) defines the research
-scope, renderer behavior, and later upscaling/temporal stages.
+Status: implemented in v3.0.0. See the [working CLI walkthrough](../ml/README.md),
+[dataset card](../ml/reports/dataset_card.md), and [model card](../ml/reports/model_card.md).
+This document retains the research design and separates shipped functionality
+from experiments still needed before broader performance claims.
 
 ## Research contract
 
@@ -22,9 +22,9 @@ custom training, controlled experiments, failure analysis, and deployment.
 
 ```text
 RayTracer/                         Existing C++ renderer
-  reconstruction.h                 Planned reconstruction interface
-  feature_buffers.cpp              Planned aligned features/statistics export
-  neural_denoiser.cpp               Planned optional inference adapter
+  reconstruction.h                 Reconstruction interface
+  feature_buffers.cpp              Aligned features/statistics export
+  neural_denoiser.cpp               Optional ONNX inference adapter
 ml/
   pyproject.toml                   Installable package and CLI entry points
   uv.lock                          Reproducible resolved Python dependencies
@@ -40,10 +40,10 @@ ml/
       scenes.py                    Bounded scene/camera configuration generation
       generate.py                  Renderer jobs, resume, progress, failure log
       validate.py                  Alignment, finite values, completeness, hashes
-      split.py                     Group splits and leakage checks
+      # scenes.py/validate.py implement group splits and leakage checks
       dataset.py                   Streaming, crops, supported augmentation
     models/
-      conv_baseline.py             Small debugging/reference model
+      # unet.py also implements the small convolutional baseline
       unet.py                      Main trainable reconstruction network
     preprocessing.py               Shared training/inference channel transforms
     losses.py                      HDR-aware objectives
@@ -168,12 +168,11 @@ Proposed starting configuration, to be checked in the tiny debug run:
 | Early stopping | 8 epochs without validation improvement |
 | Repeatability | One development seed; three training seeds for the final selected experiment |
 
-These are initial experimental settings, not established optimal values. Record
+These are experimental settings, not established optimal values. Record
 every change and its validation evidence. Check peak memory and step time before
 running all epochs. Begin with a proposed 10 GiB artifact cap and two-hour cap per
 pilot generation/training run; revise the configuration from measured pilot cost
-before launching larger work. The caps are planning defaults, not an instruction
-to launch generation or training now.
+before launching larger work. The first authorized pilot ran within these resource budgets.
 
 ## Baselines and ablations
 
@@ -216,12 +215,12 @@ artifact identifiers to reproduce the study.
 
 ## Automation and acceptance checks
 
-Planned CLI stages are `generate`, `validate-data`, `train`, `evaluate`, `benchmark`,
+Implemented CLI stages are `generate`, `validate-data`, `train`, `evaluate`, `benchmark`,
 and `export`. Configuration files and explicit artifact paths control each stage;
-these commands are not implemented yet. A walkthrough should connect them into
+these commands are implemented in the Python package. A walkthrough should connect them into
 one small reproducible run before a full dataset or long training run is launched.
 
-CI should run a tiny CPU dataset/model smoke test, split/schema checks, checkpoint
+CI runs a tiny CPU dataset/model smoke test, split/schema checks, checkpoint
 resume, preprocessing parity, and optional export tests. Large datasets, training,
 hardware benchmarks, and MPS-specific checks run separately. Existing C++ tests
 must continue to pass with ML support disabled. The renderer integration additionally
@@ -231,3 +230,18 @@ The first release is complete when data generation resumes reliably, the model
 trains and evaluates reproducibly, held-out comparisons are reported, exported
 predictions match, and the viewer demonstrates early reconstruction with measured
 total latency. Upscaling and temporal reuse follow as separate studies.
+
+## Release evidence and remaining research
+
+The shipped pipeline includes spatial, 2× and temporal model variants, native
+inference, sequence playback, baseline evaluation, and CPU CI. The pilot model
+was actually trained and its weights are bundled. Small extension runs and tests
+verify 2×/temporal execution; they do not establish a quality advantage. Artifact
+names in the walkthrough are authoritative (checkpoints are directly under each
+run directory; references and examples are shared compressed NPZ arrays).
+
+A three-seed study, full ablation matrix, broad mesh/specular datasets, interactive
+display latency and contention profiling, peak device memory, equal-time quality
+curves, and rigorous flicker/ghosting evaluation remain research follow-ups.
+The initial native benchmark measures fixed-budget completion and matched quality
+on its declared budget grid. No universal acceleration claim is made.

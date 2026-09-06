@@ -1,7 +1,11 @@
-# Proposed AI-assisted ray tracing
+# AI-assisted ray tracing
 
-Status: revised plan only. Conventional rendering upgrades are pushed. No model
-has been trained, and no ML pipeline or inference runtime is implemented.
+Status: implemented foundation in v3.0.0. A custom spatial model has been trained
+and integrated into the C++ renderer. Dataset, training, evaluation, export and
+benchmark commands are available in the [ML walkthrough](../ml/README.md).
+Trainable 2× and temporal variants have end-to-end smoke coverage; their research
+quality gates remain open. See the [model card](../ml/reports/model_card.md) for
+actual evidence and limits.
 
 The [ML project structure](ml-project-structure.md) specifies the package layout,
 dataset contract, experiment tracking, checkpoints, automation, and deliverables.
@@ -168,12 +172,12 @@ Inspect static progressive previews for popping. Early predictions can miss rare
 light paths or blur detail; more evidence does not guarantee monotonically better
 predictions. Never silently substitute predictions for accumulated measurements.
 
-Proposed additions: `RayTracer/reconstruction.h`, `RayTracer/neural_denoiser.cpp`,
-`RayTracer/feature_buffers.cpp`, `ml/data/`, `ml/models/`, `ml/train.py`,
-`ml/evaluate.py`, and `ml/export.py`. Test raw-output invariance, buffer alignment,
+Implemented modules: `RayTracer/reconstruction.h`, `RayTracer/neural_denoiser.cpp`,
+`RayTracer/feature_buffers.cpp`, and the installable package under
+`ml/src/raytracer_ml/`. Test raw-output invariance, buffer alignment,
 seed/split isolation, export parity, invalid models, stale results, and cancellation.
-Keep datasets/checkpoints outside Git and publish selected weights with checksums
-and a model card. This plan introduces no source code or dependencies.
+Large datasets/checkpoints remain outside Git. A compact pilot model, hashes and
+model card are bundled; Python and native inference dependencies are optional.
 
 ## Upscaling and temporal extensions
 
@@ -220,3 +224,11 @@ tradeoff on held-out supported scenes. A 2× reduction in time to matched qualit
 an initial stretch target, not a promise. Upscaling/history must also preserve thin
 geometry, small bright features, and stability after history invalidation. State
 hardware, resolution, sample budgets, and quality criteria for every speed claim.
+
+## Measured release status
+
+The pipeline and renderer modes are implemented and tested. The spatial pilot
+improves error over raw rendering and a-trous, but has lower SSIM than a-trous.
+At the declared joint quality threshold, a-trous is faster than the custom model.
+The stretch target above remains unmet; implementation completion does not imply
+that the research hypothesis succeeded. See the [timing report](../ml/reports/timing.md).

@@ -1,0 +1,51 @@
+{
+  "split": "val",
+  "images": 360,
+  "device": "mps",
+  "checkpoint_sha256": "49ab1e4eb8ff8b25ad0327739dda7c6a2dd15a9fadbcf1766a7e2c1d4caa64d2",
+  "manifest_sha256": "420fbc507b85dc016a80f002f5686249f2427c6430f666db77748e10020e2dce",
+  "methods": {
+    "raw": {
+      "linear_mse": 0.0018654113915313002,
+      "log_mae": 0.017325416180149964,
+      "psnr": 26.96627681964611,
+      "ssim": 0.586575194531627
+    },
+    "atrous": {
+      "linear_mse": 0.00019978098499532496,
+      "log_mae": 0.004460174094290576,
+      "psnr": 34.17182764583106,
+      "ssim": 0.9532950797468042
+    },
+    "neural": {
+      "linear_mse": 0.00013113574618336856,
+      "log_mae": 0.0047162616599558125,
+      "psnr": 35.37667537559025,
+      "ssim": 0.8903761883523578
+    }
+  },
+  "cohorts": {
+    "val": {
+      "raw": {
+        "linear_mse": 0.0018654113915313002,
+        "log_mae": 0.017325416180149964,
+        "psnr": 26.96627681964611,
+        "ssim": 0.586575194531627
+      },
+      "atrous": {
+        "linear_mse": 0.00019978098499532496,
+        "log_mae": 0.004460174094290576,
+        "psnr": 34.17182764583106,
+        "ssim": 0.9532950797468042
+      },
+      "neural": {
+        "linear_mse": 0.00013113574618336856,
+        "log_mae": 0.0047162616599558125,
+        "psnr": 35.37667537559025,
+        "ssim": 0.8903761883523578
+      }
+    }
+  },
+  "inference_median_seconds": 0.00489637500140816,
+  "timing_scope": "synchronized tensor transfer + model + output transfer; full renderer benchmark is separate"
+}

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "channels": [
+    "r",
+    "g",
+    "b",
+    "albedo_r",
+    "albedo_g",
+    "albedo_b",
+    "normal_x",
+    "normal_y",
+    "normal_z",
+    "depth",
+    "coverage",
+    "support",
+    "variance_r",
+    "variance_g",
+    "variance_b",
+    "samples",
+    "variance_valid"
+  ],
+  "model": {
+    "kind": "unet",
+    "width": 32,
+    "scale": 1,
+    "inputs": "all"
+  },
+  "sha256": "ec0f7176b5a785959e7f65603385a4618068b088e3f2d6f6368a8b050a08fa19",
+  "checkpoint_sha256": "49ab1e4eb8ff8b25ad0327739dda7c6a2dd15a9fadbcf1766a7e2c1d4caa64d2",
+  "manifest_sha256": "420fbc507b85dc016a80f002f5686249f2427c6430f666db77748e10020e2dce",
+  "parity_max_absolute_error": 1.1920928955078125e-06,
+  "domain": "diffuse pinhole scenes; unsupported primary pixels preserve raw RGB",
+  "providers_tested": [
+    "CPUExecutionProvider"
+  ],
+  "onnxruntime": "1.29.0"
+}

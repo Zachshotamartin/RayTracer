@@ -1,0 +1,21 @@
+{
+  "torch": "2.14.0",
+  "numpy": "2.5.3",
+  "python": "3.12.11",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "device": "mps",
+  "code_commit": "b6883a947712ee4695fe5aeaf5de10e91d75b2ab",
+  "dataset": {
+    "examples": 2304,
+    "groups": 32,
+    "splits": {
+      "train": 1584,
+      "val": 360,
+      "test": 360
+    },
+    "references": 128,
+    "manifest_sha256": "420fbc507b85dc016a80f002f5686249f2427c6430f666db77748e10020e2dce"
+  },
+  "contract": "9dbe3412557a9376f587e862538e0dadb9a769251fcd722049e28ba6633f3178",
+  "parameters": 476419
+}

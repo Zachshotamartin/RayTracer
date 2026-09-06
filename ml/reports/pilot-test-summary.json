@@ -1,0 +1,63 @@
+{
+  "split": "test",
+  "images": 360,
+  "device": "mps",
+  "checkpoint_sha256": "49ab1e4eb8ff8b25ad0327739dda7c6a2dd15a9fadbcf1766a7e2c1d4caa64d2",
+  "manifest_sha256": "420fbc507b85dc016a80f002f5686249f2427c6430f666db77748e10020e2dce",
+  "methods": {
+    "raw": {
+      "linear_mse": 0.002050345176839587,
+      "log_mae": 0.02007488831748358,
+      "psnr": 25.842813477926715,
+      "ssim": 0.5223928218488073
+    },
+    "atrous": {
+      "linear_mse": 0.00021397555575407415,
+      "log_mae": 0.005015020595682371,
+      "psnr": 33.97285764260051,
+      "ssim": 0.9440496957968479
+    },
+    "neural": {
+      "linear_mse": 0.00011849962191286666,
+      "log_mae": 0.004722370553321929,
+      "psnr": 35.959245243935925,
+      "ssim": 0.8929412991758524
+    },
+    "oidn": {
+      "linear_mse": 6.082078501812722e-05,
+      "log_mae": 0.0031252838716480055,
+      "psnr": 39.43978423184428,
+      "ssim": 0.9714110904977221
+    }
+  },
+  "cohorts": {
+    "unseen-layout": {
+      "raw": {
+        "linear_mse": 0.002050345176839587,
+        "log_mae": 0.02007488831748358,
+        "psnr": 25.842813477926715,
+        "ssim": 0.5223928218488073
+      },
+      "atrous": {
+        "linear_mse": 0.00021397555575407415,
+        "log_mae": 0.005015020595682371,
+        "psnr": 33.97285764260051,
+        "ssim": 0.9440496957968479
+      },
+      "neural": {
+        "linear_mse": 0.00011849962191286666,
+        "log_mae": 0.004722370553321929,
+        "psnr": 35.959245243935925,
+        "ssim": 0.8929412991758524
+      },
+      "oidn": {
+        "linear_mse": 6.082078501812722e-05,
+        "log_mae": 0.0031252838716480055,
+        "psnr": 39.43978423184428,
+        "ssim": 0.9714110904977221
+      }
+    }
+  },
+  "inference_median_seconds": 0.0047286045155487955,
+  "timing_scope": "synchronized tensor transfer + model + output transfer; full renderer benchmark is separate"
+}

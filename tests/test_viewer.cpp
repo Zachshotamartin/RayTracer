@@ -15,16 +15,16 @@ int main() {
         viewer.present(frame, stats, "studio", "RENDERING", 4, 0, "");
         SDL_Event event{};
         event.type = SDL_KEYDOWN;
-        for (auto key :
-             {SDLK_4, SDLK_SPACE, SDLK_s, SDLK_ESCAPE, SDLK_EQUALS, SDLK_d, SDLK_c, SDLK_g}) {
+        for (auto key : {SDLK_4, SDLK_SPACE, SDLK_s, SDLK_ESCAPE, SDLK_EQUALS, SDLK_d, SDLK_c,
+                         SDLK_g, SDLK_n, SDLK_v, SDLK_e}) {
             event.key.keysym.sym = key;
             if (SDL_PushEvent(&event) < 0)
                 throw std::runtime_error(SDL_GetError());
         }
         auto actions = viewer.poll();
         if (actions.scene_index != 3 || !actions.pause || !actions.save || !actions.cancel ||
-            !actions.denoise || !actions.caustics || !actions.glass_shadows ||
-            actions.exposure_delta != 0.25)
+            !actions.denoise || !actions.neural || !actions.reference || !actions.error_view ||
+            !actions.caustics || !actions.glass_shadows || actions.exposure_delta != 0.25)
             throw std::runtime_error("Viewer keyboard controls failed");
         frame.width = 32;
         frame.height = 18;
