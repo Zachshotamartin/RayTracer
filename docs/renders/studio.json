@@ -1,0 +1,20 @@
+{
+  "scene": "studio",
+  "seed": 42,
+  "width": 960,
+  "height": 540,
+  "samples": 256,
+  "requested_samples": 256,
+  "max_depth": 16,
+  "workers": 8,
+  "bvh": true,
+  "objects": 8,
+  "render_seconds": 28.37041617,
+  "bvh_build_seconds": 5.042e-06,
+  "path_rays": 359549274,
+  "shadow_rays": 171362508,
+  "exposure": 0,
+  "sampler": "splitmix64-per-pixel-v1",
+  "integrator": "path-mis-ggx-v1",
+  "display": "aces-fit-srgb"
+}

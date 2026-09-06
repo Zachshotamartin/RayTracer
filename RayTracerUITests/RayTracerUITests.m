@@ -1,46 +1,30 @@
-//
-//  RayTracerUITests.m
-//  RayTracerUITests
-//
-//  Created by Zachary Martin on 9/17/24.
-//
-
 #import <XCTest/XCTest.h>
 
 @interface RayTracerUITests : XCTestCase
-
 @end
-
 @implementation RayTracerUITests
-
 - (void)setUp {
-    // Put setup code here. This method is called before the invocation of each test method in the class.
-
-    // In UI tests it is usually best to stop immediately when a failure occurs.
     self.continueAfterFailure = NO;
-
-    // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
 }
-
-- (void)tearDown {
-    // Put teardown code here. This method is called after the invocation of each test method in the class.
-}
-
-- (void)testExample {
-    // UI tests must launch the application that they test.
+- (void)testViewerControls {
     XCUIApplication *app = [[XCUIApplication alloc] init];
+    // Metal drawables can be unavailable when the automation window is occluded.
+    app.launchEnvironment = @{@"SDL_RENDER_DRIVER" : @"software"};
+    app.launchArguments =
+        @[ @"--scene", @"studio", @"--width", @"160", @"--samples", @"100000", @"--threads", @"2" ];
     [app launch];
-
-    // Use XCTAssert and related functions to verify your tests produce the correct results.
+    [app activate];
+    XCUIElement *window = app.windows.firstMatch;
+    XCTAssertTrue([window waitForExistenceWithTimeout:30]);
+    [window click];
+    [window typeKey:@" " modifierFlags:0];
+    NSPredicate *paused = [NSPredicate predicateWithFormat:@"label CONTAINS %@", @"PAUSED"];
+    [self expectationForPredicate:paused evaluatedWithObject:window handler:nil];
+    [self waitForExpectationsWithTimeout:10 handler:nil];
+    [window typeKey:@"2" modifierFlags:0];
+    NSPredicate *field = [NSPredicate predicateWithFormat:@"label CONTAINS %@", @"field"];
+    [self expectationForPredicate:field evaluatedWithObject:window handler:nil];
+    [self waitForExpectationsWithTimeout:10 handler:nil];
+    [app terminate];
 }
-
-- (void)testLaunchPerformance {
-    if (@available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 7.0, *)) {
-        // This measures how long it takes to launch your application.
-        [self measureWithMetrics:@[[[XCTApplicationLaunchMetric alloc] init]] block:^{
-            [[[XCUIApplication alloc] init] launch];
-        }];
-    }
-}
-
 @end

@@ -1,37 +1,21 @@
-//
-//  RayTracerUITestsLaunchTests.m
-//  RayTracerUITests
-//
-//  Created by Zachary Martin on 9/17/24.
-//
-
 #import <XCTest/XCTest.h>
-
 @interface RayTracerUITestsLaunchTests : XCTestCase
-
 @end
-
 @implementation RayTracerUITestsLaunchTests
-
-+ (BOOL)runsForEachTargetApplicationUIConfiguration {
-    return YES;
-}
-
 - (void)setUp {
     self.continueAfterFailure = NO;
 }
-
-- (void)testLaunch {
+- (void)testLaunchShowsFrame {
     XCUIApplication *app = [[XCUIApplication alloc] init];
+    app.launchEnvironment = @{@"SDL_RENDER_DRIVER" : @"software"};
+    app.launchArguments = @[ @"--width", @"160", @"--samples", @"16", @"--threads", @"2" ];
     [app launch];
-
-    // Insert steps here to perform after app launch but before taking a screenshot,
-    // such as logging into a test account or navigating somewhere in the app
-
-    XCTAttachment *attachment = [XCTAttachment attachmentWithScreenshot:XCUIScreen.mainScreen.screenshot];
-    attachment.name = @"Launch Screen";
+    [app activate];
+    XCTAssertTrue([app.windows.firstMatch waitForExistenceWithTimeout:10]);
+    XCTAttachment *attachment = [XCTAttachment attachmentWithScreenshot:app.screenshot];
+    attachment.name = @"Rendered frame";
     attachment.lifetime = XCTAttachmentLifetimeKeepAlways;
     [self addAttachment:attachment];
+    [app terminate];
 }
-
 @end

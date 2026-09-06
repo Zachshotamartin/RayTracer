@@ -1,0 +1,20 @@
+{
+  "scene": "demo",
+  "seed": 42,
+  "width": 960,
+  "height": 540,
+  "samples": 64,
+  "requested_samples": 64,
+  "max_depth": 16,
+  "workers": 8,
+  "bvh": true,
+  "objects": 5,
+  "render_seconds": 7.874052667,
+  "bvh_build_seconds": 4.208e-06,
+  "path_rays": 106704016,
+  "shadow_rays": 23740867,
+  "exposure": 0,
+  "sampler": "splitmix64-per-pixel-v1",
+  "integrator": "path-mis-ggx-v1",
+  "display": "aces-fit-srgb"
+}

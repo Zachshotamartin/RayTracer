@@ -1,123 +1,111 @@
-#ifndef LIGHT_H
-#define LIGHT_H
-
-#include "vec3.h"
-#include <vector>
-#include <memory>
-#include "hittable_list.h"
+#pragma once
 #include "color.h"
-using std::shared_ptr;
-using std::make_shared;
-
-class light {
-public:
-    vec3 color;
-    float intensity;
-
-    // Constructor
-    light(const vec3& color, float intensity)
-        : color(color), intensity(intensity) {}
-
-    // Virtual method to get the light direction from a point
-    virtual vec3 getDirection(const vec3& point) const = 0;
-
-    // Virtual method to get the light's intensity factor at a point
-    virtual float getIntensityAt(const vec3& point) const = 0;
-
-    // Virtual destructor
-    virtual ~light() = default;
-};
-
-class PointLight : public light {
-public:
-    vec3 position;
-
-    PointLight(const vec3& position, const vec3& color, float intensity)
-        : light(color, intensity), position(position) {}
-
-    // Override method to get light direction from a point
-    vec3 getDirection(const vec3& point) const override {
-        return to_unit_vector(position - point);
-    }
-
-    // Override method to get the intensity (with optional falloff)
-    float getIntensityAt(const vec3& point) const override {
-        vec3 diff = position - point;
-        float distance = std::sqrt(diff.dot());  // Corrected the dot product
-        return intensity / (distance * distance);  // Optional falloff
-    }
-};
-
-class DirectionalLight : public light {
-public:
+#include "quad.h"
+#include <vector>
+struct light_sample {
     vec3 direction;
-
-    DirectionalLight(const vec3& direction, const vec3& color, float intensity)
-        : light(color, intensity), direction(to_unit_vector(direction)) {}
-
-    // Override method to get light direction (same everywhere)
-    vec3 getDirection(const vec3& point) const override {
-        return -direction;
-    }
-
-    // Intensity is constant for directional light
-    float getIntensityAt(const vec3& point) const override {
-        return intensity;
-    }
+    double distance = infinity;
+    color radiance;
+    double pdf = 0;
+    bool delta = true;
 };
+class light {
+  public:
+    virtual ~light() = default;
+    virtual light_sample sample(const point3 &, sampler &) const = 0;
+    virtual double pdf_for_hit(const point3 &, const hit_record &) const { return 0; }
+};
+class PointLight : public light {
+  public:
+    PointLight(point3 position, color c, double intensity)
+        : position_(position), power_(c * intensity) {}
+    light_sample sample(const point3 &origin, sampler &) const override {
+        vec3 d = position_ - origin;
+        double distance = d.length();
+        if (distance <= 1e-12)
+            return {};
+        return {d / distance, distance, power_ / (distance * distance), 1, true};
+    }
 
-// Light list (not inheriting from light)
+  private:
+    point3 position_;
+    color power_;
+};
+class DirectionalLight : public light {
+  public:
+    DirectionalLight(vec3 direction, color c, double intensity)
+        : direction_(-to_unit_vector(direction)), radiance_(c * intensity) {}
+    light_sample sample(const point3 &, sampler &) const override {
+        return {direction_, infinity, radiance_, 1, true};
+    }
+
+  private:
+    vec3 direction_;
+    color radiance_;
+};
+class AreaLight : public light {
+  public:
+    AreaLight(std::shared_ptr<quad> shape, color emission)
+        : shape_(std::move(shape)), emission_(emission) {}
+    light_sample sample(const point3 &origin, sampler &rng) const override {
+        vec3 d = shape_->sample(rng) - origin;
+        double distance = d.length();
+        if (distance <= 1e-12)
+            return {};
+        vec3 direction = d / distance;
+        double cosine = dot(shape_->normal(), -direction);
+        if (cosine <= 0)
+            return {};
+        return {direction, distance, emission_, distance * distance / (cosine * shape_->area()),
+                false};
+    }
+    double pdf_for_hit(const point3 &origin, const hit_record &rec) const override {
+        if (rec.object != shape_.get() || !rec.front_face)
+            return 0;
+        vec3 d = rec.p - origin;
+        double distance = d.length();
+        if (distance <= 1e-12)
+            return 0;
+        double cosine = dot(shape_->normal(), -d / distance);
+        return cosine > 0 ? d.dot() / (cosine * shape_->area()) : 0;
+    }
+
+  private:
+    std::shared_ptr<quad> shape_;
+    color emission_;
+};
 class light_list {
-public:
-    std::vector<shared_ptr<light>> lights;
-
-    // Constructors
-    light_list() = default;
-    light_list(shared_ptr<light> light) { add(light); }
-
-    // Add a light to the list
-    void add(shared_ptr<light> light) {
-        lights.push_back(light);
+  public:
+    void add(std::shared_ptr<light> item) { lights_.push_back(std::move(item)); }
+    bool empty() const { return lights_.empty(); }
+    light_sample sample(const point3 &p, sampler &rng) const {
+        if (empty())
+            return {};
+        auto i =
+            std::min(lights_.size() - 1, static_cast<std::size_t>(rng.uniform() * lights_.size()));
+        auto result = lights_[i]->sample(p, rng);
+        result.pdf /= static_cast<double>(lights_.size());
+        return result;
+    }
+    double pdf_for_hit(const point3 &p, const hit_record &rec) const {
+        if (empty())
+            return 0;
+        double pdf = 0;
+        for (const auto &light : lights_)
+            pdf += light->pdf_for_hit(p, rec);
+        return pdf / static_cast<double>(lights_.size());
+    }
+    static bool visible(const point3 &origin, const light_sample &sample, const hittable &world) {
+        if (sample.pdf <= 0)
+            return false;
+        hit_record obstruction;
+        // Only the finite segment before a point/area light can occlude it.
+        double end = std::isfinite(sample.distance) ? sample.distance - 4 * origin_epsilon(origin)
+                                                    : infinity;
+        return end > 0 &&
+               !world.hit(ray(origin, sample.direction), interval(1e-8, end), obstruction);
     }
 
-    // Clear the list of lights
-    void clear() {
-        lights.clear();
-    }
-
-    // Calculate lighting contribution at a point
-    color calculate_lighting(const point3& point, const vec3& normal, const hittable& world) {
-        vec3 total_light(0.0f, 0.0f, 0.0f);
-
-        for (const auto& light : lights) {
-            vec3 light_dir = light->getDirection(point);
-            if (!is_in_shadow(point, light_dir, world)) {
-                
-                // Calculate the contribution (simplified Lambertian shading)
-                float diffuse = dot(normal, light_dir);
-                float diffuse_factor = diffuse > 0.0f ? diffuse : 0.0f;
-                
-                // Get the light's intensity at the point
-                float intensity = light->getIntensityAt(point);
-                
-                // Add the diffuse contribution to the total light
-                total_light += diffuse_factor * intensity * light->color;
-            }
-        }
-
-        return total_light;
-    }
-    
-    bool is_in_shadow(const point3& point, const vec3& light_dir, const hittable& world) {
-        ray shadow_ray = ray(point, light_dir);  // Ray from the point to the light
-        
-        hit_record temp_rec;
-        if (world.hit(shadow_ray, interval(0.001, infinity), temp_rec)) {
-            return true;  // If the shadow ray hits something, the point is in shadow
-        }
-        
-        return false;
-    }
+  private:
+    std::vector<std::shared_ptr<light>> lights_;
 };
-
-#endif /* LIGHT_H */

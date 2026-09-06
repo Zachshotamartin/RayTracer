@@ -1,65 +1,26 @@
-#ifndef HITTABLE_LIST_H
-#define HITTABLE_LIST_H
-
-class material;
-
-class hit_record {
-  public:
-    point3 p;
-    vec3 normal;
-    double t;
-    bool front_face;
-    shared_ptr<material> mat;
-    
-    void set_face_normal(const ray& r, const vec3& outward_normal) {
-        front_face = dot(r.d(), outward_normal) < 0;
-        
-        if (front_face) {
-            normal = outward_normal;
-        }
-        else {
-            normal = -outward_normal;
-        }
-    }
-};
-
-class hittable {
-  public:
-    virtual ~hittable() = default;
-    virtual bool hit(const ray& r, interval ray_t, hit_record& rec) const = 0;
-};
-
-using std::make_shared;
-using std::shared_ptr;
-
+#pragma once
+#include "hittable.h"
+#include <vector>
 class hittable_list : public hittable {
   public:
-    std::vector<shared_ptr<hittable>> objects;
-
-    hittable_list() {}
-    hittable_list(shared_ptr<hittable> object) { add(object); }
-
+    std::vector<std::shared_ptr<hittable>> objects;
     void clear() { objects.clear(); }
-
-    void add(shared_ptr<hittable> object) {
-        objects.push_back(object);
-    }
-
-    bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
-            hit_record temp_rec;
-            bool hit_anything = false;
-            auto closest_so_far = ray_t.max;
-
-            for (const auto& object : objects) {
-                if (object->hit(r, interval(ray_t.min, closest_so_far), temp_rec)) {
-                    hit_anything = true;
-                    closest_so_far = temp_rec.t;
-                    rec = temp_rec;
-                }
+    void add(std::shared_ptr<hittable> object) { objects.push_back(std::move(object)); }
+    bool hit(const ray &r, interval range, hit_record &rec) const override {
+        bool found = false;
+        hit_record candidate;
+        for (const auto &object : objects)
+            if (object->hit(r, range, candidate)) {
+                found = true;
+                range.max = candidate.t;
+                rec = candidate;
             }
-
-            return hit_anything;
-        }
+        return found;
+    }
+    aabb bounding_box() const override {
+        aabb result;
+        for (const auto &object : objects)
+            result = aabb(result, object->bounding_box());
+        return result;
+    }
 };
-
-#endif

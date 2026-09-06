@@ -1,0 +1,14 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {"name":"release","displayName":"Release with SDL viewer","generator":"Ninja","binaryDir":"${sourceDir}/build","cacheVariables":{"CMAKE_BUILD_TYPE":"Release"}},
+    {"name":"headless","inherits":"release","binaryDir":"${sourceDir}/build-headless","cacheVariables":{"RAYTRACER_ENABLE_SDL":"OFF"}},
+    {"name":"sanitize","inherits":"headless","binaryDir":"${sourceDir}/build-sanitize","cacheVariables":{"CMAKE_BUILD_TYPE":"Debug","RAYTRACER_SANITIZERS":"ON"}}
+  ],
+  "buildPresets": [{"name":"release","configurePreset":"release"},{"name":"headless","configurePreset":"headless"},{"name":"sanitize","configurePreset":"sanitize"}],
+  "testPresets": [
+    {"name":"release","configurePreset":"release","output":{"outputOnFailure":true}},
+    {"name":"headless","configurePreset":"headless","output":{"outputOnFailure":true}},
+    {"name":"sanitize","configurePreset":"sanitize","output":{"outputOnFailure":true}}
+  ]
+}
