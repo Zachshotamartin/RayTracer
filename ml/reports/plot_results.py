@@ -21,12 +21,21 @@ from matplotlib.ticker import ScalarFormatter
 ROOT = Path(__file__).resolve().parent
 FIGURES = ROOT / "figures"
 FIGURES.mkdir(exist_ok=True)
-plt.rcParams.update({"font.size": 11, "axes.spines.top": False, "axes.spines.right": False})
+plt.rcParams.update(
+    {
+        "font.size": 11,
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+        "svg.hashsalt": "raytracer-pilot-v1",
+    }
+)
 
 
 def save(figure, name):
     figure.savefig(FIGURES / f"{name}.png", dpi=150, facecolor="white")
     figure.savefig(FIGURES / f"{name}.svg", facecolor="white", metadata={"Date": None})
+    svg = FIGURES / f"{name}.svg"
+    svg.write_text("\n".join(line.rstrip() for line in svg.read_text().splitlines()) + "\n")
     plt.close(figure)
 
 
