@@ -4,8 +4,8 @@ Status: implemented foundation in v3.0.0. A custom spatial model has been traine
 and integrated into the C++ renderer. Dataset, training, evaluation, export and
 benchmark commands are available in the [ML walkthrough](../ml/README.md).
 Trainable 2× and temporal variants have end-to-end smoke coverage; their research
-quality gates remain open. See the [model card](../ml/reports/model_card.md) for
-actual evidence and limits.
+quality gates remain open. See the [labeled results index](../ml/reports/README.md) and
+[model card](../ml/reports/model_card.md) for actual evidence and limits.
 
 The [ML project structure](ml-project-structure.md) specifies the package layout,
 dataset contract, experiment tracking, checkpoints, automation, and deliverables.

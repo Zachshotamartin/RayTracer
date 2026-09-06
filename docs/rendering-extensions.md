@@ -102,3 +102,18 @@ This approximation cannot reproduce focusing or exact thick-glass transport.
 It is incompatible with caustic mapping so that both do not estimate the same
 transmitted illumination. Choose photon mapping for refracted caustics, or the
 approximation for a cheap transmissive shadow preview.
+
+## Learned reconstruction
+
+The optional ONNX mode takes a completed low-sample render and aligned guides,
+then predicts linear RGB using the project's trained weights. Raw accumulation
+continues independently. `--model` enables this mode; `--raw-output` preserves
+an additional raw export. The viewer offers `N` for reconstruction and `V`/`E`
+for a matching reference/error comparison.
+
+The bundled spatial model targets diffuse pinhole scenes. Models for 2× output
+and temporal history have working smoke coverage; their quality and stability
+gates remain open. Conventional a-trous filtering remains the faster method at
+the pilot's measured joint quality target. [Labeled results](../ml/reports/README.md),
+[setup and commands](../ml/README.md), and [architecture](architecture.md#learned-reconstruction)
+describe the implementation and measured limits.

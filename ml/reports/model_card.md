@@ -7,7 +7,7 @@ for a production denoiser.
 
 [Bundled ONNX weights](../../assets/models/diffuse-pilot-v1.onnx) ·
 [export schema and hashes](../../assets/models/diffuse-pilot-v1.json) ·
-[run configuration](pilot-training-config.json) · [learning curve](pilot-training.jsonl).
+[run configuration](pilot-training-config.json) · [results index](README.md).
 
 ## Training
 
@@ -19,6 +19,24 @@ Apple M3 Pro / MPS, PyTorch 2.14.0, Python 3.12.11. Dataset validation and initi
 setup are outside that training timer. The best checkpoint was selected on
 validation loss (0.005188, epoch 48 using one-based numbering). Only one pilot
 training seed was run; there are no multi-seed confidence claims.
+
+![Training and validation loss across 50 epochs, with raw validation input as a baseline](figures/pilot-training.svg)
+
+[Recorded learning curve](pilot-training.jsonl). Training uses crops, while
+validation uses full images; the marker identifies the selected checkpoint.
+
+## Labeled visual comparison
+
+| Raw path tracing · 4 samples/pixel | A-trous denoising · 4 samples/pixel |
+| :---: | :---: |
+| ![Raw path tracing at 4 samples per pixel](figures/pilot-4spp-raw.png) | ![A-trous denoising of the same 4-sample input](figures/pilot-4spp-atrous.png) |
+| **Our trained U-Net · 4 samples/pixel** | **Independent reference · 512 samples/pixel** |
+| ![Custom U-Net reconstruction of the same 4-sample input](figures/pilot-4spp-neural.png) | ![Independent raw reference at 512 samples per pixel](figures/pilot-4spp-reference.png) |
+
+The first test configuration, `g0027-v000-n0-s4`, at 256 × 144 and fixed exposure 0.
+The target is independent of the shared 4-spp input. The metrics below summarize
+all test images, rather than just this displayed example. See the
+[error image and artifact index](README.md).
 
 ## Held-out image quality
 
@@ -47,6 +65,11 @@ state of the art or superior to existing learned denoisers.
 | 8 | 27.24 | 36.40 | 37.16 | 40.30 | 0.9252 |
 | 16 | 30.15 | 36.70 | 38.78 | 41.47 | 0.9474 |
 | 32 | 33.01 | 36.79 | 40.12 | 42.42 | 0.9609 |
+
+![Mean held-out PSNR and SSIM versus sample count for all four methods](figures/pilot-quality.svg)
+
+Each plotted point summarizes 60 test images; the metrics are not inference-time
+measurements. [Plot source](plot_results.py).
 
 Full results: [test summary](pilot-test-summary.json), [per-image metrics](pilot-test-per-image.jsonl.gz),
 [validation summary](pilot-val-summary.json). Difficult pixels and failure cases

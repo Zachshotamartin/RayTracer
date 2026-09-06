@@ -12,9 +12,19 @@ runs establish functionality, not a demonstrated speed or flicker advantage.
 See [model card](reports/model_card.md), [dataset card](reports/dataset_card.md),
 and [experiment ledger](reports/experiments.md) for measured results and limits.
 
-![4-spp comparison: raw, a-trous, custom model, reference](reports/figures/pilot-4spp.png)
+| Raw path tracing · 4 samples/pixel | A-trous denoising · 4 samples/pixel |
+| :---: | :---: |
+| ![Raw path tracing at 4 samples per pixel](reports/figures/pilot-4spp-raw.png) | ![A-trous denoising of the same 4-sample input](reports/figures/pilot-4spp-atrous.png) |
+| **Our trained U-Net · 4 samples/pixel** | **Independent reference · 512 samples/pixel** |
+| ![Custom U-Net reconstruction of the same 4-sample input](reports/figures/pilot-4spp-neural.png) | ![Independent raw reference at 512 samples per pixel](reports/figures/pilot-4spp-reference.png) |
 
-Left to right: raw / a-trous / custom model / independent 512-spp reference.
+*Each panel is 256 × 144, with the same camera, depth 16 and exposure 0.
+Input: `g0027-v000-n0-s4`, the first held-out configuration, noise realization 0.
+Only the reference uses 512 samples; the three comparison methods use 4.*
+
+[Results gallery, error image and artifact index](reports/README.md) ·
+[Quality metrics](reports/model_card.md#held-out-image-quality) ·
+[Measured rendering time](reports/timing.md).
 
 ## Setup
 
@@ -63,6 +73,29 @@ training layouts; the ordinary test split contains unseen layouts. All variants 
 a full scene/camera and all crops stay in the same split. `cohort-smoke.yaml`
 demonstrates these cohorts. They must not be reported as unseen-layout tests.
 
+## Reproduce the pilot study
+
+The following starts a new run at the published dataset/model settings. The native
+benchmark at the end also requires the ONNX build described below. Choose a new
+output directory if the configuration or renderer binary changes.
+
+```sh
+ml/.venv/bin/rtml generate --config ml/configs/data/pilot.yaml --renderer build-headless/raytracer --output artifacts/datasets/my-pilot --dry-run
+ml/.venv/bin/rtml generate --config ml/configs/data/pilot.yaml --renderer build-headless/raytracer --output artifacts/datasets/my-pilot
+ml/.venv/bin/rtml validate-data --data artifacts/datasets/my-pilot
+ml/.venv/bin/rtml train --config ml/configs/train/spatial_unet.yaml --data artifacts/datasets/my-pilot --output artifacts/runs/my-pilot
+ml/.venv/bin/rtml evaluate --data artifacts/datasets/my-pilot --checkpoint artifacts/runs/my-pilot/best.pt --split val --output artifacts/evaluations/my-pilot-val
+ml/.venv/bin/rtml export --checkpoint artifacts/runs/my-pilot/best.pt --output artifacts/models/my-pilot.onnx
+ml/.venv/bin/rtml evaluate --data artifacts/datasets/my-pilot --checkpoint artifacts/runs/my-pilot/best.pt --split test --output artifacts/evaluations/my-pilot-test
+```
+
+For the published test's OIDN comparison, add `--oidn /absolute/path/oidnDenoise`
+and `--oidn-device metal` to the final command. Omit those flags when OIDN is not
+installed. The saved pilot timings use `configs/evaluate/pilot.yaml`; the more
+general `standard.yaml` contains initial defaults. Fix the threshold using
+validation before timing test views. New runs need their own measurements: the
+committed metrics describe the original model and hardware, not every retraining.
+
 ## Training and experiment controls
 
 The network predicts an HDR log-radiance residual, initialized to preserve raw RGB.
@@ -96,7 +129,7 @@ matching the OS and CPU architecture, and extract it. For Apple silicon:
 ```sh
 cmake -S . -B build-neural -DCMAKE_BUILD_TYPE=Release -DRAYTRACER_ENABLE_ONNX=ON -DONNXRUNTIME_ROOT=/absolute/path/onnxruntime-osx-arm64-1.29.0
 cmake --build build-neural --parallel
-./build-neural/raytracer --scene-file assets/scenes/diffuse-room.json --width 256 --samples 8 --depth 12 --model assets/models/diffuse-pilot-v1.onnx --output renders/ai.png --raw-output renders/raw.pfm
+./build-neural/raytracer --scene-file assets/scenes/diffuse-room.json --width 256 --samples 8 --depth 16 --model assets/models/diffuse-pilot-v1.onnx --output renders/ai.png --raw-output renders/raw.pfm
 ```
 
 Use `--headless` for a fixed-budget render. `N` toggles learned reconstruction,
@@ -120,8 +153,8 @@ Generate a matching independent raw reference to enable `V` (reference) and `E`
 transport settings; sample seed and sample count intentionally differ:
 
 ```sh
-./build-neural/raytracer --headless --scene-file assets/scenes/diffuse-room.json --width 256 --samples 512 --depth 12 --seed 9001 --output renders/reference.pfm
-./build-neural/raytracer --scene-file assets/scenes/diffuse-room.json --width 256 --samples 8 --depth 12 --model assets/models/diffuse-pilot-v1.onnx --reference renders/reference.pfm
+./build-neural/raytracer --headless --scene-file assets/scenes/diffuse-room.json --width 256 --samples 512 --depth 16 --seed 9001 --output renders/reference.pfm
+./build-neural/raytracer --scene-file assets/scenes/diffuse-room.json --width 256 --samples 8 --depth 16 --model assets/models/diffuse-pilot-v1.onnx --reference renders/reference.pfm
 ```
 
 The reference's JSON sidecar is required. Do not use a denoised image as reference.
@@ -130,7 +163,7 @@ preserve raw measurements; in a 2× model they use ordinary bilinear upscaling.
 Defocus, photon mapping and approximate glass shadows cause whole-frame fallback.
 Diffuse pixels affected by unseen specular transport are still out of training domain.
 
-## 2× reconstruction and temporal history
+## Upscaling and temporal history
 
 Use `data/upscale-smoke.yaml` with `train/upscale-smoke.yaml`: the input is 64×36,
 target 128×72; the same train/evaluate/export commands apply. Evaluation compares
@@ -148,7 +181,7 @@ numbered outputs. In headless mode it renders all frames with one loaded model:
 
 ```sh
 ml/.venv/bin/rtml sequence --data artifacts/datasets/my-pilot --group layout-0027 --output renders/camera-path
-./build-neural/raytracer --headless --sequence renders/camera-path --model artifacts/models/temporal.onnx --width 256 --samples 4 --depth 12 --output renders/sequence/frame.pfm
+./build-neural/raytracer --headless --sequence renders/camera-path --model artifacts/models/temporal.onnx --width 256 --samples 4 --depth 16 --output renders/sequence/frame.pfm
 ```
 
 Each JSON is a complete scene, with the camera changed for movement. `Space` pauses
@@ -174,7 +207,7 @@ Its process time includes file IO and startup and is not a warmed inference time
 The comparison does not train or fine-tune OIDN.
 
 ```sh
-ml/.venv/bin/rtml benchmark --data artifacts/datasets/my-pilot --renderer build-neural/raytracer --model artifacts/models/my-pilot.onnx --config ml/configs/evaluate/standard.yaml --output artifacts/benchmarks/my-pilot
+ml/.venv/bin/rtml benchmark --data artifacts/datasets/my-pilot --renderer build-neural/raytracer --model artifacts/models/my-pilot.onnx --config ml/configs/evaluate/pilot.yaml --output artifacts/benchmarks/my-pilot
 ```
 
 Choose PSNR/SSIM thresholds using validation before evaluating final test frames.
@@ -185,6 +218,22 @@ cold time adds model load. JSON scene parsing, OS startup and display are exclud
 from warm timing; whole subprocess time is separate. This command currently targets
 the spatial scale-1 model. Python timing includes synchronized input/output transfers.
 Neither timing is an interactive display/flicker or memory benchmark.
+
+## Common setup and artifact issues
+
+| Message or symptom | Action |
+| --- | --- |
+| Neural inference unavailable | Build with `RAYTRACER_ENABLE_ONNX=ON` and point `ONNXRUNTIME_ROOT` at the matching extracted C++ distribution. The ordinary build can still render and generate data. |
+| Missing or incompatible model | Use the bundled spatial weights or export this package's checkpoint. Channel order, schema, domain and output scale are checked. Read `neural_error` in the render JSON. |
+| Dataset configuration/renderer changed | Generate into a new directory. The existing dataset's hash contract intentionally prevents mixing renderer binaries. |
+| Resume configuration or dataset differs | Resume with the original config and data; create a new run directory for a changed experiment. |
+| No epoch completed within the budget | Reduce the workload or increase the time cap, then use a fresh run directory. There is no completed checkpoint to resume. |
+| Reference missing or mismatched | Supply a raw PFM and its JSON sidecar. Match scene/camera, output dimensions and transport settings; use independent noise seeds. |
+| Output is raw in unsupported scenes | The initial model excludes defocus, approximate glass shadows and photon mapping. Primary unsupported materials preserve raw values. |
+
+To inspect or share results without the full dataset, use the committed
+[reports index](reports/README.md). It contains the comparison panels, exact metrics,
+compressed manifests, training curves, model hashes and timing records.
 
 ## Tests
 

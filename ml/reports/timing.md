@@ -1,5 +1,8 @@
 # Native completion timing — pilot-v1
 
+[Results index](README.md) · [Image-quality results](model_card.md)
+· [How to rerun the benchmark](../README.md#evaluation-and-benchmarks)
+
 Apple M3 Pro, macOS 26.6.2, Release C++ build, four tracing workers and ONNX Runtime
 1.29.0 CPU inference (two intra-op threads). 256×144 output, depth 16, fixed input
 noise realization 0, all 20 test views. Each method/budget starts a new process,

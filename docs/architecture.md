@@ -3,19 +3,25 @@
 The renderer is a C++20 library with no windowing or external image-library dependency.
 OBJ/image helpers are compiled from pinned vendored headers.
 The desktop executable adds SDL2; the same executable can also render headlessly.
+Learned reconstruction adds an optional ONNX Runtime dependency. Python is used
+for offline ML work and is not required by the native model viewer.
 
 ```mermaid
 flowchart LR
-    Preset[Scene preset + seed] --> Camera[Camera rays]
-    Camera --> Workers[Persistent tile workers]
-    Workers --> Integrator[Path integrator]
-    Integrator --> BVH[BVH / linear traversal]
-    Integrator --> Materials[BSDFs and textures]
-    Integrator --> Lights[Direct light sampling]
-    Workers --> Accumulation[Linear accumulation]
-    Accumulation --> Snapshot[Complete-pass snapshot]
-    Snapshot --> SDL[SDL streaming texture + controls]
-    Snapshot --> Export[Exposure / tone mapping / PNG + JSON]
+    Scene[Preset or scene JSON + camera] --> Workers[Persistent tile workers]
+    Noise[Independent sampling seed] --> Workers
+    Workers --> Integrator[Path integrator + BVH + materials + lights]
+    Integrator --> Raw[Raw linear accumulation]
+    Workers --> Guides[Aligned features and sample statistics]
+    Raw --> Snapshot[Complete-pass snapshot]
+    Guides --> Snapshot
+    Snapshot --> Filter[Optional a-trous filter]
+    Snapshot --> Model[Optional ONNX reconstruction worker]
+    Snapshot --> Display[Raw preview or export]
+    Filter --> Display
+    Model --> Display
+    Display --> SDL[SDL viewer]
+    Display --> Export[PNG or linear HDR/PFM + JSON]
 ```
 
 ## Responsibilities
@@ -29,11 +35,14 @@ flowchart LR
 | `sphere.h`, `cube.h`, `quad.h`, `triangle.h` | Intersections, oriented normals, UV coordinates, and bounds |
 | `aabb.h`, `bvh.h` | Robust slab tests and median-split spatial hierarchy |
 | `scene.cpp` | Reproducible geometry, lights, and camera presets |
+| `scene_file.cpp` | Versioned scene/camera JSON, validation, and preset serialization |
 | `renderer.cpp` | Worker lifetimes, tile scheduling, cancellation, and publication |
 | `framebuffer.cpp` | Display conversion, compressed PNG, linear HDR/PFM output |
 | `mesh.cpp` | OBJ/MTL import and mesh normalization |
 | `caustics.cpp` | Specular photon transport, spatial indexing, diffuse gathers |
 | `denoiser.cpp` | Geometry-guided spatial filtering |
+| `feature_buffers.cpp` | Aligned float guide export and 17-channel NCHW input packing |
+| `reconstruction.h`, `neural_denoiser.cpp` | Optional ONNX inference, temporal reprojection, bounded background work and results |
 | `sdl_window.cpp` | Main-thread events, texture upload, HUD, and SDL resource ownership |
 | `main.cpp` | Validated CLI, session controls, exports, and metadata |
 
@@ -109,6 +118,50 @@ pixel while a worker writes it. All SDL operations stay on the main thread.
 Pause takes effect at tile boundaries; elapsed time is wall time and includes
 pauses. Cancellation and destruction join every worker.
 
+## Learned reconstruction
+
+Offline ML work lives in `ml/src/raytracer_ml`: procedural scene generation and
+resumable paired rendering, validation, streaming crop datasets, trainable networks,
+checkpoint/resume, full-image evaluation, export and native benchmarking. See the
+[package and artifact map](ml-project-structure.md) and [working commands](../ml/README.md).
+Training inputs and targets share a complete scene/camera but have independent
+sampling seeds. Group splits precede crops and keep related noise variants together.
+
+During native rendering, optional first-hit probes follow the same jittered primary
+rays as RGB. They accumulate albedo, normal, depth, hit coverage and diffuse support.
+Welford moments track per-channel sample variance; publication exports variance of
+the mean with an explicit unavailable flag at one sample. A center-ray position
+buffer supports temporal reprojection. These probes are counted in `feature_rays`
+and do not advance the random generator used by light transport.
+
+`frame_snapshot` carries raw radiance, completed sample count and optional features.
+The exported graph accepts raw float NCHW channels and contains preprocessing,
+HDR residual prediction and unsupported-pixel fallback. Spatial models take 17
+channels; temporal models take 21, adding valid previous RGB and its mask. A scale-2
+model outputs twice the traced width and height. Temporal and scale-2 modes are
+currently separate model configurations.
+
+A reconstruction worker owns the ONNX session and performs inference away from SDL.
+New requests replace one pending snapshot, while the current request finishes.
+Results retain their raw snapshot, matching render statistics and generation ID;
+the UI discards results from an old render generation. Exports wait for the requested
+completed-pass prediction. Predictions are never written into raw accumulation.
+Missing/incompatible models report a fallback, and disabling ONNX at build time
+preserves the conventional executable.
+
+Temporal history belongs to the previous camera frame. Geometry/light identity,
+dimensions, camera displacement, normals, support and world-position agreement gate
+reprojection. Repeated passes from a static camera retain a fixed previous-frame
+history; cumulative means are not repeatedly counted as independent observations.
+`--sequence` supplies ordered complete scene JSON files to the viewer or headless
+loop. The [temporal walkthrough](../ml/README.md#upscaling-and-temporal-history)
+explains its training and stability limitations.
+
+The viewer can select raw, a-trous or learned output. Reference and error views
+require a raw PFM plus matching scene/camera, dimensions and transport metadata.
+The error view uses four times the absolute linear difference followed by display
+conversion. The HUD's sample count represents real tracing work.
+
 ## Output and reproducibility
 
 Linear floating-point radiance stays in the framebuffer. Export and preview
@@ -120,14 +173,23 @@ vendored stb code. Tests independently validate chunk CRCs and decompress the
 stream with Python's zlib. HDR and PFM exports preserve linear radiance without
 the display transform, and have independent decoder tests.
 
-JSON beside each PNG records the preset, seed, dimensions, completed/target
+JSON beside each exported image records the preset, seed, dimensions, completed/target
 samples, depth, worker count, traversal choice, timings, ray counts, exposure,
-and sampler/integrator identifiers. A cancelled image can be reproduced by using
+and sampler/integrator identifiers. Neural exports also record model path,
+reconstruction/fallback status, requested execution provider, inference/model-load
+time and pipeline duration. Model hashes and tensor schema accompany the versioned
+ONNX artifact. A cancelled image can be reproduced by using
 its completed sample count. Different platforms can introduce small
 floating-point differences; exact equality is tested between worker and traversal
 configurations within a build.
 
 ## Validation
+
+ML tests cover data integrity, group leakage, exact CPU resume, raw preservation,
+model/export parity, 2× output, temporal rejection, scene serialization and fallback.
+SDL + ONNX builds additionally check asynchronous save and sequence shutdown.
+[Validation evidence](validation.md) records the tested platforms and CI results.
+
 
 The CTest core suite checks geometry, bounds, BVH equivalence over thousands of
 rays, finite shadows, falloff, TIR, material PDFs, reflected sky light, and additive
@@ -158,8 +220,9 @@ approximation. The photon pass runs before camera sampling and is included in
 render time. Display filtering is timed separately and never modifies samples.
 
 The renderer still has finite path-depth bias and no image texture loader,
-participating media, learned model, temporal denoising, or environment importance
-sampling. Caustic mapping covers registered lights and ideal specular chains onto
+participating media or environment importance sampling. The trained model covers
+a narrow diffuse pinhole domain; 2× and temporal variants have smoke evidence,
+with their quality/stability studies still open. Caustic mapping covers registered lights and ideal specular chains onto
 diffuse receivers, with finite-radius density-estimation bias. The optional
 straight glass shadow approximation cannot reproduce refraction or focusing.
 

@@ -22,6 +22,7 @@ custom training, controlled experiments, failure analysis, and deployment.
 
 ```text
 RayTracer/                         Existing C++ renderer
+  scene_file.cpp                  Versioned scenes/cameras and independent seeds
   reconstruction.h                 Reconstruction interface
   feature_buffers.cpp              Aligned features/statistics export
   neural_denoiser.cpp               Optional ONNX inference adapter
@@ -32,7 +33,8 @@ ml/
   configs/
     data/pilot.yaml                Scene family, budgets, seeds, resource caps
     train/spatial_unet.yaml         Model, preprocessing, optimizer, losses
-    evaluate/standard.yaml          Splits, baselines, metrics, timing protocol
+    evaluate/standard.yaml          Initial benchmark defaults
+    evaluate/pilot.yaml             Published pilot benchmark protocol
   schemas/
     example.schema.json            Versioned example/manifest contract
   src/raytracer_ml/
@@ -40,11 +42,13 @@ ml/
       scenes.py                    Bounded scene/camera configuration generation
       generate.py                  Renderer jobs, resume, progress, failure log
       validate.py                  Alignment, finite values, completeness, hashes
-      # scenes.py/validate.py implement group splits and leakage checks
       dataset.py                   Streaming, crops, supported augmentation
     models/
-      # unet.py also implements the small convolutional baseline
-      unet.py                      Main trainable reconstruction network
+      unet.py                      U-Net and small convolutional baseline
+    contracts.py                   Public schema validation
+    temporal.py                    Geometry-validated history reprojection
+    sequence.py                    Ordered scene export for native playback
+    oidn.py                        Optional external OIDN baseline
     preprocessing.py               Shared training/inference channel transforms
     losses.py                      HDR-aware objectives
     train.py                       Training, validation, checkpoints, resume
@@ -54,34 +58,54 @@ ml/
     cli.py                         Stable command interface
   tests/                           Small data, model, export, and pipeline tests
   reports/
+    README.md                       Results gallery and complete artifact index
+    timing.md                       Native time-to-quality results and limits
+    plot_results.py                 Rebuild charts from measured records
     dataset_card.md                 Generation provenance and data limitations
     model_card.md                   Training, intended use, results, failures
     experiments.md                 Experiment ledger and decisions
     figures/                       Selected final comparisons/plots
 docs/
   neural-rendering-plan.md          Research and renderer integration roadmap
-  ml-project-structure.md           This implementation blueprint
+  ml-project-structure.md           This implementation and research contract
 ```
 
-Keep large outputs in a configurable artifact directory outside the source tree:
+Keep large generated outputs in an ignored artifact directory. The walkthrough
+uses `artifacts/` at the repository root; an absolute external path also works:
 
 ```text
 <artifact_root>/
   datasets/<dataset_version>/
-    manifest.jsonl
-    splits.json
-    examples/<example_id>/          Float buffers and per-example metadata
+    dataset.json                   Config, renderer hash, counts and resource caps
+    manifest.jsonl                 Complete examples with hashes and scene JSON
+    splits.json                    Group IDs for each split
+    examples/<example_id>.npz       Features, a-trous output and world positions
+    examples/<example_id>.json      Per-example metadata / resume record
+    references/<configuration>.npz Shared independent target
+    references/<configuration>.json Reference hash, seed and render statistics
+    reference_checks/              Higher-sample independent comparisons
   runs/<run_id>/
-    config.yaml                    Resolved configuration
-    environment.json               Versions, device, renderer/code commits
+    config.json                    Resolved training configuration
+    environment.json               Versions, device, code commit and data contract
     metrics.jsonl                  Training and validation measurements
-    checkpoints/                   Latest resumable state and best model
-  evaluations/<evaluation_id>/      Per-image metrics, timings, predictions
-  models/<model_version>/           Exported weights, metadata, parity report
+    latest.pt                      Resumable epoch-boundary checkpoint
+    best.pt                        Validation-selected checkpoint
+    summary.json                   Stop reason, loss, time and model size
+  evaluations/<evaluation_id>/
+    summary.json                   Aggregate and cohort quality
+    per_image.jsonl                Individual metrics and synchronized timing
+    predictions/                   Float prediction arrays
+    comparisons/                   Display comparisons for selected examples
+    errors/                        Amplified absolute-difference images
+  models/<model_version>.onnx       Exported deployment weights
+  models/<model_version>.json       Tensor schema, hashes and parity report
+  benchmarks/<benchmark_id>/        Native summary, per-image records and HTML
 ```
 
 Small manifests, configurations, reports, and selected figures belong in Git.
-Large arrays/checkpoints do not. Version artifacts through content hashes and
+The bundled `assets/models/diffuse-pilot-v1.onnx` is a compact deployment artifact;
+its schema and hashes are beside it.
+Large arrays and training checkpoints remain outside Git. Version artifacts through content hashes and
 manifests; a new dataset or preprocessing schema must not overwrite an old one.
 
 ## Dataset contract and generation
@@ -93,14 +117,14 @@ Store channel order, coordinate conventions, radiance scale, file paths, checksu
 and schema version. A noise seed must not also regenerate the scene.
 
 Inputs and targets share the scene and camera but use independent sampling streams.
-The target should not contain the input's low-sample prefix. Nested input snapshots
-at different budgets are valid, but must stay together in the same dataset split.
+The target does not contain the input's low-sample prefix. Nested input snapshots at
+different budgets are valid, but must stay together in the same dataset split.
 
-The generator should create configurations, assign groups, schedule bounded renderer
-jobs, validate outputs, and atomically mark examples complete. On restart it checks
+The generator creates configurations, assigns groups, schedules bounded renderer
+jobs, validates outputs, and atomically marks examples complete. On restart it checks
 hashes and resumes missing/failed examples. Record failures rather than silently
-training on incomplete pairs. A dry run estimates count, storage, and render cost;
-full generation has explicit disk, concurrency, and elapsed-time caps.
+training on incomplete pairs. A dry run reports count and uncompressed input
+storage; actual render cost requires measurement. Full generation has explicit disk, worker, and elapsed-time caps.
 
 Pilot: 128 distinct configurations at 256 × 144, three input noise realizations,
 and 1/2/4/8/16/32-sample snapshots. This produces 2,304 input examples sharing 128
@@ -155,7 +179,7 @@ PyTorch with MPS is the initial Mac training path, with CPU smoke tests. Do not
 promise bitwise reproducibility across devices; report the tested reproducibility
 and export tolerances. Validate an optional C++ deployment runtime early.
 
-Proposed starting configuration, to be checked in the tiny debug run:
+Pilot training configuration (one completed run, without a full tuning study):
 
 | Setting | Initial choice |
 | --- | --- |
@@ -166,11 +190,11 @@ Proposed starting configuration, to be checked in the tiny debug run:
 | Stability | Gradient norm clipping at 1; fail on non-finite loss |
 | Checkpoint selection | Lowest validation reconstruction loss, with image/region metrics also reported |
 | Early stopping | 8 epochs without validation improvement |
-| Repeatability | One development seed; three training seeds for the final selected experiment |
+| Repeatability | One completed pilot seed; the three-seed study remains open |
 
 These are experimental settings, not established optimal values. Record
 every change and its validation evidence. Check peak memory and step time before
-running all epochs. Begin with a proposed 10 GiB artifact cap and two-hour cap per
+running all epochs. Begin with a 10 GiB artifact cap and two-hour cap per
 pilot generation/training run; revise the configuration from measured pilot cost
 before launching larger work. The first authorized pilot ran within these resource budgets.
 
@@ -217,8 +241,9 @@ artifact identifiers to reproduce the study.
 
 Implemented CLI stages are `generate`, `validate-data`, `train`, `evaluate`, `benchmark`,
 and `export`. Configuration files and explicit artifact paths control each stage;
-these commands are implemented in the Python package. A walkthrough should connect them into
-one small reproducible run before a full dataset or long training run is launched.
+these commands are implemented in the Python package. The walkthrough connects
+them into both a small smoke run and a full pilot reproduction. `sequence` exports
+a dataset camera group for native playback.
 
 CI runs a tiny CPU dataset/model smoke test, split/schema checks, checkpoint
 resume, preprocessing parity, and optional export tests. Large datasets, training,

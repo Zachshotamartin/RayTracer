@@ -12,7 +12,8 @@ The test results were not used to retrain or select a replacement pilot model.
 | `temporal-smoke-v1` | Trainable 21-channel history model on 60 examples, with camera/light cohorts | Reprojection, autoregressive evaluation and native sequence parity pass. Tiny model is weaker than a-trous; no flicker or ghosting improvement is claimed. |
 | `pilot-v1` native timing | 20 test views × 5 budgets × 3 methods × 4 frame repeats | Custom model meets joint 32 dB/0.90 SSIM target on all views. A-trous is faster at that target on every view. See timing report. |
 
-Machine-readable summaries and compressed per-image records accompany this ledger.
+The [results index](README.md) links every summary, compressed per-image record,
+comparison image and plot.
 The convolutional baseline and RGB/guides/all ablations are implemented through
 model configuration; the convolutional pipeline is exercised in CPU tests. A full
 ablation matrix and three-seed repeat are future experiments, not completed results.

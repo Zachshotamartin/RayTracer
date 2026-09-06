@@ -52,10 +52,16 @@ and split leakage. Native tests verify that collecting features leaves raw outpu
 unchanged. The selected comparison below is the first test configuration at 4 spp,
 noise realization 0; it is not a best-case image selection.
 
-![Raw, a-trous, custom model, independent reference](figures/pilot-4spp.png)
+| Raw path tracing · 4 samples/pixel | A-trous denoising · 4 samples/pixel |
+| :---: | :---: |
+| ![Raw path tracing at 4 samples per pixel](figures/pilot-4spp-raw.png) | ![A-trous denoising of the same 4-sample input](figures/pilot-4spp-atrous.png) |
+| **Our trained U-Net · 4 samples/pixel** | **Independent reference · 512 samples/pixel** |
+| ![Custom U-Net reconstruction of the same 4-sample input](figures/pilot-4spp-neural.png) | ![Independent raw reference at 512 samples per pixel](figures/pilot-4spp-reference.png) |
 
-Left to right: raw / a-trous / custom model / 512-spp reference. Fixed exposure 0,
-ACES-fit + sRGB display; metrics use original float images.
+Each panel is 256 × 144. The three methods share a 4-spp input; the target is an
+independent 512-spp reference. Fixed exposure 0, ACES-fit + sRGB display; metrics
+use original float images. The [results index](README.md) explains the error view
+and links the complete records.
 
 ## Provenance and distribution
 
