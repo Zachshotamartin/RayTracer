@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 from .data.dataset import RenderDataset
 from .data.validate import validate
 from .io import identity, write_json, git_revision
-from .losses import reconstruction_loss
+from .losses import reconstruction_loss, validate_loss_config
 from .models import build_model
 from .preprocessing import model_schema
 from .data.arrays import load_example
@@ -86,6 +86,7 @@ def restore_rng(state, generator, device):
 
 
 def train(cfg, root, output, resume=False, max_new_epochs=None):
+    validate_loss_config(cfg.get("loss"))
     root, output = Path(root), Path(output)
     validation = validate(root)
     data_info = json.loads((root / "dataset.json").read_text())

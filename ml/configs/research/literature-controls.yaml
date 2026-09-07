@@ -1,0 +1,41 @@
+# Small, preregistered diagnostic. No test split or checkpoint promotion.
+cohort:
+  seed: 92026
+  width: 128
+  threads: 2
+  budgets: [4, 16]
+  noise_realizations: 2
+  reference_samples: 4096
+  check_samples: 8192
+  max_seconds: 1500
+  max_gib: 2
+comparison:
+  device: mps
+  seeds: [42, 43]
+  steps: 200
+  crop: 64
+  batch_size: 4
+  learning_rate: 0.0003
+  max_seconds: 1500
+  trials:
+    - name: guided-center-l1
+      model: {kind: guided, width: 16, feature_schema: 2, guide_policy: center, blend_policy: single}
+      loss: {kind: log_l1}
+    - name: guided-sampled-l1
+      model: {kind: guided, width: 16, feature_schema: 2, guide_policy: sampled, blend_policy: single}
+      loss: {kind: log_l1}
+    - name: guided-center-l2
+      model: {kind: guided, width: 16, feature_schema: 2, guide_policy: center, blend_policy: single}
+      loss: {kind: relative_l2}
+    - name: guided-sampled-l2
+      model: {kind: guided, width: 16, feature_schema: 2, guide_policy: sampled, blend_policy: single}
+      loss: {kind: relative_l2}
+    - name: refine-legacy
+      model: {kind: refine, width: 16, feature_schema: 2, blend_policy: single}
+      loss: {kind: log_l1}
+    - name: refine-additive
+      model: {kind: refine, width: 16, feature_schema: 2, blend_policy: single, output_head: additive_log}
+      loss: {kind: log_l1}
+    - name: refine-conditioned
+      model: {kind: refine, width: 16, feature_schema: 2, blend_policy: single, output_head: additive_log, radiance_scale: 16}
+      loss: {kind: log_l1}

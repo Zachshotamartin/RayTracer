@@ -62,6 +62,7 @@ def export_model(checkpoint, output, width=None, height=None, precision="fp32"):
         "rt_domain": "diffuse-pinhole",
         "rt_checkpoint_sha256": digest(checkpoint),
         "rt_precision": precision,
+        "rt_model_config": json.dumps(state["config"]["model"], sort_keys=True),
         "rt_tile_halo": "32"
         if state["config"]["model"].get("kind") in ("guided", "refine") and width is None
         else "0",
@@ -81,6 +82,12 @@ def export_model(checkpoint, output, width=None, height=None, precision="fp32"):
         x[:, 10:12] = 1
         if schema == 2:
             x[:, 26] = 1
+        # Include the transition and exact bypass, HDR, and material boundaries.
+        budgets = torch.tensor([4, 32, 64, 96, 128], dtype=x.dtype)
+        x[:, 15] = budgets[torch.arange(w) % len(budgets)][None, :]
+        x[:, :3, : h // 3] *= 20
+        x[:, :3, h // 3 : 2 * h // 3] = 0
+        x[:, 11, : h // 4] = 0
         with torch.inference_mode():
             expected = model(x).numpy()
         actual = session.run(None, {"features": x.numpy()})[0]

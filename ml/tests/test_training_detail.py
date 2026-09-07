@@ -234,6 +234,57 @@ def test_measured_preservation_validation_is_deterministic_and_below_bypass(comp
         PreservationValidation(compact_dataset[0] / "compact", samples=128)
 
 
+def test_research_cohort_retains_references_and_runs_paired_controls(compact_dataset, tmp_path):
+    from raytracer_ml.research_controls import render_cohort, compare_cohort, load_cohort
+
+    data, _, binary = compact_dataset
+    cohort = tmp_path / "cohort"
+    cfg = dict(
+        seed=991,
+        width=32,
+        threads=2,
+        budgets=[4, 16],
+        noise_realizations=1,
+        reference_samples=32,
+        check_samples=64,
+        max_seconds=120,
+        max_gib=1,
+    )
+    result = render_cohort(data / "compact", cohort, binary, cfg)
+    assert result["state"] == "completed"
+    assert {r["split"] for r in result["views"]} == {"train", "val"}
+    assert all(r["reference"]["seed"] != r["check"]["seed"] for r in result["views"])
+    runs = compare_cohort(
+        cohort,
+        tmp_path / "runs",
+        dict(
+            device="cpu",
+            seeds=[42],
+            steps=2,
+            crop=16,
+            batch_size=2,
+            learning_rate=0.0003,
+            max_seconds=120,
+            trials=[
+                dict(
+                    name="sampled-l2",
+                    model=dict(kind="guided", width=4, feature_schema=2, guide_policy="sampled"),
+                    loss=dict(kind="relative_l2"),
+                )
+            ],
+        ),
+    )
+    assert runs["state"] == "completed" and len(runs["trials"]) == 1
+    trial = runs["trials"][0]
+    assert trial["history"][0]["warning_metric"] == "model_region_log_mae"
+    assert all(set(row["metrics"]) == {"target", "check"} for row in trial["rows"])
+    receipt = json.loads((cohort / "cohort.json").read_text())
+    receipt["examples"][0]["split"] = "test"
+    write_json(cohort / "cohort.json", receipt)
+    with pytest.raises(ValueError, match="split mismatch"):
+        load_cohort(cohort)
+
+
 def test_training_retains_eligible_model_and_reports_extended_gates(
     compact_dataset, tmp_path, monkeypatch
 ):
@@ -369,10 +420,20 @@ def test_augmented_epoch_resume_is_exact(compact_dataset, tmp_path):
         ("refine", 2, "fp32"),
         ("guided", 1, "mixed-fp16"),
         ("unet", 1, "fp32"),
+        ("refine-v2", 1, "fp32"),
+        ("refine-v2", 2, "fp32"),
+        ("refine-v2", 2, "mixed-fp16"),
+        ("guided-sampled", 2, "fp32"),
     ],
 )
 def test_detail_export_and_native_parity(kind, scale, precision, compact_dataset, tmp_path):
     cfg = dict(kind=kind, width=8, feature_schema=2, scale=scale)
+    if kind == "refine-v2":
+        cfg.update(
+            kind="refine", output_head="additive_log", radiance_scale=16, blend_policy="single"
+        )
+    elif kind == "guided-sampled":
+        cfg.update(kind="guided", guide_policy="sampled", blend_policy="single")
     if kind == "unet":
         cfg["output_head"] = "additive_log"
         cfg["activation"] = "leaky_relu"
@@ -405,7 +466,7 @@ def test_detail_export_and_native_parity(kind, scale, precision, compact_dataset
             "--width",
             "32",
             "--samples",
-            "4",
+            "64" if kind in ("refine-v2", "guided-sampled") else "4",
             "--threads",
             "2",
             "--model",
