@@ -35,7 +35,17 @@ def main():
     p.add_argument("--data", required=True)
     p.add_argument("--output", required=True)
     p.add_argument("--resume", action="store_true")
+    p.add_argument("--resume-from", help="Continue a full checkpoint into a NEW output directory")
     p.add_argument("--max-new-epochs", type=int)
+    p = commands.add_parser("checkpoints", help="List full-state restart points and SHA-256 hashes")
+    p.add_argument("--output", required=True)
+    p = commands.add_parser("pause-training", help="Request a safe pause after the current epoch")
+    p.add_argument("--output", required=True)
+    p = commands.add_parser("prepare-training", help="Validate a run without optimizer updates")
+    p.add_argument("--config", required=True)
+    p.add_argument("--data", required=True)
+    p.add_argument("--output", required=True)
+    p.add_argument("--report", required=True)
     p = commands.add_parser("evaluate")
     p.add_argument("--data", required=True)
     p.add_argument("--checkpoint", required=True)
@@ -93,8 +103,30 @@ def main():
             from .train import train
 
             result = train(
-                config(args.config), args.data, args.output, args.resume, args.max_new_epochs
+                config(args.config),
+                args.data,
+                args.output,
+                args.resume,
+                args.max_new_epochs,
+                args.resume_from,
             )
+        elif args.command == "checkpoints":
+            from .train import load_checkpoint
+            from .training_checkpoints import list_checkpoints
+
+            result = list_checkpoints(args.output, load_checkpoint)
+        elif args.command == "pause-training":
+            from pathlib import Path
+
+            output = Path(args.output)
+            if not (output / "config.json").is_file():
+                raise ValueError("No initialized training run at this output")
+            (output / "STOP_AFTER_EPOCH").touch()
+            result = {"state": "pause-requested", "boundary": "after the current epoch"}
+        elif args.command == "prepare-training":
+            from .prepare import prepare_training
+
+            result = prepare_training(config(args.config), args.data, args.output, args.report)
         elif args.command == "evaluate":
             from .evaluate import evaluate
 

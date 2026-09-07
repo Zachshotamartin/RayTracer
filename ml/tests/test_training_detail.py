@@ -234,6 +234,40 @@ def test_measured_preservation_validation_is_deterministic_and_below_bypass(comp
         PreservationValidation(compact_dataset[0] / "compact", samples=128)
 
 
+def test_training_preparation_does_not_start_a_run(compact_dataset, tmp_path, monkeypatch):
+    from raytracer_ml.prepare import prepare_training
+
+    def forbidden_optimizer(*args, **kwargs):
+        raise AssertionError("Preparation must never construct an optimizer")
+
+    monkeypatch.setattr(torch.optim, "AdamW", forbidden_optimizer)
+    cfg = dict(
+        seed=42,
+        device="cpu",
+        cpu_threads=1,
+        model=dict(kind="guided", width=4, feature_schema=2),
+        crop=16,
+        batch_size=2,
+        epochs=50,
+        patience=10,
+        learning_rate=0.0003,
+        weight_decay=0.0001,
+        max_seconds=7200,
+        identity_probability=0.05,
+        preservation_mode="measured_near_clean",
+        near_clean_samples=5,
+        selection=dict(preservation_ratio=1.02),
+        checkpoint_history=True,
+    )
+    run = tmp_path / "not-started"
+    report = tmp_path / "preflight.json"
+    result = prepare_training(cfg, compact_dataset[0] / "compact", run, report)
+    assert result["optimizer_updates"] == 0 and result["state"] == "prepared-awaiting-approval"
+    assert result["preservation_views_per_epoch"] > 0
+    assert not run.exists() and report.is_file()
+    assert not list(tmp_path.rglob("*.pt"))
+
+
 def test_research_cohort_retains_references_and_runs_paired_controls(compact_dataset, tmp_path):
     from raytracer_ml.research_controls import render_cohort, compare_cohort, load_cohort
 

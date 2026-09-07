@@ -118,8 +118,23 @@ only after a candidate passes configured constraints. `best.pt` prioritizes that
 candidate; when none passes it retains an explicitly unqualified diagnostic model.
 The atomic `latest.pt` contains optimizer, scheduler, random generators, data
 contract and selection snapshots; the model aliases contain weights and selection
-metadata. Resume is tested bit-for-bit on CPU at epoch
+metadata. New runs also retain full `checkpoints/epoch-000001.pt` snapshots with
+SHA-256 receipts and `best_resume.pt`, including the selected best epoch's optimizer,
+scheduler and RNG state. `rtml checkpoints --output RUN` lists these restart points.
+`--resume` continues the latest completed epoch. `--resume-from CHECKPOINT` continues
+a copied latest/best/epoch file into a **new** output directory with the same config
+and dataset, preserving the original run and recording parent provenance. It rejects
+weight-only files such as `best.pt`. The selected best full state is embedded in each
+new latest/epoch file so aliases can be recovered after a failed write or transfer.
+`rtml pause-training --output RUN` requests a pause after the current epoch is saved.
+An abrupt interruption replays the incomplete epoch from the last committed state.
+Historical checkpoints are retained without pruning; a run lock prevents two writers.
+Resume is tested bit-for-bit on CPU at epoch
 boundaries; equivalence across devices/platforms is not promised.
+
+The [Mac full-data preparation](../docs/mac-training-run.md) defines the proposed
+two-epoch approval stage, checks the MPS device without fitting, and documents
+continuation, best-model selection, storage and recovery limits.
 
 For new runs, [C14](configs/train/detail/c14-quality-selection.yaml) adds HDR and
 measured 96-spp preservation constraints, while

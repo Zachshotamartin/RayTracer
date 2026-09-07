@@ -22,9 +22,16 @@ ongoing training; it does not infer model quality from checkpoint presence.
 | --- | --- | --- | --- | --- |
 | Original `pilot-v1` | 32 / 128 | 2,304 | 512 spp | Historical benchmark |
 | `detail-pilot-v2` | 16 / 64 | 896 | 1,024 spp; 12 independent 4,096-spp checks | Generated and integrity-validated |
-| `detail-full-v3` | 1,024 / 4,096 | 57,344 | Planned 2,048 spp; 96 independent 8,192-spp checks | Generator/configuration implemented; not yet a completed dataset |
+| `detail-full-v3` | 1,024 / 4,096 | 57,344 | 2,048 spp; 96 independent 8,192-spp scalar checks | Generated and integrity-validated; full-data fitting awaits approval |
 | `detail-sequence-v2` | 16 / 512 | 2,048 | 1,024 spp; independent 4,096-spp checks | Generated and integrity-validated |
-| `detail-pilot-512` | 16 / 64 | 896 | 2,048 spp; independent 8,192-spp checks | Generation running; 512×288 resolution cohort |
+| `detail-pilot-512` | 16 / 64 | 896 | 2,048 spp; independent 8,192-spp checks | Generation complete; 512×288 resolution cohort |
+
+The full collection passed its file/schema/split audit on 2026-09-07, with manifest
+`921a69991b3d243097601c72d409ea5c7b973651a9eda873de390d04da4aece3`.
+Its older frozen generator retained 96 scalar comparison receipts, not the independent
+check images. Integrity success therefore does not establish regional reference
+convergence. The [Mac run preparation](../../docs/mac-training-run.md) retains this
+limitation and defines an initial two-epoch approval stage with full-state checkpoints.
 
 The new pilot has 8/4/4 training/validation/test layouts. Its manifest SHA-256 is
 `e782c0dccf9ab0c47169e8bf2ffc8f6e5b3c0f038e2f49c916e58ee42e236894`.

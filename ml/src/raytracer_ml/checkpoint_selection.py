@@ -40,7 +40,8 @@ def publish_selection(selection, output, save, updated_epoch=None):
     """Publish aliases only after latest.pt commits selection and its model snapshots.
 
     Resume calls this again, repairing missing/stale aliases without trusting them as
-    the authoritative selection state. Only latest.pt is used for training resume.
+    the authoritative selection state. Training resume uses full state from latest.pt,
+    best_resume.pt, or an archived epoch; these weight aliases remain for inference.
     """
 
     def publish(name, snapshot):

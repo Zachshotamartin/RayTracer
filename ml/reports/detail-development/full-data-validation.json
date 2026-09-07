@@ -1,0 +1,20 @@
+{
+  "validated_date": "2026-09-07",
+  "dataset": "detail-full-v3",
+  "validation": {
+    "examples": 57344,
+    "groups": 1024,
+    "splits": {
+      "train": 43008,
+      "val": 7168,
+      "test": 7168
+    },
+    "references": 4096,
+    "reference_checks": {
+      "retained_images": 0,
+      "legacy_scalar_only": 96
+    },
+    "manifest_sha256": "921a69991b3d243097601c72d409ea5c7b973651a9eda873de390d04da4aece3"
+  },
+  "interpretation": "Full file/schema/split integrity audit; legacy scalar check receipts do not establish regional reference convergence. No training was performed."
+}

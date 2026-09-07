@@ -5,16 +5,19 @@ import math
 import os
 import platform
 import random
+import shutil
 import time
 from pathlib import Path
 
 import numpy as np
 import torch
+from filelock import FileLock, Timeout
 from torch.utils.data import DataLoader
 
 from .data.dataset import RenderDataset
 from .data.validate import validate
-from .io import identity, write_json, git_revision
+from .io import identity, write_json, git_revision, digest
+from .training_checkpoints import commit_training_checkpoint, require_resume_state
 from .losses import reconstruction_loss, validate_loss_config
 from .models import build_model
 from .preprocessing import model_schema
@@ -54,7 +57,10 @@ def synchronize(device):
 
 def save_checkpoint(path, state):
     temporary = Path(path).with_suffix(".tmp")
-    torch.save(state, temporary)
+    with temporary.open("wb") as stream:
+        torch.save(state, stream)
+        stream.flush()
+        os.fsync(stream.fileno())
     os.replace(temporary, path)
 
 
@@ -85,9 +91,34 @@ def restore_rng(state, generator, device):
         torch.mps.set_rng_state(state["mps"])
 
 
-def train(cfg, root, output, resume=False, max_new_epochs=None):
+def train(cfg, root, output, resume=False, max_new_epochs=None, resume_from=None):
+    if resume and resume_from:
+        raise ValueError("Choose --resume or --resume-from, not both")
+    if max_new_epochs is not None and (type(max_new_epochs) is not int or max_new_epochs < 1):
+        raise ValueError("max_new_epochs must be a positive integer")
+    output = Path(output)
+    output.mkdir(parents=True, exist_ok=True)
+    try:
+        with FileLock(output / ".training.lock", timeout=0):
+            return _train(cfg, root, output, resume, max_new_epochs, resume_from)
+    except Timeout as error:
+        raise ValueError("Another process is using this training run") from error
+
+
+def _train(cfg, root, output, resume, max_new_epochs, resume_from):
     validate_loss_config(cfg.get("loss"))
     root, output = Path(root), Path(output)
+    checkpoint_path = output / "latest.pt"
+    if not resume and (checkpoint_path.exists() or (output / "config.json").exists()):
+        raise ValueError("Run already exists; use --resume or a new output directory")
+    if resume and not checkpoint_path.is_file():
+        raise ValueError("No latest checkpoint to resume")
+    source_checkpoint = Path(resume_from).resolve() if resume_from else checkpoint_path
+    state = load_checkpoint(source_checkpoint) if resume or resume_from else None
+    if state is not None:
+        require_resume_state(state)
+    if type(cfg.get("checkpoint_history", True)) is not bool:
+        raise ValueError("checkpoint_history must be boolean")
     validation = validate(root)
     data_info = json.loads((root / "dataset.json").read_text())
     if cfg["model"].get("scale", 1) != data_info["config"].get("scale", 1):
@@ -95,6 +126,16 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
     for key in ("epochs", "batch_size", "patience", "max_seconds"):
         if cfg[key] <= 0:
             raise ValueError(f"{key} must be positive")
+    reserve = cfg.get("min_free_gib", 0)
+    if (
+        isinstance(reserve, bool)
+        or not isinstance(reserve, (int, float))
+        or not math.isfinite(reserve)
+        or reserve < 0
+    ):
+        raise ValueError("min_free_gib must be finite and nonnegative")
+    if shutil.disk_usage(output).free < reserve * 2**30:
+        raise ValueError("Insufficient free disk space for the configured training reserve")
     device = device_for(cfg.get("device", "auto"))
     torch.set_num_threads(int(cfg.get("cpu_threads", 2)))
     seed = int(cfg["seed"])
@@ -182,7 +223,6 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg["epochs"])
     contract = identity({"config": cfg, "manifest": validation["manifest_sha256"]})
     output.mkdir(parents=True, exist_ok=True)
-    checkpoint_path = output / "latest.pt"
     first_epoch = 0
     best = math.inf
     best_loss = math.inf
@@ -191,8 +231,8 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
     stale = 0
     total_seconds = 0.0
     step = 0
-    if resume:
-        state = load_checkpoint(checkpoint_path)
+    best_resume_state = None
+    if state is not None:
         if state["contract"] != contract:
             raise ValueError("Resume configuration or dataset differs from checkpoint")
         model.load_state_dict(state["model"])
@@ -205,23 +245,36 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
         step = state["step"]
         total_seconds = state["total_seconds"]
         selection_state = restore_selection(
-            state, output, load_checkpoint, bool(cfg.get("selection"))
+            state, source_checkpoint.parent, load_checkpoint, bool(cfg.get("selection"))
         )
+        state["selection_state"] = selection_state
+        commit_training_checkpoint(output, state, save_checkpoint, load_checkpoint)
+        best_resume_state = state.get("best_resume_state")
         publish_selection(selection_state, output, save_checkpoint)
         selected = selected_checkpoint(selection_state)
         best, best_loss = selected["selection_score"], selected["validation_loss"]
         restore_rng(state["rng"], generator, device)
         # Discard logs written after the last atomic checkpoint, if a process died there.
         log = output / "metrics.jsonl"
-        if log.exists():
+        if resume and log.exists():
             lines = [
                 line
                 for line in log.read_text().splitlines()
                 if json.loads(line)["epoch"] < first_epoch
             ]
             log.write_text("".join(line + "\n" for line in lines))
-    elif checkpoint_path.exists() or (output / "config.json").exists():
-        raise ValueError("Run already exists; use --resume or a new output directory")
+        if resume_from:
+            write_json(
+                output / "lineage.json",
+                {
+                    "source_checkpoint": str(source_checkpoint),
+                    "source_sha256": digest(source_checkpoint),
+                    "parent_epoch_completed": first_epoch,
+                    "parent_step": step,
+                    "contract": contract,
+                    "mode": "full-state continuation; original run is unchanged",
+                },
+            )
     write_json(output / "config.json", cfg)
     write_json(
         output / "environment.json",
@@ -243,6 +296,13 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
         LearningHealth(model, health_config, cfg.get("loss")) if health_config is not None else None
     )
     for epoch in range(first_epoch, cfg["epochs"]):
+        if checkpoint_path.exists() and (output / "STOP_AFTER_EPOCH").exists():
+            (output / "STOP_AFTER_EPOCH").unlink()
+            reason = "pause-requested"
+            break
+        if stale >= cfg["patience"]:
+            reason = "early-stopping"
+            break
         if max_new_epochs is not None and epoch - first_epoch >= max_new_epochs:
             reason = "paused-at-epoch-boundary"
             break
@@ -395,8 +455,10 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
             "total_seconds": total_seconds,
             "manifest_sha256": validation["manifest_sha256"],
             "training_scene_hashes": sorted({r["scene_sha256"] for r in training.rows}),
+            "best_resume_state": best_resume_state,
         }
-        save_checkpoint(checkpoint_path, state)
+        commit_training_checkpoint(output, state, save_checkpoint, load_checkpoint)
+        best_resume_state = state.get("best_resume_state")
         publish_selection(selection_state, output, save_checkpoint, updated_epoch=epoch)
         metric = {
             "epoch": epoch,
@@ -423,6 +485,10 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
         with (output / "metrics.jsonl").open("a") as log:
             log.write(json.dumps(metric) + "\n")
         print(json.dumps(metric), flush=True)
+        if (output / "STOP_AFTER_EPOCH").exists():
+            (output / "STOP_AFTER_EPOCH").unlink()
+            reason = "pause-requested"
+            break
         if stale >= cfg["patience"]:
             reason = "early-stopping"
             break
@@ -438,6 +504,11 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
         "selection_policy": "eligible-first-v1",
         "device": str(device),
         "parameters": sum(p.numel() for p in model.parameters()),
+        "latest_checkpoint": str(checkpoint_path),
+        "best_resume_checkpoint": str(output / "best_resume.pt")
+        if best_resume_state is not None
+        else None,
+        "epochs_complete": state["epoch"] + 1 if checkpoint_path.exists() else 0,
     }
     write_json(output / "summary.json", result)
     if health is not None:
