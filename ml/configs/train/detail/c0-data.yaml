@@ -1,0 +1,27 @@
+seed: 42
+device: auto
+cpu_threads: 2
+model:
+  kind: unet
+  width: 32
+  scale: 1
+  inputs: all
+crop: 96
+batch_size: 8
+epochs: 50
+patience: 10
+learning_rate: 0.0003
+weight_decay: 0.0001
+max_seconds: 7200
+validation_budgets:
+- 1
+- 4
+- 8
+- 16
+- 64
+validation_first_noise_only: true
+selection:
+  ssim_tolerance: 0.005
+  edge_ratio: 1.05
+  ssim_penalty: 1
+  edge_penalty: 0.05

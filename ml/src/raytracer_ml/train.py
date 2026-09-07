@@ -17,6 +17,9 @@ from .data.validate import validate
 from .io import identity, write_json, git_revision
 from .losses import reconstruction_loss
 from .models import build_model
+from .preprocessing import model_schema
+from .data.arrays import load_example
+from .selection import structural_scores, checkpoint_score
 
 
 def device_for(name):
@@ -81,8 +84,27 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
     np.random.seed(seed)
     torch.manual_seed(seed)
     generator = torch.Generator().manual_seed(seed)
-    training = RenderDataset(root, "train", cfg.get("crop", 0), cfg["model"].get("temporal", False))
-    heldout = RenderDataset(root, "val", temporal=cfg["model"].get("temporal", False))
+    feature_schema = model_schema(cfg["model"])
+    training = RenderDataset(
+        root,
+        "train",
+        cfg.get("crop", 0),
+        cfg["model"].get("temporal", False),
+        feature_schema,
+        cfg.get("edge_sampling", 0),
+        cfg.get("identity_probability", 0),
+        cfg.get("augmentation"),
+        cfg.get("fuse_probability", 0),
+    )
+    heldout = RenderDataset(
+        root, "val", temporal=cfg["model"].get("temporal", False), feature_schema=feature_schema
+    )
+    if cfg.get("validation_budgets"):
+        heldout.rows = [r for r in heldout.rows if r["samples"] in cfg["validation_budgets"]]
+    if cfg.get("validation_first_noise_only"):
+        heldout.rows = [r for r in heldout.rows if "-n0-s" in r["id"]]
+    if not heldout.rows:
+        raise ValueError("Validation selection is empty")
     loader = DataLoader(
         training, batch_size=cfg["batch_size"], shuffle=True, generator=generator, num_workers=0
     )
@@ -97,6 +119,8 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
     checkpoint_path = output / "latest.pt"
     first_epoch = 0
     best = math.inf
+    best_loss = math.inf
+    baseline_scores = {}
     stale = 0
     total_seconds = 0.0
     step = 0
@@ -109,6 +133,7 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
         scheduler.load_state_dict(state["scheduler"])
         first_epoch = state["epoch"] + 1
         best = state["best"]
+        best_loss = state.get("best_loss", best)
         stale = state["stale"]
         step = state["step"]
         total_seconds = state["total_seconds"]
@@ -158,7 +183,7 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
                 break
             x, y = x.to(device), y.to(device)
             optimizer.zero_grad(set_to_none=True)
-            loss = reconstruction_loss(model(x), y)
+            loss = reconstruction_loss(model(x), y, cfg.get("loss"))
             if not torch.isfinite(loss):
                 raise FloatingPointError("Non-finite training loss")
             loss.backward()
@@ -171,23 +196,59 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
         model.eval()
         val_losses = []
         raw_losses = []
+        measured_scores = []
         with torch.inference_mode():
-            for x, y in val_loader:
+            for validation_index, (x, y) in enumerate(val_loader):
                 x, y = x.to(device), y.to(device)
                 prediction = model(x)
-                val_losses.append(float(reconstruction_loss(prediction, y).cpu()))
+                val_losses.append(float(reconstruction_loss(prediction, y, cfg.get("loss")).cpu()))
                 raw = x[:, :3]
                 if raw.shape[-2:] != y.shape[-2:]:
                     raw = torch.nn.functional.interpolate(
                         raw, size=y.shape[-2:], mode="bilinear", align_corners=False
                     )
-                raw_losses.append(float(reconstruction_loss(raw, y).cpu()))
+                raw_losses.append(float(reconstruction_loss(raw, y, cfg.get("loss")).cpu()))
+                if cfg.get("selection"):
+                    target_image = y[0].cpu().numpy().transpose(1, 2, 0)
+                    image = prediction[0].cpu().numpy().transpose(1, 2, 0)
+                    measured_scores.append(structural_scores(image, target_image))
+                    if validation_index not in baseline_scores:
+                        baseline = load_example(root, heldout.rows[validation_index])["atrous"]
+                        if baseline.shape != target_image.shape:
+                            baseline = (
+                                torch.nn.functional.interpolate(
+                                    torch.from_numpy(baseline.transpose(2, 0, 1)[None]),
+                                    size=target_image.shape[:2],
+                                    mode="bilinear",
+                                    align_corners=False,
+                                )[0]
+                                .numpy()
+                                .transpose(1, 2, 0)
+                            )
+                        baseline_scores[validation_index] = structural_scores(
+                            baseline, target_image
+                        )
         value = float(np.mean(val_losses))
         if not math.isfinite(value):
             raise FloatingPointError("Non-finite validation loss")
-        improved = value < best
+        measured = (
+            {key: float(np.mean([s[key] for s in measured_scores])) for key in ("ssim", "edge")}
+            if measured_scores
+            else {}
+        )
+        baseline = (
+            {
+                key: float(np.mean([s[key] for s in baseline_scores.values()]))
+                for key in ("ssim", "edge")
+            }
+            if baseline_scores
+            else {}
+        )
+        score, eligible = checkpoint_score(value, measured, baseline, cfg.get("selection"))
+        improved = score < best
         if improved:
-            best = value
+            best = score
+            best_loss = value
             stale = 0
         else:
             stale += 1
@@ -206,6 +267,10 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
             "epoch": epoch,
             "step": step,
             "best": best,
+            "best_loss": best_loss,
+            "validation_constraints_pass": eligible,
+            "validation_structure": measured,
+            "baseline_structure": baseline,
             "stale": stale,
             "total_seconds": total_seconds,
             "manifest_sha256": validation["manifest_sha256"],
@@ -219,6 +284,10 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
             "step": step,
             "train_loss": float(np.mean(losses)),
             "validation_loss": value,
+            "selection_score": score,
+            "validation_constraints_pass": eligible,
+            "validation_structure": measured,
+            "baseline_structure": baseline,
             "raw_validation_loss": float(np.mean(raw_losses)),
             "seconds": elapsed,
             "total_seconds": total_seconds,
@@ -232,7 +301,8 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
             break
     result = {
         "reason": reason,
-        "best_validation_loss": None if not math.isfinite(best) else best,
+        "best_validation_loss": None if not math.isfinite(best_loss) else best_loss,
+        "best_selection_score": None if not math.isfinite(best) else best,
         "total_seconds": total_seconds,
         "checkpoint": str(output / "best.pt"),
         "device": str(device),

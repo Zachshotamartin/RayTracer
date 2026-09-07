@@ -1,19 +1,20 @@
 schema_version: 1
 feature_schema: 2
-suite: challenge-v2
+suite: families-v3
 seed: 82026
-groups: 144
-split_counts: [96, 24, 24]
-views: 6
+groups: 1024
+split_counts: [768, 128, 128]
+views: 4
 width: 256
 budgets: [1, 2, 4, 8, 16, 32, 64]
-noise_realizations: 3
+noise_realizations: 2
 reference_samples: 2048
 reference_check_samples: 8192
 reference_check_strategy: stratified
 scale: 1
 depth: 16
 threads: 6
-max_seconds: 14400
-max_gib: 64
+max_seconds: 86400
+max_gib: 160
 require_clean_source: true
+compact_storage: true

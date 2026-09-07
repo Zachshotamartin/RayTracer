@@ -39,6 +39,9 @@ struct options {
     std::size_t sequence_index = 0;
     std::uint64_t sequence_seed = 42;
     std::string neural_provider = "cpu", neural_error;
+    neural_settings neural_config;
+    neural_stats neural_details;
+    int neural_interval_ms = 150;
     bool neural_active = false, reconstructed = false, neural_supported = true;
     double neural_seconds = 0, model_load_seconds = 0, pipeline_seconds = 0;
     int benchmark_repeats = 1, benchmark_iteration = 0;
@@ -156,6 +159,10 @@ void help() {
            "  --features DIRECTORY        Export aligned linear training buffers (headless)\n"
            "  --model PATH.onnx           Reconstruct with trained weights; N toggles in viewer\n"
            "  --neural-provider NAME      cpu (default) or coreml\n"
+           "  --neural-threads N          Inference CPU threads (default 2)\n"
+           "  --neural-cache DIR          Cache compiled Core ML models\n"
+           "  --neural-profile PATH       Write ORT profile with this prefix\n"
+           "  --neural-interval-ms N      Minimum time between preview requests (default 150)\n"
            "  --raw-output PATH.pfm       Also export unchanged raw accumulation\n"
            "  --reference PATH.pfm        Raw reference + JSON metadata; V/E compare in viewer\n"
            "  --benchmark-repeats N       Repeat headless frames with one loaded model\n"
@@ -207,6 +214,11 @@ std::string report(const options &opts, const frame_snapshot &frame, const rende
         << ",\n  \"neural_provider_requested\": " << quote(opts.neural_provider)
         << ",\n  \"neural_error\": " << quote(opts.neural_error)
         << ",\n  \"neural_seconds\": " << opts.neural_seconds
+        << ",\n  \"neural_packing_seconds\": " << opts.neural_details.packing_seconds
+        << ",\n  \"neural_inference_seconds\": " << opts.neural_details.inference_seconds
+        << ",\n  \"neural_output_seconds\": " << opts.neural_details.output_seconds
+        << ",\n  \"neural_input_bytes\": " << opts.neural_details.input_bytes
+        << ",\n  \"neural_threads\": " << opts.neural_config.threads
         << ",\n  \"model_load_seconds\": " << opts.model_load_seconds
         << ",\n  \"pipeline_seconds\": " << opts.pipeline_seconds
         << ",\n  \"benchmark_iteration\": " << opts.benchmark_iteration
@@ -295,7 +307,17 @@ int main(int argc, char **argv) {
                 opts.neural_active = true;
             } else if (arg == "--neural-provider")
                 opts.neural_provider = value();
-            else if (arg == "--raw-output")
+            else if (arg == "--neural-threads")
+                opts.neural_config.threads = integer<int>(value());
+            else if (arg == "--neural-cache")
+                opts.neural_config.cache_directory = value();
+            else if (arg == "--neural-profile")
+                opts.neural_config.profile_prefix = value();
+            else if (arg == "--neural-interval-ms") {
+                opts.neural_interval_ms = integer<int>(value());
+                if (opts.neural_interval_ms < 0 || opts.neural_interval_ms > 10000)
+                    throw std::invalid_argument("Neural preview interval must be 0..10000 ms");
+            } else if (arg == "--raw-output")
                 opts.raw_output = value();
             else if (arg == "--reference")
                 opts.reference_file = value();
@@ -414,7 +436,8 @@ int main(int argc, char **argv) {
             if (opts.neural_active) {
                 auto start = std::chrono::steady_clock::now();
                 try {
-                    model = std::make_unique<neural_denoiser>(opts.model, opts.neural_provider);
+                    model = std::make_unique<neural_denoiser>(opts.model, opts.neural_provider,
+                                                              opts.neural_config);
                 } catch (const std::exception &error) {
                     opts.neural_error = error.what();
                     std::cerr << "Neural fallback: " << error.what() << '\n';
@@ -465,6 +488,7 @@ int main(int argc, char **argv) {
                         if (!opts.neural_supported)
                             throw std::runtime_error("Unsupported model domain for this frame");
                         prediction = model->reconstruct(frame);
+                        opts.neural_details = model->stats();
                         opts.neural_error.clear();
                     } catch (const std::exception &error) {
                         opts.neural_error = error.what();
@@ -496,11 +520,12 @@ int main(int argc, char **argv) {
         frame_snapshot preview = frame;
         std::unique_ptr<reconstruction_worker> neural_worker;
         if (!opts.model.empty())
-            neural_worker =
-                std::make_unique<reconstruction_worker>(opts.model, opts.neural_provider);
+            neural_worker = std::make_unique<reconstruction_worker>(
+                opts.model, opts.neural_provider, opts.neural_config);
         std::optional<reconstruction_result> neural_preview;
         std::uint64_t generation = 0;
         int requested_samples = 0, save_target = 0;
+        auto neural_request_time = std::chrono::steady_clock::time_point{};
         bool save_pending = false;
         int comparison = 0;
         bool playback_paused = false;
@@ -665,6 +690,7 @@ int main(int argc, char **argv) {
                 if (auto result = neural_worker->poll();
                     result && result->generation == generation) {
                     opts.neural_seconds = result->seconds;
+                    opts.neural_details = result->details;
                     opts.neural_error = result->error;
                     if (!result->error.empty()) {
                         std::cerr << "Neural fallback: " << result->error << '\n';
@@ -695,10 +721,13 @@ int main(int argc, char **argv) {
                 }
                 if (opts.neural_active && opts.neural_supported &&
                     frame.samples > requested_samples &&
-                    (requested_samples == 0 || frame.samples >= requested_samples * 2 ||
+                    (requested_samples == 0 ||
+                     std::chrono::steady_clock::now() - neural_request_time >=
+                         std::chrono::milliseconds(opts.neural_interval_ms) ||
                      session->done() || save_pending)) {
                     neural_worker->submit(frame, stats, generation);
                     requested_samples = frame.samples;
+                    neural_request_time = std::chrono::steady_clock::now();
                 }
                 if (opts.neural_active && !opts.neural_supported)
                     notice = "AI DOMAIN FALLBACK - RAW";

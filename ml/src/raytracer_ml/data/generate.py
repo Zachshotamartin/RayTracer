@@ -78,6 +78,9 @@ def generate(cfg, binary, root, dry_run=False):
         raise ValueError("Dataset width must be a multiple of 16 for aligned 16:9 pairs")
     items = list(configurations(cfg))
     feature_schema = int(cfg.get("feature_schema", 1))
+    compact = bool(cfg.get("compact_storage", False))
+    if compact and feature_schema != 2:
+        raise ValueError("Compact storage requires feature schema 2")
     if feature_schema not in (1, 2):
         raise ValueError("Unsupported feature schema")
     # External asset paths would make the inline scene hash incomplete. Dataset
@@ -88,7 +91,9 @@ def generate(cfg, binary, root, dry_run=False):
     if cfg.get("reference_check_strategy") == "stratified":
         chosen = {}
         for i, item in enumerate(items):
-            chosen.setdefault((item["split"], item.get("stratum", "room")), i)
+            chosen.setdefault(
+                (item["split"], item.get("family", "room"), item.get("stratum", "room")), i
+            )
         check_indices = list(chosen.values())
     count = len(items) * len(budgets) * cfg["noise_realizations"]
     estimate = {
@@ -114,12 +119,30 @@ def generate(cfg, binary, root, dry_run=False):
             raise ValueError("Commit source changes before generating this reproducible dataset")
     root.mkdir(parents=True, exist_ok=True)
     with FileLock(str(root / ".generation.lock"), timeout=0):
-        contract = {"schema_version": 1, "config": cfg, "renderer_sha256": digest(binary)}
+        package = Path(__file__).resolve().parents[1]
+        generator_sources = {
+            str(p.relative_to(package)): digest(p) for p in (package / "data").glob("*.py")
+        }
+        for name in ("io.py", "preprocessing.py"):
+            generator_sources[name] = digest(package / name)
+        renderer_sha = digest(binary)
+        renderer_source = None
+        if binary.with_suffix(".json").is_file():
+            receipt = json.loads(binary.with_suffix(".json").read_text())
+            if receipt.get("sha256") != renderer_sha:
+                raise ValueError("Frozen renderer receipt checksum differs from binary")
+            renderer_source = receipt.get("source_commit")
+        contract = {
+            "schema_version": 1,
+            "config": cfg,
+            "renderer_sha256": renderer_sha,
+            "generator_sources": generator_sources,
+        }
         fingerprint = identity(contract)
         info = root / "dataset.json"
         if info.exists() and json.loads(info.read_text())["fingerprint"] != fingerprint:
             raise ValueError(
-                "Dataset configuration/renderer changed; choose a new artifact directory"
+                "Dataset configuration/renderer/generator changed; choose a new artifact directory"
             )
         if not info.exists():
             write_json(
@@ -127,7 +150,8 @@ def generate(cfg, binary, root, dry_run=False):
                 {
                     **contract,
                     "fingerprint": fingerprint,
-                    "renderer_commit": git_revision(),
+                    "renderer_commit": renderer_source,
+                    "generator_commit": git_revision(),
                     "estimate": estimate,
                     "created_unix": time.time(),
                 },
@@ -140,6 +164,21 @@ def generate(cfg, binary, root, dry_run=False):
         # Rebuild the append-only manifest from those records instead of rewriting
         # all previous rows after each example (quadratic IO on large datasets).
         (root / "manifest.jsonl").write_text("")
+        # Account for our writes incrementally. Re-scanning tens of thousands of
+        # files every few examples makes a large SSD dataset quadratic in IO.
+        used = sum(p.stat().st_size for p in root.rglob("*") if p.is_file())
+
+        def accounted_write(writer, path, *args, **kwargs):
+            nonlocal used
+            before = path.stat().st_size if path.exists() else 0
+            writer(path, *args, **kwargs)
+            used += path.stat().st_size - before
+
+        def record_json(path, value):
+            accounted_write(write_json, path, value)
+
+        def record_arrays(path, **arrays):
+            accounted_write(save_arrays, path, **arrays)
 
         def guard():
             nonlocal disk_checks
@@ -148,7 +187,6 @@ def generate(cfg, binary, root, dry_run=False):
             disk_checks += 1
             if disk_checks % 16 != 1:
                 return
-            used = sum(p.stat().st_size for p in root.rglob("*") if p.is_file())
             reserve = 16 * cfg["width"] ** 2 * 4 * 64 * cfg.get("scale", 1) ** 2
             if (
                 used + reserve > cfg["max_gib"] * 2**30
@@ -157,10 +195,12 @@ def generate(cfg, binary, root, dry_run=False):
                 raise RuntimeError("Dataset disk cap/free-space reserve reached")
 
         def persist():
-            nonlocal persisted
+            nonlocal persisted, used
             with (root / "manifest.jsonl").open("a") as stream:
                 for record in records[persisted:]:
-                    stream.write(json.dumps(record, sort_keys=True) + "\n")
+                    line = json.dumps(record, sort_keys=True) + "\n"
+                    stream.write(line)
+                    used += len(line.encode("utf-8"))
             persisted = len(records)
 
         for index, item in enumerate(items):
@@ -192,8 +232,8 @@ def generate(cfg, binary, root, dry_run=False):
                         extra["features"] = load_features(work / "target/features", 2)
                         extra["position"] = read_pfm(work / "target/features/position.pfm")
                         extra["annotations"] = read_pfm(work / "target/features/annotations.pfm")
-                    save_arrays(reference, target=target, **extra)
-                    write_json(
+                    record_arrays(reference, target=target, **extra)
+                    record_json(
                         reference_info,
                         {"sha256": digest(reference), "seed": ref_seed, "stats": stats},
                     )
@@ -218,7 +258,7 @@ def generate(cfg, binary, root, dry_run=False):
                         )
                         with np.load(reference) as data:
                             target = data["target"]
-                        write_json(
+                        record_json(
                             checked,
                             {
                                 "samples": check_samples,
@@ -264,13 +304,41 @@ def generate(cfg, binary, root, dry_run=False):
                             validate_features(features)
                             if not np.array_equal(features[:3].transpose(1, 2, 0), raw):
                                 raise ValueError("Feature RGB differs from raw render")
-                            save_arrays(
-                                output,
-                                features=features,
-                                atrous=read_pfm(run_dir / "features/atrous.pfm"),
-                                position=read_pfm(run_dir / "features/position.pfm"),
-                            )
+                            extra_record = {}
+                            arrays = {
+                                "features": features,
+                                "atrous": read_pfm(run_dir / "features/atrous.pfm"),
+                                "position": read_pfm(run_dir / "features/position.pfm"),
+                            }
+                            if compact:
+                                shared_path = root / "guides" / f"{ident}.npz"
+                                center = features[[17, 18, 19, 20, 21, 22, 23, 26]]
+                                if shared_path.exists():
+                                    with np.load(shared_path, allow_pickle=False) as shared:
+                                        if not np.array_equal(
+                                            center, shared["center"]
+                                        ) or not np.array_equal(
+                                            arrays["position"], shared["position"]
+                                        ):
+                                            raise ValueError(
+                                                "Center guides changed across noise/sample variants"
+                                            )
+                                else:
+                                    record_arrays(
+                                        shared_path, center=center, position=arrays["position"]
+                                    )
+                                arrays["features"] = np.concatenate(
+                                    [features[:17], features[24:26]]
+                                )
+                                del arrays["position"]
+                                extra_record = {
+                                    "feature_layout": "shared-center-v2",
+                                    "shared_guides": str(shared_path.relative_to(root)),
+                                    "shared_guides_sha256": digest(shared_path),
+                                }
+                            record_arrays(output, **arrays)
                             record = {
+                                **extra_record,
                                 "schema_version": 1,
                                 "feature_schema": feature_schema,
                                 "id": example_id,
@@ -280,6 +348,7 @@ def generate(cfg, binary, root, dry_run=False):
                                 "cohort": item["cohort"],
                                 "frame": item["frame"],
                                 "stratum": item.get("stratum", "room"),
+                                "family": item.get("family", "room"),
                                 "geometry_sha256": identity(item["scene"].get("objects", [])),
                                 "scene": item["scene"],
                                 "scene_sha256": identity(item["scene"]),
@@ -295,7 +364,7 @@ def generate(cfg, binary, root, dry_run=False):
                                 "stats": stats,
                                 "reference_stats": ref_record["stats"],
                             }
-                            write_json(record_path, record)
+                            record_json(record_path, record)
                             records.append(record)
                             persist()
                             print(f"{len(records)}/{count} {example_id}", flush=True)
@@ -310,7 +379,7 @@ def generate(cfg, binary, root, dry_run=False):
                             persist()
                             raise
         persist()
-        write_json(
+        record_json(
             root / "splits.json",
             {
                 s: sorted({r["group"] for r in records if r["split"] == s})

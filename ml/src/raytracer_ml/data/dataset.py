@@ -2,10 +2,22 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 from ..io import manifest, safe_path
+from .arrays import load_example
 
 
 class RenderDataset(Dataset):
-    def __init__(self, root, split, crop=0, temporal=False):
+    def __init__(
+        self,
+        root,
+        split,
+        crop=0,
+        temporal=False,
+        feature_schema=1,
+        edge_sampling=0,
+        identity_probability=0,
+        augmentation=None,
+        fuse_probability=0,
+    ):
         from pathlib import Path
 
         self.root = Path(root)
@@ -13,6 +25,22 @@ class RenderDataset(Dataset):
         self.crop = crop
         self.temporal = temporal
         self.split = split
+        if (
+            feature_schema not in (1, 2)
+            or not 0 <= edge_sampling <= 1
+            or not 0 <= identity_probability <= 1
+        ):
+            raise ValueError("Invalid dataset feature/crop policy")
+        self.channels = 27 if feature_schema == 2 else 17
+        self.edge_sampling = edge_sampling
+        self.identity_probability = identity_probability
+        if not 0 <= fuse_probability <= 1:
+            raise ValueError("Invalid independent-noise fusion probability")
+        self.augmentation = augmentation if split == "train" else None
+        self.fuse_probability = fuse_probability if split == "train" and not temporal else 0
+        self.noise_variants = {}
+        for row in self.rows:
+            self.noise_variants.setdefault((row["configuration"], row["samples"]), []).append(row)
         self.lookup = {
             (r["group"], r["frame"], r["id"].split("-n")[1].split("-s")[0], r["samples"]): r
             for r in self.rows
@@ -25,9 +53,26 @@ class RenderDataset(Dataset):
 
     def __getitem__(self, index):
         r = self.rows[index]
-        with np.load(safe_path(self.root, r["path"]), allow_pickle=False) as data:
-            x = data["features"].copy()
-            position = data["position"].copy()
+        data = load_example(self.root, r)
+        x = data["features"].copy()
+        if x.shape[0] < self.channels:
+            raise ValueError("Dataset lacks required feature channels")
+        x = x[: self.channels]
+        position = data["position"].copy()
+        if self.fuse_probability and torch.rand(()) < self.fuse_probability:
+            from ..augment import fuse_measurements
+
+            choices = [
+                other
+                for other in self.noise_variants[(r["configuration"], r["samples"])]
+                if other["input_seed"] != r["input_seed"]
+                and other["scene_sha256"] == r["scene_sha256"]
+                and other["target_seed"] == r["target_seed"]
+            ]
+            if choices:
+                other = choices[int(torch.randint(len(choices), ()).item())]
+                alternate = load_example(self.root, other)["features"][: self.channels]
+                x = fuse_measurements(x, alternate)
         with np.load(safe_path(self.root, r["reference"]), allow_pickle=False) as data:
             y = data["target"].transpose(2, 0, 1).copy()
         if self.temporal:
@@ -38,28 +83,51 @@ class RenderDataset(Dataset):
             h = np.zeros((*position.shape[:2], 3), dtype=np.float32)
             mask = np.zeros((*position.shape[:2], 1), dtype=np.float32)
             if previous:
-                with np.load(safe_path(self.root, previous["path"])) as old:
-                    # History comes from a noisy measurement or ordinary filter, never a target.
-                    previous_rgb = (
-                        old["atrous"]
-                        if self.split != "train" or torch.rand(()) > 0.5
-                        else old["features"][:3].transpose(1, 2, 0)
-                    )
-                    h, mask = reproject(
-                        position,
-                        x,
-                        r["scene"],
-                        old["position"],
-                        old["features"],
-                        previous["scene"],
-                        previous_rgb,
-                    )
+                old = load_example(self.root, previous)
+                # History comes from a noisy measurement or ordinary filter, never a target.
+                previous_rgb = (
+                    old["atrous"]
+                    if self.split != "train" or torch.rand(()) > 0.5
+                    else old["features"][:3].transpose(1, 2, 0)
+                )
+                h, mask = reproject(
+                    position,
+                    x,
+                    r["scene"],
+                    old["position"],
+                    old["features"],
+                    previous["scene"],
+                    previous_rgb,
+                )
             x = append_history(x, h, mask)
         if self.crop:
             size = min(self.crop, x.shape[1], x.shape[2])
             top = int(torch.randint(x.shape[1] - size + 1, ()).item())
             left = int(torch.randint(x.shape[2] - size + 1, ()).item())
             s = r["scale"]
+            if self.edge_sampling and torch.rand(()) < self.edge_sampling:
+                target = np.log1p(y).mean(axis=0)
+                edges = np.abs(np.diff(target, axis=0, prepend=target[:1])) + np.abs(
+                    np.diff(target, axis=1, prepend=target[:, :1])
+                )
+                points = np.argwhere(edges > max(0.02, float(np.quantile(edges, 0.8))))
+                if len(points):
+                    cy, cx = points[int(torch.randint(len(points), ()).item())] // s
+                    top = int(np.clip(cy - size // 2, 0, x.shape[1] - size))
+                    left = int(np.clip(cx - size // 2, 0, x.shape[2] - size))
             x = x[:, top : top + size, left : left + size]
             y = y[:, top * s : (top + size) * s, left * s : (left + size) * s]
-        return torch.from_numpy(x.copy()), torch.from_numpy(y.copy())
+        if (
+            self.identity_probability
+            and r["scale"] == 1
+            and torch.rand(()) < self.identity_probability
+        ):
+            x = x.copy()
+            x[:3], x[12:15], x[15], x[16] = y, 0, 128, 1
+        x, y = torch.from_numpy(x.copy()), torch.from_numpy(y.copy())
+        if self.augmentation:
+            from ..augment import draw_transform, apply_transform
+
+            transform = draw_transform(self.augmentation, square=x.shape[-1] == x.shape[-2])
+            x, y = apply_transform(x, y, transform, self.channels)
+        return x, y

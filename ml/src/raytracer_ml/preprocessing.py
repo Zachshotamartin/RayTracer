@@ -49,6 +49,10 @@ def channel_names(schema=1, temporal=False):
     )
 
 
+def model_schema(config):
+    return config.get("feature_schema", 2 if config.get("kind") in ("guided", "refine") else 1)
+
+
 def load_features(directory, schema=1):
     directory = Path(directory)
     meta = json.loads((directory / "features.json").read_text())

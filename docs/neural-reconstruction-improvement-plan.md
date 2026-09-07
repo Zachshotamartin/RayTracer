@@ -1,6 +1,8 @@
 # Neural reconstruction: issue audit and improvement plan
 
-Status: **planned, not implemented or retrained**. Audited on 2026-09-06 against
+Status: **implementation and development experiments in progress; no replacement
+model qualified yet**. See the [current study record](../ml/reports/detail-study.md).
+The baseline audit was performed on 2026-09-06 against
 `cb53883bc487a522d1dce25d1c96e748491e4d04` and the recorded `pilot-v1` artifacts.
 This is the next research iteration after the [original roadmap](neural-rendering-plan.md).
 
@@ -120,15 +122,16 @@ the network.
    varied clutter/scale/camera framing. Include acute/obtuse corners, low-contrast
    boundaries and subpixel features; a network must not sharpen correct antialiasing
    into jagged edges. Never use tone-mapped images as training targets.
-2. Target 96 train / 24 validation / 24 sealed test layouts, balanced by stratum,
-   with six views each, three noise realizations and 1/2/4/8/16/32/64 spp. This is
-   864 references and 18,144 input examples before extra stress cohorts. Keep every
+2. Target 768 train / 128 validation / 128 sealed test layouts across eight scene
+   families and four strata, with four views, two noise realizations, and
+   1/2/4/8/16/32/64 spp. This is 4,096 references and 57,344 input examples before
+   extra stress cohorts. Keep every
    layout's views, crops, sample budgets and noise variants together. Reserve
    camera-only and light-only cohorts separately and label their shared-layout
    relationship; reserve additional unseen families/assets for external testing.
 3. Begin with a 16-layout development pilot and profile cost before expanding.
    Retain resumable generation and explicit per-invocation time/storage caps.
-   The full proposed input count is about 7.9× the original pilot; new channels,
+   The full proposed input count is about 24.9× the original pilot; new channels,
    reference batches and larger sizes add further cost. Shard generation and set
    total resource limits from measured pilot bytes/time, not an assumed render rate.
 4. Validate reference quality with independent batches across every stratum, using

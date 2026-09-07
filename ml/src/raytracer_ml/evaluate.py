@@ -1,3 +1,4 @@
+from .preprocessing import model_schema
 import json
 import time
 from pathlib import Path
@@ -10,6 +11,7 @@ from .train import load_checkpoint, device_for, synchronize
 from .data.validate import validate
 from .diagnostics import detail_metrics, grouped_summary
 from .evaluation_contract import authorize
+from .data.arrays import load_example
 
 
 def evaluate(
@@ -36,18 +38,18 @@ def evaluate(
     histories = {}
     history_group = None
     temporal = state["config"]["model"].get("temporal", False)
-    base_channels = 27 if state["config"]["model"].get("feature_schema", 1) == 2 else 17
+    base_channels = 27 if model_schema(state["config"]["model"]) == 2 else 17
     results = []
     output.mkdir(parents=True, exist_ok=True)
     with torch.inference_mode():
         for index, r in enumerate(rows):
-            with np.load(safe_path(root, r["path"])) as data:
-                x = data["features"].copy()
-                if x.shape[0] < base_channels:
-                    raise ValueError("Evaluation data lacks model boundary features")
-                x = x[:base_channels]
-                atrous = data["atrous"].copy()
-                position = data["position"].copy()
+            data = load_example(root, r)
+            x = data["features"].copy()
+            if x.shape[0] < base_channels:
+                raise ValueError("Evaluation data lacks model boundary features")
+            x = x[:base_channels]
+            atrous = data["atrous"].copy()
+            position = data["position"].copy()
             with np.load(safe_path(root, r["reference"])) as data:
                 target = data["target"].copy()
                 reference_features = data["features"].copy() if "features" in data else None

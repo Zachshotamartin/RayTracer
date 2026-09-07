@@ -2,6 +2,7 @@
 
 import math
 import numpy as np
+from .families import FAMILIES, diverse_scene
 
 
 def room(layout_seed, lighting_seed, camera_seed, frame=0, views=1):
@@ -98,8 +99,38 @@ def configurations(config):
             raise ValueError("split_counts must contain three positive counts summing to groups")
         train_end, val_end = counts[0], counts[0] + counts[1]
     suite = config.get("suite", "room-v1")
-    if suite not in ("room-v1", "challenge-v2", "transport-v2", "sequence-v2"):
+    if suite not in ("room-v1", "challenge-v2", "transport-v2", "sequence-v2", "families-v3"):
         raise ValueError("Unknown scene suite")
+
+    def scene_for(group, frame, cohort=None):
+        base = seed + group * 31
+        args = (
+            base,
+            base + 1 + (200000 if cohort == "new-light" else 0),
+            base + 2 + (100000 if cohort == "heldout-camera" else 0),
+            frame,
+            views,
+        )
+        if suite == "room-v1":
+            return room(*args)
+        if suite == "families-v3":
+            return diverse_scene(
+                *args,
+                family=FAMILIES[group % len(FAMILIES)],
+                stratum=STRATA[(group // len(FAMILIES)) % len(STRATA)],
+            )
+        return challenge(*args, stratum=STRATA[group % len(STRATA)], suite=suite)
+
+    def labels(group):
+        if suite == "families-v3":
+            return dict(
+                family=FAMILIES[group % len(FAMILIES)],
+                stratum=STRATA[(group // len(FAMILIES)) % len(STRATA)],
+            )
+        return dict(
+            family="room", stratum="room" if suite == "room-v1" else STRATA[group % len(STRATA)]
+        )
+
     for group in range(groups):
         split = "train" if group < train_end else "val" if group < val_end else "test"
         for frame in range(views):
@@ -111,20 +142,8 @@ def configurations(config):
                 "split": split,
                 "cohort": "unseen-layout" if split == "test" else split,
                 "frame": frame,
-                "stratum": "room" if suite == "room-v1" else STRATA[group % len(STRATA)],
-                "scene": room(
-                    seed + group * 31, seed + group * 31 + 1, seed + group * 31 + 2, frame, views
-                )
-                if suite == "room-v1"
-                else challenge(
-                    seed + group * 31,
-                    seed + group * 31 + 1,
-                    seed + group * 31 + 2,
-                    frame,
-                    views,
-                    stratum=STRATA[group % len(STRATA)],
-                    suite=suite,
-                ),
+                **labels(group),
+                "scene": scene_for(group, frame),
             }
 
     # These explicitly named cohorts reuse training geometry, never the same full scene/camera.
@@ -134,7 +153,6 @@ def configurations(config):
     for cohort in ("heldout-camera", "new-light"):
         for group in range(probes):
             for frame in range(views):
-                base = seed + group * 31
                 yield {
                     "id": f"{cohort}-g{group:04d}-v{frame:03d}",
                     "group": f"{cohort}-{group:04d}",
@@ -144,19 +162,8 @@ def configurations(config):
                     "split": "test",
                     "cohort": cohort,
                     "frame": frame,
-                    "stratum": "room" if suite == "room-v1" else STRATA[group % len(STRATA)],
-                    "scene": (room if suite == "room-v1" else challenge)(
-                        base,
-                        base + 1 + (200000 if cohort == "new-light" else 0),
-                        base + 2 + (100000 if cohort == "heldout-camera" else 0),
-                        frame,
-                        views,
-                        **(
-                            {"stratum": STRATA[group % len(STRATA)], "suite": suite}
-                            if suite != "room-v1"
-                            else {}
-                        ),
-                    ),
+                    **labels(group),
+                    "scene": scene_for(group, frame, cohort),
                 }
 
 

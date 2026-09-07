@@ -41,6 +41,9 @@ def main():
     p = commands.add_parser("export")
     p.add_argument("--checkpoint", required=True)
     p.add_argument("--output", required=True)
+    p.add_argument("--width", type=int)
+    p.add_argument("--height", type=int)
+    p.add_argument("--precision", choices=["fp32", "mixed-fp16"], default="fp32")
     p = commands.add_parser("sequence")
     p.add_argument("--data", required=True)
     p.add_argument("--group", required=True)
@@ -97,7 +100,9 @@ def main():
         else:
             from .export import export_model
 
-            result = export_model(args.checkpoint, args.output)
+            result = export_model(
+                args.checkpoint, args.output, args.width, args.height, args.precision
+            )
         print(json.dumps(result, indent=2, allow_nan=False))
     except (ValueError, RuntimeError, OSError, KeyError) as error:
         print(f"rtml: {error}", file=sys.stderr)
