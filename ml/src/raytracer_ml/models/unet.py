@@ -1,16 +1,24 @@
 """Small HDR reconstruction network; preprocessing and fallback travel with ONNX."""
 
+import math
+
 import torch
 from torch import nn
 from torch.nn import functional as F
 
 
-def block(cin, cout):
+def block(cin, cout, activation="relu"):
+    if activation not in ("relu", "leaky_relu"):
+        raise ValueError("Invalid activation")
+
+    def nonlinearity():
+        return nn.LeakyReLU(negative_slope=0.1) if activation == "leaky_relu" else nn.ReLU()
+
     return nn.Sequential(
         nn.Conv2d(cin, cout, 3, padding=1),
-        nn.ReLU(),
+        nonlinearity(),
         nn.Conv2d(cout, cout, 3, padding=1),
-        nn.ReLU(),
+        nonlinearity(),
     )
 
 
@@ -25,6 +33,8 @@ class ReconstructionNet(nn.Module):
         feature_schema=1,
         refinement=False,
         output_head="auto",
+        activation="relu",
+        radiance_scale=1.0,
     ):
         super().__init__()
         if (
@@ -36,6 +46,9 @@ class ReconstructionNet(nn.Module):
             raise ValueError("Invalid model architecture")
         if output_head not in ("auto", "additive_log", "bounded_multiplicative"):
             raise ValueError("Invalid output head")
+        if not math.isfinite(radiance_scale) or not 0 < radiance_scale <= 64:
+            raise ValueError("Radiance scale must be finite and in (0, 64]")
+        self.radiance_scale = float(radiance_scale)
         if inputs == "no_boundary" and feature_schema != 2:
             raise ValueError("Boundary feature ablation requires schema 2")
         if width < 4 or width > 128:
@@ -56,29 +69,31 @@ class ReconstructionNet(nn.Module):
             if output_head == "auto"
             else output_head
         )
+        if self.radiance_scale != 1 and self.output_head != "additive_log":
+            raise ValueError("Radiance scaling requires the additive log head")
         self.kind, self.scale, self.inputs = kind, scale, inputs
         channels = self.feature_channels + (4 if temporal else 0)
-        self.enc1 = block(channels, width)
+        self.enc1 = block(channels, width, activation)
         if kind == "unet":
-            self.enc2 = block(width, width * 2)
-            self.middle = block(width * 2, width * 4)
-            self.dec2 = block(width * 6, width * 2)
-            self.dec1 = block(width * 3, width)
+            self.enc2 = block(width, width * 2, activation)
+            self.middle = block(width * 2, width * 4, activation)
+            self.dec2 = block(width * 6, width * 2, activation)
+            self.dec1 = block(width * 3, width, activation)
         self.head = nn.Conv2d(width, 3, 3, padding=1)
-        self.refinement = block(width + channels, width) if refinement else None
+        self.refinement = block(width + channels, width, activation) if refinement else None
         nn.init.zeros_(self.head.weight)
         nn.init.zeros_(self.head.bias)
 
     def forward(self, x):
         raw = x[:, :3].clamp_min(0)
-        logged = torch.log1p(raw)
+        logged = torch.log1p(raw * self.radiance_scale)
         features = torch.cat(
             [
                 logged,
                 x[:, 3:9],
                 torch.log1p(x[:, 9:10].clamp_min(0)) / 5,
                 x[:, 10:12],
-                torch.log1p(x[:, 12:15].clamp_min(0)),
+                torch.log1p(x[:, 12:15].clamp_min(0) * self.radiance_scale**2),
                 torch.log2(x[:, 15:16].clamp_min(1)) / 6,
                 x[:, 16:17],
             ],
@@ -96,7 +111,10 @@ class ReconstructionNet(nn.Module):
             features = torch.cat(
                 [
                     features,
-                    torch.log1p(x[:, self.base_channels : self.base_channels + 3].clamp_min(0)),
+                    torch.log1p(
+                        x[:, self.base_channels : self.base_channels + 3].clamp_min(0)
+                        * self.radiance_scale
+                    ),
                     x[:, self.base_channels + 3 : self.base_channels + 4],
                 ],
                 dim=1,
@@ -130,12 +148,16 @@ class ReconstructionNet(nn.Module):
                 correction, scale_factor=2, mode="bilinear", align_corners=False
             )
             raw = F.interpolate(raw, scale_factor=2, mode="bilinear", align_corners=False)
-            logged = torch.log1p(raw)
+            logged = torch.log1p(raw * self.radiance_scale)
             support = F.interpolate(support.float(), scale_factor=2, mode="nearest") > 0.5
         if self.output_head == "bounded_multiplicative":
             prediction = ((raw + 0.01) * torch.exp(2 * torch.tanh(correction)) - 0.01).clamp_min(0)
         else:
-            prediction = torch.exp((logged + correction).clamp(0, 12)) - 1
+            # Keep the physical output ceiling unchanged when changing conditioning units.
+            ceiling = math.log1p(math.expm1(12) * self.radiance_scale)
+            prediction = (
+                torch.exp((logged + correction).clamp(0, ceiling)) - 1
+            ) / self.radiance_scale
         if self.feature_schema == 2:
             samples = x[:, 15:16]
             if self.scale == 2:

@@ -254,6 +254,7 @@ def test_augmented_epoch_resume_is_exact(compact_dataset, tmp_path):
         augmentation=dict(exposure_stops=1.5, lighting_color_stops=0.2),
         loss=dict(gradient=0.25, energy=0.02),
         selection=dict(ssim_tolerance=0.005),
+        learning_diagnostics=dict(stall_after_epochs=2),
     )
     train(cfg, root, tmp_path / "whole")
     train(cfg, root, tmp_path / "resumed", max_new_epochs=1)
@@ -262,6 +263,10 @@ def test_augmented_epoch_resume_is_exact(compact_dataset, tmp_path):
     assert a["step"] == b["step"] and a["best"] == b["best"]
     for key in a["model"]:
         torch.testing.assert_close(a["model"][key], b["model"][key], rtol=0, atol=0)
+    reports = [
+        json.loads(line) for line in (tmp_path / "whole/metrics.jsonl").read_text().splitlines()
+    ]
+    assert all("learning_health" in row and "learning_rate" in row for row in reports)
 
 
 @pytest.mark.parametrize(
@@ -277,6 +282,8 @@ def test_detail_export_and_native_parity(kind, scale, precision, compact_dataset
     cfg = dict(kind=kind, width=8, feature_schema=2, scale=scale)
     if kind == "unet":
         cfg["output_head"] = "additive_log"
+        cfg["activation"] = "leaky_relu"
+        cfg["radiance_scale"] = 16
     torch.manual_seed(77)
     model = build_model(cfg).eval()
     # Nonzero learned weights exercise more than an untrained identity path.

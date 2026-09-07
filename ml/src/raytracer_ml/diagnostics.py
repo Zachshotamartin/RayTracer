@@ -7,6 +7,41 @@ Image edges are radiometric proxies; geometry edges are reported separately.
 import numpy as np
 from scipy.ndimage import binary_dilation, distance_transform_edt, maximum_filter, minimum_filter
 from .io import display
+from .preprocessing import model_schema
+
+
+def reconstruction_region(features, model_config):
+    """Input-defined pixels eligible for the custom model, not a confidence estimate."""
+    schema = model_schema(model_config)
+    detail = model_config.get("kind") in ("guided", "refine")
+    support = features[11] >= 0.999999
+    if schema == 2 or detail:
+        support = (np.abs(features[10] - features[11]) < 1e-6) & (features[10] > 0)
+    if schema == 2:
+        support &= (features[26] > 0.5) | (features[23] == 0)
+    if schema == 2 or detail:
+        support &= features[15] < 128
+    if model_config.get("scale", 1) == 2:
+        support = np.repeat(np.repeat(support, 2, 0), 2, 1)
+    return support
+
+
+def reconstruction_region_metrics(prediction, target, features, model_config):
+    """Partition HDR error with the same custom-model policy for every baseline.
+
+    Contributions share the whole-image denominator and sum to whole-image MSE.
+    Conditional region MSEs have separate denominators and must not be added.
+    """
+    support = reconstruction_region(features, model_config)
+    if support.shape != target.shape[:2]:
+        raise ValueError("Reconstruction region does not match target dimensions")
+    error = np.mean((np.asarray(prediction, dtype=np.float64) - target) ** 2, axis=-1)
+    result = {}
+    for name, mask in (("model_region", support), ("fallback_region", ~support)):
+        result[f"{name}_pixels"] = int(mask.sum())
+        result[f"{name}_linear_mse"] = float(error[mask].mean()) if mask.any() else None
+        result[f"{name}_linear_mse_contribution"] = float(error[mask].sum() / error.size)
+    return result
 
 
 def gradient(image):

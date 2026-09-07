@@ -9,7 +9,7 @@ from .metrics import image_metrics
 from .models import build_model
 from .train import load_checkpoint, device_for, synchronize
 from .data.validate import validate
-from .diagnostics import detail_metrics, grouped_summary
+from .diagnostics import detail_metrics, grouped_summary, reconstruction_region_metrics
 from .evaluation_contract import authorize
 from .data.arrays import load_example
 
@@ -150,18 +150,12 @@ def evaluate(
                 name: {
                     **image_metrics(image, target),
                     **detail_metrics(image, target, reference_features, annotations),
+                    **reconstruction_region_metrics(image, target, x, state["config"]["model"]),
                 }
                 for name, image in methods.items()
             }
-            support = x[11] >= 0.999999
-            if support.shape != target.shape[:2]:
-                support = np.repeat(np.repeat(support, 2, 0), 2, 1)
             for name, image in methods.items():
-                metrics[name]["supported_linear_mse"] = (
-                    float(np.mean((image[support] - target[support]) ** 2))
-                    if support.any()
-                    else None
-                )
+                metrics[name]["supported_linear_mse"] = metrics[name]["model_region_linear_mse"]
                 metrics[name]["highlight_linear_mse"] = (
                     float(np.mean((image[target.max(2) > 1] - target[target.max(2) > 1]) ** 2))
                     if (target.max(2) > 1).any()
@@ -195,6 +189,8 @@ def evaluate(
     temp = output / "per_image.jsonl"
     temp.write_text("".join(json.dumps(r) + "\n" for r in results))
     summary = {
+        "region_metric_schema": 2,
+        "region_metric_policy": "Current custom-model input support and sample bypass; shared across methods",
         "evaluation_scope": evaluation_scope,
         "split": split,
         "images": len(results),

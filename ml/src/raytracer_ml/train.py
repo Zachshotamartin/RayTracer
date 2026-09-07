@@ -22,6 +22,7 @@ from .data.arrays import load_example
 from .selection import structural_scores, checkpoint_score
 from .data.sequences import SequenceDataset, collate_sequences
 from .rollout import sequence_loss, validation_predictions
+from .learning_health import LearningHealth, validate_health_config
 
 
 def device_for(name):
@@ -88,6 +89,11 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
     generator = torch.Generator().manual_seed(seed)
     feature_schema = model_schema(cfg["model"])
     unroll = int(cfg.get("autoregressive_unroll", 0))
+    health_config = cfg.get("learning_diagnostics")
+    if health_config is not None:
+        validate_health_config(health_config)
+        if unroll:
+            raise ValueError("Learning diagnostics currently require spatial training")
     if unroll and (not cfg["model"].get("temporal") or feature_schema != 2 or not 2 <= unroll <= 8):
         raise ValueError(
             "Autoregressive training needs a schema-2 temporal model and 2..8 frame unroll"
@@ -201,6 +207,9 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
     )
     start = time.perf_counter()
     reason = "epochs-complete"
+    health = (
+        LearningHealth(model, health_config, cfg.get("loss")) if health_config is not None else None
+    )
     for epoch in range(first_epoch, cfg["epochs"]):
         if max_new_epochs is not None and epoch - first_epoch >= max_new_epochs:
             reason = "paused-at-epoch-boundary"
@@ -211,6 +220,9 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
         epoch_start = time.perf_counter()
         model.train()
         losses = []
+        if health is not None:
+            health.reset()
+        learning_rate = optimizer.param_groups[0]["lr"]
         for batch in loader:
             if time.perf_counter() - start >= cfg["max_seconds"]:
                 # Only epoch-boundary checkpoints are published; resume replays this partial epoch.
@@ -222,11 +234,16 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
             else:
                 x, y = batch
                 x, y = x.to(device), y.to(device)
-                loss = reconstruction_loss(model(x), y, cfg.get("loss"))
+                prediction = model(x)
+                loss = reconstruction_loss(prediction, y, cfg.get("loss"))
             if not torch.isfinite(loss):
                 raise FloatingPointError("Non-finite training loss")
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0, error_if_nonfinite=True)
+            gradient_norm = torch.nn.utils.clip_grad_norm_(
+                model.parameters(), 1.0, error_if_nonfinite=True
+            )
+            if health is not None:
+                health.observe(x, y, prediction, loss, gradient_norm)
             optimizer.step()
             losses.append(float(loss.detach().cpu()))
             step += 1
@@ -335,7 +352,10 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
             "seconds": elapsed,
             "total_seconds": total_seconds,
             "best": best,
+            "learning_rate": learning_rate,
         }
+        if health is not None:
+            metric["learning_health"] = health.summary(epoch)
         with (output / "metrics.jsonl").open("a") as log:
             log.write(json.dumps(metric) + "\n")
         print(json.dumps(metric), flush=True)
@@ -352,6 +372,8 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
         "parameters": sum(p.numel() for p in model.parameters()),
     }
     write_json(output / "summary.json", result)
+    if health is not None:
+        health.close()
     if not checkpoint_path.exists():
         raise RuntimeError(
             "No epoch completed within the budget; increase the cap or reduce workload"

@@ -105,6 +105,7 @@ def status(root):
                 else None,
                 accumulated_training_seconds=latest.get("total_seconds", 0) if latest else 0,
                 latest_epoch_seconds=latest.get("seconds") if latest else None,
+                learning_health=latest.get("learning_health") if latest else None,
             )
         )
     return dict(
