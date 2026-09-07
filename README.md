@@ -50,6 +50,8 @@ At the measured joint quality target, **a-trous is faster than our model**.
 The [model improvement plan](docs/neural-reconstruction-improvement-plan.md) audits
 edge/detail loss and the other known limitations, with prioritized experiments and
 quality, stability and speed gates for the next model.
+The [active detail study](ml/reports/detail-study.md) records the expanded scene
+collection, augmentation and capacity comparisons, and the artifact progress command.
 
 The [full results and error image](ml/reports/README.md),
 [model card](ml/reports/model_card.md), and [timing report](ml/reports/timing.md)

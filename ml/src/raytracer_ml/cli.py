@@ -11,6 +11,10 @@ def main():
         description="RayTracer ML: paired data to native reconstruction"
     )
     commands = parser.add_subparsers(dest="command", required=True)
+    p = commands.add_parser(
+        "status", help="Read dataset and training progress from artifact receipts"
+    )
+    p.add_argument("--artifacts", required=True)
     p = commands.add_parser("generate")
     p.add_argument("--config", required=True)
     p.add_argument("--renderer", required=True)
@@ -56,7 +60,11 @@ def main():
     p.add_argument("--output", required=True)
     args = parser.parse_args()
     try:
-        if args.command == "generate":
+        if args.command == "status":
+            from .status import status
+
+            result = status(args.artifacts)
+        elif args.command == "generate":
             from .data.generate import generate
 
             result = generate(config(args.config), args.renderer, args.output, args.dry_run)

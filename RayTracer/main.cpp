@@ -91,6 +91,7 @@ std::string history_description(const options &opts) {
 }
 void select_sequence_frame(options &opts, std::size_t index) {
     opts.sequence_index = index;
+    opts.render.frame_index = static_cast<std::int64_t>(index);
     opts.scene_file = opts.sequence_files.at(index);
     opts.render.seed = opts.sequence_seed + index;
     auto numbered = [&](const std::filesystem::path &base) {
@@ -453,7 +454,6 @@ int main(int argc, char **argv) {
                     select_sequence_frame(opts, iteration);
                     content = build_scene(opts);
                     opts.scene = content.name;
-                    opts.scene = content.name;
                     opts.scene_description = scene_description(opts);
                     opts.render.history_key = history_description(opts);
                     opts.neural_supported = content.view.defocus_angle == 0 &&
@@ -604,6 +604,7 @@ int main(int argc, char **argv) {
                     opts.mesh.clear();
                     opts.scene_file.clear();
                     opts.sequence_files.clear();
+                    opts.render.frame_index = -1;
                     if (actions.scene_index == 3) {
                         if (!opts.render.caustic_photons)
                             opts.render.caustic_photons = 300000;

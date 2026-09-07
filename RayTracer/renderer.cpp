@@ -80,6 +80,7 @@ struct render_session::impl {
         published = {width, height, 0, std::vector<color>(accumulation.size())};
         published.camera = content.view;
         published.history_key = settings.history_key;
+        published.frame_index = settings.frame_index;
         if (settings.collect_features)
             published.features.resize(accumulation.size());
         auto build_start = clock::now();

@@ -295,8 +295,11 @@ def test_temporal_reprojection_rejects_changes():
     assert not reproject(position, x * 0, scene, position, x, scene, rgb)[1].any()
 
 
-@pytest.mark.parametrize("temporal,scale", [(False, 2), (True, 1)])
-def test_extensions_end_to_end(binary, tmp_path, temporal, scale):
+@pytest.mark.parametrize(
+    "temporal,scale,schema,stationary",
+    [(False, 2, 1, False), (True, 1, 1, False), (True, 1, 2, False), (True, 1, 2, True)],
+)
+def test_extensions_end_to_end(binary, tmp_path, temporal, scale, schema, stationary):
     from raytracer_ml.evaluate import evaluate
     from raytracer_ml.temporal import reproject, append_history
     from raytracer_ml.benchmark import json_stream
@@ -305,6 +308,7 @@ def test_extensions_end_to_end(binary, tmp_path, temporal, scale):
     generate(
         {
             "schema_version": 1,
+            "feature_schema": schema,
             "seed": 101,
             "groups": 4,
             "views": 2,
@@ -328,13 +332,14 @@ def test_extensions_end_to_end(binary, tmp_path, temporal, scale):
         "device": "cpu",
         "cpu_threads": 1,
         "model": {
-            "kind": "conv",
+            "kind": "guided" if schema == 2 else "conv",
             "width": 8,
             "scale": scale,
             "inputs": "all",
             "temporal": temporal,
+            "feature_schema": schema,
         },
-        "crop": 16,
+        "crop": 0 if schema == 2 else 16,
         "batch_size": 2,
         "epochs": 2,
         "patience": 8,
@@ -342,11 +347,14 @@ def test_extensions_end_to_end(binary, tmp_path, temporal, scale):
         "weight_decay": 0.0001,
         "max_seconds": 60,
     }
+    if schema == 2:
+        cfg["autoregressive_unroll"] = 2
+        cfg["augmentation"] = dict(exposure_stops=1.5, lighting_color_stops=0.2)
     train(cfg, root, run)
     result = evaluate(root, run / "best.pt", tmp_path / "eval", device_name="cpu", repeats=1)
     assert result["images"] == 4
     meta = export_model(run / "best.pt", tmp_path / "model.onnx")
-    assert len(meta["channels"]) == (21 if temporal else 17)
+    assert len(meta["channels"]) == ((27 if schema == 2 else 17) + (4 if temporal else 0))
     neural = os.environ.get("RAYTRACER_NEURAL_BINARY")
     if not neural:
         return
@@ -363,6 +371,8 @@ def test_extensions_end_to_end(binary, tmp_path, temporal, scale):
     model.load_state_dict(state["model"])
     expected_frames = []
     for i, row in enumerate(rows):
+        if stationary:
+            row["scene"] = rows[0]["scene"]
         scene_path = sequence / f"{i:03}.json"
         write_json(scene_path, row["scene"])
         buffers = tmp_path / f"features-{i}"
@@ -391,7 +401,7 @@ def test_extensions_end_to_end(binary, tmp_path, temporal, scale):
             check=True,
             capture_output=True,
         )
-        x = load_features(buffers)
+        x = load_features(buffers, schema)
         position = read_pfm(buffers / "position.pfm")
         inputs = x
         if temporal:

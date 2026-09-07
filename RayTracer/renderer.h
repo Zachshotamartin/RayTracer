@@ -10,6 +10,7 @@ struct render_settings {
     bool collect_guides = false, transparent_shadows = false;
     bool collect_features = false;
     std::string history_key;
+    std::int64_t frame_index = -1;
     int caustic_photons = 0;
     double caustic_radius = 0.12;
     int height(double aspect) const;

@@ -20,6 +20,8 @@ from .models import build_model
 from .preprocessing import model_schema
 from .data.arrays import load_example
 from .selection import structural_scores, checkpoint_score
+from .data.sequences import SequenceDataset, collate_sequences
+from .rollout import sequence_loss, validation_predictions
 
 
 def device_for(name):
@@ -85,6 +87,18 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
     torch.manual_seed(seed)
     generator = torch.Generator().manual_seed(seed)
     feature_schema = model_schema(cfg["model"])
+    unroll = int(cfg.get("autoregressive_unroll", 0))
+    if unroll and (not cfg["model"].get("temporal") or feature_schema != 2 or not 2 <= unroll <= 8):
+        raise ValueError(
+            "Autoregressive training needs a schema-2 temporal model and 2..8 frame unroll"
+        )
+    if unroll and any(
+        cfg.get(key, 0)
+        for key in ("crop", "edge_sampling", "identity_probability", "fuse_probability")
+    ):
+        raise ValueError(
+            "Autoregressive windows use full frames; crop/identity/fusion policies are spatial-only"
+        )
     training = RenderDataset(
         root,
         "train",
@@ -105,10 +119,29 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
         heldout.rows = [r for r in heldout.rows if "-n0-s" in r["id"]]
     if not heldout.rows:
         raise ValueError("Validation selection is empty")
+    if unroll:
+        training = SequenceDataset(root, "train", unroll, cfg.get("training_budgets"))
+        heldout = SequenceDataset(
+            root,
+            "val",
+            budgets=cfg.get("validation_budgets"),
+            first_noise_only=cfg.get("validation_first_noise_only", False),
+        )
+        if min(map(len, heldout.sequences)) < cfg.get("validation_min_frames", 2):
+            raise ValueError(
+                "Validation rollouts are shorter than the configured qualification length"
+            )
     loader = DataLoader(
-        training, batch_size=cfg["batch_size"], shuffle=True, generator=generator, num_workers=0
+        training,
+        batch_size=cfg["batch_size"],
+        shuffle=True,
+        generator=generator,
+        num_workers=0,
+        collate_fn=collate_sequences if unroll else None,
     )
-    val_loader = DataLoader(heldout, batch_size=1, num_workers=0)
+    val_loader = DataLoader(
+        heldout, batch_size=1, num_workers=0, collate_fn=collate_sequences if unroll else None
+    )
     model = build_model(cfg["model"]).to(device)
     optimizer = torch.optim.AdamW(
         model.parameters(), lr=cfg["learning_rate"], weight_decay=cfg["weight_decay"]
@@ -176,14 +209,18 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
         epoch_start = time.perf_counter()
         model.train()
         losses = []
-        for x, y in loader:
+        for batch in loader:
             if time.perf_counter() - start >= cfg["max_seconds"]:
                 # Only epoch-boundary checkpoints are published; resume replays this partial epoch.
                 reason = "time-cap"
                 break
-            x, y = x.to(device), y.to(device)
             optimizer.zero_grad(set_to_none=True)
-            loss = reconstruction_loss(model(x), y, cfg.get("loss"))
+            if unroll:
+                loss = sequence_loss(model, batch, device, cfg)
+            else:
+                x, y = batch
+                x, y = x.to(device), y.to(device)
+                loss = reconstruction_loss(model(x), y, cfg.get("loss"))
             if not torch.isfinite(loss):
                 raise FloatingPointError("Non-finite training loss")
             loss.backward()
@@ -198,9 +235,9 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
         raw_losses = []
         measured_scores = []
         with torch.inference_mode():
-            for validation_index, (x, y) in enumerate(val_loader):
-                x, y = x.to(device), y.to(device)
-                prediction = model(x)
+            for validation_index, (prediction, y, x, frame) in enumerate(
+                validation_predictions(model, val_loader, device, bool(unroll))
+            ):
                 val_losses.append(float(reconstruction_loss(prediction, y, cfg.get("loss")).cpu()))
                 raw = x[:, :3]
                 if raw.shape[-2:] != y.shape[-2:]:
@@ -213,7 +250,11 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
                     image = prediction[0].cpu().numpy().transpose(1, 2, 0)
                     measured_scores.append(structural_scores(image, target_image))
                     if validation_index not in baseline_scores:
-                        baseline = load_example(root, heldout.rows[validation_index])["atrous"]
+                        baseline = (
+                            frame["atrous"]
+                            if frame is not None
+                            else load_example(root, heldout.rows[validation_index])["atrous"]
+                        )
                         if baseline.shape != target_image.shape:
                             baseline = (
                                 torch.nn.functional.interpolate(

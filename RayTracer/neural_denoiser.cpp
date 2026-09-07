@@ -15,6 +15,8 @@
 
 namespace {
 [[maybe_unused]] bool same_view(const frame_snapshot &a, const frame_snapshot &b) {
+    if (a.frame_index >= 0 || b.frame_index >= 0)
+        return a.frame_index == b.frame_index;
     return (a.camera.lookfrom - b.camera.lookfrom).dot() == 0 &&
            (a.camera.lookat - b.camera.lookat).dot() == 0 &&
            (a.camera.vup - b.camera.vup).dot() == 0 && a.camera.vfov == b.camera.vfov;
@@ -33,14 +35,31 @@ void append_reprojected_history(const frame_snapshot &current, const frame_snaps
     if (current.history_key.empty() || current.history_key != previous.history_key ||
         current.width != previous.width || current.height != previous.height ||
         current.features.size() != size || previous.features.size() != size || rgb.size() != size ||
-        (current.camera.lookfrom - previous.camera.lookfrom).length() > 3)
+        (schema == 1 && (current.camera.lookfrom - previous.camera.lookfrom).length() > 3))
+        return;
+    if (current.frame_index >= 0 && previous.frame_index >= 0 &&
+        current.frame_index != previous.frame_index + 1)
         return;
     auto w = to_unit_vector(previous.camera.lookfrom - previous.camera.lookat);
     auto u = to_unit_vector(cross(previous.camera.vup, w)), v = cross(w, u);
     double tangent = std::tan(degrees_to_radians(previous.camera.vfov) / 2);
+    if (schema == 2) {
+        const double distance = (previous.camera.lookfrom - previous.camera.lookat).length();
+        const auto forward = to_unit_vector(current.camera.lookfrom - current.camera.lookat);
+        const auto current_u = to_unit_vector(cross(current.camera.vup, forward));
+        if (distance < 1e-8 ||
+            (current.camera.lookfrom - previous.camera.lookfrom).length() > .35 * distance ||
+            dot(w, forward) < std::cos(degrees_to_radians(20)) ||
+            dot(u, current_u) < std::cos(degrees_to_radians(20)) ||
+            std::abs(std::log(current.camera.vfov / previous.camera.vfov)) > .18)
+            return;
+    }
     for (std::size_t i = 0; i < size; ++i) {
         const auto &g = current.features[i];
-        if (float(g.support) < .999999f)
+        if (schema == 1 && float(g.support) < .999999f)
+            continue;
+        if (schema == 2 && (float(g.center_support) <= .5f || float(g.center_depth) <= 0 ||
+                            std::abs(float(g.coverage) - float(g.support)) >= 1e-6f))
             continue;
         auto position = feature_float(g.position), delta = position - previous.camera.lookfrom;
         double depth = -dot(delta, w);
@@ -54,6 +73,44 @@ void append_reprojected_history(const frame_snapshot &current, const frame_snaps
         if (!std::isfinite(px) || !std::isfinite(py) || px < -.5 || py < -.5 ||
             px >= current.width - .5 || py >= current.height - .5)
             continue;
+        if (schema == 2) {
+            const int left = static_cast<int>(std::floor(px));
+            const int top = static_cast<int>(std::floor(py));
+            const double fx = px - left, fy = py - top;
+            const double tolerance = std::max(1e-5, 3 * tangent * depth / current.height);
+            const auto normal = feature_float(g.center_normal);
+            const auto albedo = feature_float(g.center_albedo);
+            color radiance(0, 0, 0);
+            double total = 0;
+            for (int dy = 0; dy < 2; ++dy)
+                for (int dx = 0; dx < 2; ++dx) {
+                    const int x = left + dx, y = top + dy;
+                    if (x < 0 || x >= current.width || y < 0 || y >= current.height)
+                        continue;
+                    const auto index = std::size_t(y) * current.width + x;
+                    const auto &old = previous.features[index];
+                    const auto old_normal = feature_float(old.center_normal);
+                    const auto difference = feature_float(old.center_albedo) - albedo;
+                    if (float(old.center_support) <= .5f ||
+                        std::abs(float(old.coverage) - float(old.support)) >= 1e-6f ||
+                        (feature_float(old.position) - position).length() >= tolerance ||
+                        dot(normal, old_normal) /
+                                std::max(1e-8, normal.length() * old_normal.length()) <=
+                            .95 ||
+                        std::max({std::abs(difference.x()), std::abs(difference.y()),
+                                  std::abs(difference.z())}) >= .1)
+                        continue;
+                    const double weight = (dx ? fx : 1 - fx) * (dy ? fy : 1 - fy);
+                    radiance += weight * rgb[index];
+                    total += weight;
+                }
+            if (total >= .25) {
+                for (int c = 0; c < 3; ++c)
+                    input[(channels + c) * size + i] = float(radiance[c] / total);
+                input[(channels + 3) * size + i] = float(total);
+            }
+            continue;
+        }
         int x = static_cast<int>(std::floor(px + .5)), y = static_cast<int>(std::floor(py + .5));
         if (x < 0 || x >= current.width || y < 0 || y >= current.height)
             continue;
@@ -230,6 +287,7 @@ frame_snapshot neural_denoiser::reconstruct(const frame_snapshot &frame) {
         }
     out.reconstructed = true;
     out.camera = frame.camera;
+    out.frame_index = frame.frame_index;
     out.history_key = frame.history_key;
     if (impl_->temporal) {
         impl_->current = frame;

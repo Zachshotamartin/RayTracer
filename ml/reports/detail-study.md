@@ -4,6 +4,13 @@ Status: implementation and development experiments in progress. The bundled
 `diffuse-pilot-v1.onnx` and its measured limitations remain the released baseline.
 Passing implementation tests does not establish better image quality or acceleration.
 
+Read current artifact progress with `rtml status --artifacts /path/to/RayTracer`.
+The artifact directory contains `datasets/` and `runs/`. The command reports saved
+example/reference receipts, epochs versus their configured maximum, validation
+structure scores, parameter counts, and stopping reasons. It does not mistake
+receipt counts for a fresh checksum audit, infer process liveness, or combine
+dataset completion and model quality into a misleading overall percentage.
+
 ## Data and storage
 
 | Collection | Layouts / views | Low-sample examples | References | Status |
@@ -97,7 +104,14 @@ exports have numerical parity checks; precision quality requires image evaluatio
 
 Native profiling separates packing, inference, and output copying; input storage
 is reused, CPU thread count is configurable, and viewer requests are throttled by
-time. These changes need end-to-end measurements. Temporal training still needs
-autoregressive histories, and adaptive sampling, bounded tiling, additional
-transport support, long-sequence testing, and full release qualification remain
+time. These changes need end-to-end measurements. Schema-2 temporal training now
+supports 2–8-frame differentiable autoregressive windows, paired sequence-level
+augmentation, a masked temporal-change loss, and complete validation rollouts.
+History comes from predictions; targets enter only supervised losses. Reprojection
+uses four geometry-validated taps, center normals/albedo, footprint-scaled position
+tolerance, and translation/orientation/roll/FOV cut checks. Explicit sequence frame
+numbers distinguish a stationary camera video from cumulative still-image passes.
+Native/Python moving and stationary sequence parity has functional tests; long
+rollout quality remains unqualified. Adaptive sampling, bounded tiling, additional
+transport support, long-sequence studies, and full release qualification remain
 work in the [issue plan](../../docs/neural-reconstruction-improvement-plan.md).

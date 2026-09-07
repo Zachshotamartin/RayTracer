@@ -29,6 +29,8 @@ struct frame_snapshot {
     int comparison_view = 0; // 0 render, 1 reference, 2 absolute error.
     camera_settings camera{};
     std::string history_key{};
+    std::int64_t frame_index =
+        -1; // Explicit sequence frame; -1 means cumulative still-image passes.
     std::vector<std::uint8_t> rgb(double exposure = 0) const;
 };
 void write_png(const std::filesystem::path &path, const frame_snapshot &frame, double exposure = 0);
