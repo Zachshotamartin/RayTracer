@@ -2,6 +2,8 @@
 
 Status: **implementation and development experiments in progress; no replacement
 model qualified yet**. See the [current study record](../ml/reports/detail-study.md).
+The [research alignment audit](neural-reconstruction-research-audit.md) identifies
+training-recipe gaps and additional controls discovered during implementation.
 The baseline audit was performed on 2026-09-06 against
 `cb53883bc487a522d1dce25d1c96e748491e4d04` and the recorded `pilot-v1` artifacts.
 This is the next research iteration after the [original roadmap](neural-rendering-plan.md).
@@ -169,19 +171,22 @@ schema/export metadata and new data configs. Preserve raw-image/RNG invariance.
 ### C. Train and select a detail-preserving spatial model
 
 Do not select a larger network or add a sharpening filter on appearance alone.
-Use eight controlled initial runs on the development subset, matched for training
-examples, update budget and seed:
+The implemented initial screen contains ten runs. The table records their actual
+comparisons; the research audit adds one-factor controls and an upstream OIDN
+training baseline before finalists are selected:
 
 | Run | Change from comparison parent | Question |
 | --- | --- | --- |
 | C0 | Current architecture/loss trained on v2 data | How much does data alone fix? |
-| C1 | C0 + balanced edge/detail crop sampling and edge-weighted gradient loss | Does explicitly supervising structure improve corners without amplifying noise? |
+| C0a | C0 + paired augmentation and independent-seed fusion | Does physically consistent data reuse help? |
+| C1 | C0a + balanced edge/detail crop sampling and edge-weighted gradient loss | Does explicitly supervising structure improve corners without amplifying noise? |
 | C2 | C1 + high-sample identity and HDR region-energy terms | Are detail, clean-input behavior and bright regions preserved together? |
-| C3 | C2 + new boundary/guide channels | Do richer guides reduce cross-surface mixing and fallback-band error? |
+| C3 | C2 + boundary channels, changed head, support and blending | Does this combined schema-2 design help? Separate controls are required to isolate guides. |
 | C4 | C3 + full-resolution residual refinement branch | Does learned high-resolution processing outperform existing skip connections at acceptable cost? |
 | C5 | C3 with a compact geometry-conditioned kernel-prediction head | Does learning how to filter measured radiance give a better fidelity/time tradeoff? |
 | C6 | Best C3–C5 candidate with RGB-only inputs | How much do guides actually contribute? |
 | C7 | Same candidate without variance/availability inputs | Do low-sample statistics help or propagate noise? |
+| C8 | C3 with width 64 | Does greater capacity help under this particular recipe? |
 
 Keep one-factor parent comparisons explicit; publish parameter count, training
 compute and inference cost. These runs screen designs, not every possible

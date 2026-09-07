@@ -62,6 +62,63 @@ def test_pfm_hdr_row_order(tmp_path):
         read_pfm(path)
 
 
+def test_oidn_sample_groups_keep_noise_and_scene_identity():
+    from raytracer_ml.oidn_dataset import sample_names
+
+    row = {"group": "layout-1", "configuration": "view-1", "input_seed": 13, "samples": 1}
+    first, reference = sample_names(row)
+    larger, same_reference = sample_names({**row, "samples": 64})
+    assert first != larger and reference == same_reference
+    assert sample_names({**row, "input_seed": 14})[1] != reference
+    assert sample_names({**row, "group": "layout-2"})[1] != reference
+
+
+def test_oidn_export_retains_linear_pixels_and_excludes_test(dataset, tmp_path):
+    oiio = pytest.importorskip("OpenImageIO")
+    from raytracer_ml.data.arrays import load_example
+    from raytracer_ml.oidn_dataset import export_dataset, write_exr
+
+    root, _ = dataset
+    output = tmp_path / "oidn"
+    receipt = export_dataset(root, output)
+    source = {r["id"]: r for r in manifest(root / "manifest.jsonl")}
+    assert receipt["examples"] == sum(r["split"] != "test" for r in source.values())
+    assert not (output / "test").exists()
+    assert receipt["descriptor"]["clean_aux"] is False
+
+    def read(path):
+        reader = oiio.ImageInput.open(str(path))
+        try:
+            return reader.read_image(format=oiio.FLOAT)
+        finally:
+            reader.close()
+
+    for item in receipt["records"]:
+        row = source[item["id"]]
+        assert row["split"] == item["split"]
+        x = load_example(root, row)["features"]
+        for ext, start in (("hdr", 0), ("alb", 3), ("nrm", 6)):
+            np.testing.assert_array_equal(
+                read(output / (item["input"] + f".{ext}.exr")),
+                x[start : start + 3].transpose(1, 2, 0),
+            )
+        with np.load(root / row["reference"], allow_pickle=False) as ref:
+            np.testing.assert_array_equal(
+                read(output / (item["target"] + ".hdr.exr")), ref["target"]
+            )
+    assert export_dataset(root, output) == receipt
+    with pytest.raises(ValueError, match="changed"):
+        export_dataset(root, output, ("train",))
+    # Detect a corrupted reused export instead of silently treating it as completed.
+    (output / next(iter(receipt["files"]))).write_bytes(b"corrupt")
+    with pytest.raises(ValueError, match="checksum"):
+        export_dataset(root, output)
+    # Explicitly cover signed normals and HDR values beyond half-float range.
+    pixels = np.array([[[-1.0, 0.125, 100000.0], [0, 1, 37]]], dtype=np.float32)
+    write_exr(tmp_path / "float32.exr", pixels)
+    np.testing.assert_array_equal(read(tmp_path / "float32.exr"), pixels)
+
+
 def test_generate_validate_resume(dataset, binary):
     root, cfg = dataset
     before = (root / "manifest.jsonl").read_bytes()

@@ -1,0 +1,20 @@
+{
+  "features": ["hdr", "alb", "nrm"],
+  "filter": "RT",
+  "quality": "balanced",
+  "model": "unet",
+  "transfer": "pu",
+  "clean_aux": false,
+  "loss": "l1_grad",
+  "tile_size": 128,
+  "batch_size": 8,
+  "num_loaders": 1,
+  "precision": "fp32",
+  "compile": "disable",
+  "num_epochs": 200,
+  "num_valid_epochs": 5,
+  "num_save_epochs": 5,
+  "lr": 0.00004,
+  "max_lr": 0.001,
+  "lr_warmup": 0.15
+}

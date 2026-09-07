@@ -175,10 +175,18 @@ against bilinear raw and a-trous upscaling at the same target dimensions. Native
 `--width` always specifies traced input width, and the model determines output scale.
 
 Use `data/cohort-smoke.yaml` with `train/temporal-smoke.yaml`, or the pilot data
-with `train/temporal.yaml`. Temporal inputs add reprojected previous RGB and a
-validity mask. Training uses noisy or a-trous previous observations, never targets;
+with `train/temporal.yaml`. These original configurations add reprojected previous RGB and a
+validity mask. Their training uses noisy or a-trous previous observations, never targets;
 evaluation and native playback feed the actual previous prediction. This history
 distribution gap is an explicit research limitation of the initial implementation.
+
+The newer `data/detail-sequence.yaml` and `train/detail-temporal.yaml` configurations
+use differentiable autoregressive prediction history with whole-sequence validation.
+See the [active study](reports/detail-study.md) for its implementation and outstanding
+quality gates, and the [research audit](../docs/neural-reconstruction-research-audit.md)
+for architecture, data and training-recipe findings. The
+[OIDN toolkit control](reports/oidn-training-control.md) uses a separately installed
+upstream training pipeline with our renders.
 
 `--sequence DIRECTORY` plays sorted JSON scene frames in the viewer and exports
 numbered outputs. In headless mode it renders all frames with one loaded model:

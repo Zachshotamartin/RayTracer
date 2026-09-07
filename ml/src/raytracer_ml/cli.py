@@ -22,6 +22,14 @@ def main():
     p.add_argument("--dry-run", action="store_true")
     p = commands.add_parser("validate-data")
     p.add_argument("--data", required=True)
+    p = commands.add_parser(
+        "export-oidn-data", help="Export linear EXRs for upstream OIDN training"
+    )
+    p.add_argument("--data", required=True)
+    p.add_argument("--output", required=True)
+    p.add_argument(
+        "--splits", nargs="+", choices=["train", "val", "test"], default=["train", "val"]
+    )
     p = commands.add_parser("train")
     p.add_argument("--config", required=True)
     p.add_argument("--data", required=True)
@@ -64,6 +72,15 @@ def main():
             from .status import status
 
             result = status(args.artifacts)
+        elif args.command == "export-oidn-data":
+            from .oidn_dataset import export_dataset
+
+            receipt = export_dataset(args.data, args.output, args.splits)
+            result = {
+                "examples": receipt["examples"],
+                "descriptor": receipt["descriptor"],
+                "receipt": str(args.output) + "/export.json",
+            }
         elif args.command == "generate":
             from .data.generate import generate
 

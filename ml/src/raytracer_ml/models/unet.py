@@ -24,15 +24,20 @@ class ReconstructionNet(nn.Module):
         temporal=False,
         feature_schema=1,
         refinement=False,
+        output_head="auto",
     ):
         super().__init__()
         if (
             kind not in ("unet", "conv")
-            or inputs not in ("all", "rgb", "guides")
+            or inputs not in ("all", "rgb", "guides", "no_boundary")
             or scale not in (1, 2)
             or feature_schema not in (1, 2)
         ):
             raise ValueError("Invalid model architecture")
+        if output_head not in ("auto", "additive_log", "bounded_multiplicative"):
+            raise ValueError("Invalid output head")
+        if inputs == "no_boundary" and feature_schema != 2:
+            raise ValueError("Boundary feature ablation requires schema 2")
         if width < 4 or width > 128:
             raise ValueError("Model width must be 4..128")
         if temporal and scale != 1:
@@ -40,7 +45,17 @@ class ReconstructionNet(nn.Module):
         self.temporal = temporal
         self.feature_schema = feature_schema
         self.base_channels = 27 if feature_schema == 2 else 17
-        self.feature_channels = {"all": self.base_channels, "rgb": 3, "guides": 12}[inputs]
+        self.feature_channels = {
+            "all": self.base_channels,
+            "no_boundary": self.base_channels,
+            "rgb": 3,
+            "guides": 12,
+        }[inputs]
+        self.output_head = (
+            ("bounded_multiplicative" if feature_schema == 2 else "additive_log")
+            if output_head == "auto"
+            else output_head
+        )
         self.kind, self.scale, self.inputs = kind, scale, inputs
         channels = self.feature_channels + (4 if temporal else 0)
         self.enc1 = block(channels, width)
@@ -74,6 +89,9 @@ class ReconstructionNet(nn.Module):
                 [features, x[:, 17:23], torch.log1p(x[:, 23:25].clamp_min(0)) / 5, x[:, 25:27]], 1
             )
         features = features[:, : self.feature_channels]
+        if self.inputs == "no_boundary":
+            # Keep the same head, support policy, input shape and parameter count.
+            features = torch.cat([features[:, :17], torch.zeros_like(features[:, 17:27])], 1)
         if self.temporal:
             features = torch.cat(
                 [
@@ -105,7 +123,7 @@ class ReconstructionNet(nn.Module):
         support = x[:, 11:12] >= 0.999999
         if self.feature_schema == 2:
             support = ((x[:, 10:11] - x[:, 11:12]).abs() < 1e-6) & (x[:, 10:11] > 0)
-            support &= (x[:, 26:27] > 0.5) | (x[:, 23:24] == 0)
+            support = support & ((x[:, 26:27] > 0.5) | (x[:, 23:24] == 0))
             correction = correction * ((128 - x[:, 15:16]) / 96).clamp(0, 1)
         if self.scale == 2:
             correction = F.interpolate(
@@ -114,14 +132,15 @@ class ReconstructionNet(nn.Module):
             raw = F.interpolate(raw, scale_factor=2, mode="bilinear", align_corners=False)
             logged = torch.log1p(raw)
             support = F.interpolate(support.float(), scale_factor=2, mode="nearest") > 0.5
-        if self.feature_schema == 2:
+        if self.output_head == "bounded_multiplicative":
             prediction = ((raw + 0.01) * torch.exp(2 * torch.tanh(correction)) - 0.01).clamp_min(0)
+        else:
+            prediction = torch.exp((logged + correction).clamp(0, 12)) - 1
+        if self.feature_schema == 2:
             samples = x[:, 15:16]
             if self.scale == 2:
                 samples = F.interpolate(samples, scale_factor=2, mode="nearest")
             prediction = torch.where(samples >= 128, raw, prediction)
-        else:
-            prediction = torch.exp((logged + correction).clamp(0, 12)) - 1
         return torch.where(support, prediction, raw)
 
 

@@ -17,6 +17,8 @@ class RenderDataset(Dataset):
         identity_probability=0,
         augmentation=None,
         fuse_probability=0,
+        preservation_mode="synthetic_identity",
+        near_clean_samples=96,
     ):
         from pathlib import Path
 
@@ -33,7 +35,36 @@ class RenderDataset(Dataset):
             raise ValueError("Invalid dataset feature/crop policy")
         self.channels = 27 if feature_schema == 2 else 17
         self.edge_sampling = edge_sampling
-        self.identity_probability = identity_probability
+        self.identity_probability = identity_probability if split == "train" else 0
+        if preservation_mode not in ("synthetic_identity", "measured_near_clean"):
+            raise ValueError("Invalid preservation mode")
+        if not isinstance(near_clean_samples, int) or not 1 < near_clean_samples < 128:
+            raise ValueError(
+                "Near-clean samples must be an integer below the raw-identity threshold"
+            )
+        self.preservation_mode = preservation_mode
+        self.near_clean_pairs = {}
+        if self.identity_probability and preservation_mode == "measured_near_clean":
+            if temporal or any(r["scale"] != 1 for r in self.rows):
+                raise ValueError("Measured preservation pairs require same-resolution spatial data")
+            views = {}
+            for row in self.rows:
+                views.setdefault(self.view_key(row), []).append(row)
+            for key, candidates in views.items():
+                pairs = [
+                    (a, b)
+                    for i, a in enumerate(candidates)
+                    for b in candidates[i + 1 :]
+                    if a["samples"] + b["samples"] == near_clean_samples
+                    and a["input_seed"] != b["input_seed"]
+                    and a["input_seed"] != a["target_seed"]
+                    and b["input_seed"] != b["target_seed"]
+                    and a["reference_samples"] > near_clean_samples
+                    and b["reference_samples"] > near_clean_samples
+                ]
+                if not pairs:
+                    raise ValueError("Data lacks independent measurements for near-clean pairs")
+                self.near_clean_pairs[key] = pairs
         if not 0 <= fuse_probability <= 1:
             raise ValueError("Invalid independent-noise fusion probability")
         self.augmentation = augmentation if split == "train" else None
@@ -50,6 +81,16 @@ class RenderDataset(Dataset):
 
     def __len__(self):
         return len(self.rows)
+
+    @staticmethod
+    def view_key(row):
+        return (
+            row["group"],
+            row["configuration"],
+            row["scene_sha256"],
+            row["target_seed"],
+            row["reference_sha256"],
+        )
 
     def __getitem__(self, index):
         r = self.rows[index]
@@ -122,8 +163,20 @@ class RenderDataset(Dataset):
             and r["scale"] == 1
             and torch.rand(()) < self.identity_probability
         ):
-            x = x.copy()
-            x[:3], x[12:15], x[15], x[16] = y, 0, 128, 1
+            if self.preservation_mode == "measured_near_clean":
+                from ..augment import fuse_measurements
+
+                pairs = self.near_clean_pairs[self.view_key(r)]
+                a, b = pairs[int(torch.randint(len(pairs), ()).item())]
+                x = fuse_measurements(
+                    load_example(self.root, a)["features"][: self.channels],
+                    load_example(self.root, b)["features"][: self.channels],
+                )
+                if self.crop:
+                    x = x[:, top : top + size, left : left + size]
+            else:
+                x = x.copy()
+                x[:3], x[12:15], x[15], x[16] = y, 0, 128, 1
         x, y = torch.from_numpy(x.copy()), torch.from_numpy(y.copy())
         if self.augmentation:
             from ..augment import draw_transform, apply_transform

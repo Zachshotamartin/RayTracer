@@ -109,6 +109,8 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
         cfg.get("identity_probability", 0),
         cfg.get("augmentation"),
         cfg.get("fuse_probability", 0),
+        cfg.get("preservation_mode", "synthetic_identity"),
+        cfg.get("near_clean_samples", 96),
     )
     heldout = RenderDataset(
         root, "val", temporal=cfg["model"].get("temporal", False), feature_schema=feature_schema

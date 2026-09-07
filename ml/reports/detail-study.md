@@ -3,6 +3,9 @@
 Status: implementation and development experiments in progress. The bundled
 `diffuse-pilot-v1.onnx` and its measured limitations remain the released baseline.
 Passing implementation tests does not establish better image quality or acceleration.
+The [research alignment audit](../../docs/neural-reconstruction-research-audit.md)
+maps original papers and pinned OIDN training code to the current implementation,
+including limitations in the training recipe and the initial comparisons.
 
 Read current artifact progress with `rtml status --artifacts /path/to/RayTracer`.
 The artifact directory contains `datasets/` and `runs/`. The command reports saved
@@ -73,11 +76,29 @@ The configurations in `ml/configs/train/detail/` preserve explicit comparisons:
 | C0a | C0 plus augmentation and independent-noise fusion |
 | C1 | C0a plus edge-focused crops and gradient loss |
 | C2 | C1 plus clean-input pairs and HDR energy loss |
-| C3 | C2 plus 27-channel boundary features |
+| C3 | C2 plus schema 2: boundary features, changed output head, support and blending |
 | C4 | C3 plus full-resolution refinement |
 | C5 | Guided kernel model with C2's training policy and boundary features |
-| C6 / C7 | C5 with RGB-only / without variance inputs |
+| C6 | C5 with RGB-only encoder and no geometric kernel penalties; support policy retained |
+| C7 | C5 without variance/availability inputs |
 | C8 | C3 with width 64, approximately four times the parameters |
+| C9 | C3 with only the head changed to additive log-radiance correction |
+| C10 | C9 with encoder boundary channels zeroed; identical capacity/support/head |
+| C11 | C9 replacing synthetic identity pairs with measured 96-sample pairs |
+| C12 | C5 replacing synthetic identity pairs with measured 96-sample pairs |
+
+These are screening comparisons, not uniformly one-factor ablations. In
+particular, C3 cannot isolate the effect of guide channels. Schema-2 clean-input
+pairs marked 128 spp also hit a hard raw-identity rule and supply no head gradient.
+The research audit specifies additional controls before causal claims or promotion.
+C6 also changes both learned conditioning and the explicit geometric prior.
+C9–C12 were added after that audit and are separate from the frozen initial screen.
+Measured preservation combines a 32-sample stream with an independent 64-sample
+stream of the same view/target. It retains their measured guides and combined
+variance; it does not substitute target pixels for input. The resulting 96-sample
+input remains below the 128-sample bypass, so the objective can train the head.
+The [upstream training control](oidn-training-control.md) records an additional
+same-data experiment and its required small-image adaptation.
 
 Capacity is an experiment: the original network has about 476k parameters, the
 wider candidate about 1.9M, and the guided alternative is much smaller but has an
@@ -91,6 +112,52 @@ Constraint penalties influence selection and an explicit eligibility field recor
 whether a checkpoint meets them. An ineligible best checkpoint is an experiment
 artifact, not a qualified model. Every run records optimizer, scheduler, random
 states, dataset identity, and epoch-boundary resume state.
+
+## Development validation evidence
+
+All 224 validation inputs cover four layouts, four views, seven sample budgets and
+two noise streams. The test split remains unused for model selection. These means
+do not establish generalization to the larger scene collection or a speed advantage.
+
+| Method | PSNR (dB) ↑ | SSIM ↑ | Linear HDR MSE ↓ |
+| --- | ---: | ---: | ---: |
+| Raw | 29.85 | 0.7358 | 0.25176 |
+| A-trous | 33.09 | 0.9579 | 0.24978 |
+| Guided model, untrained control | 34.27 | 0.9609 | 0.25113 |
+| Guided model, trained C5 | 35.55 | 0.9638 | 0.25111 |
+| Pretrained OIDN | 36.99 | 0.9682 | 0.45631 |
+
+The untrained control includes the same hand-set geometric filtering prior with
+zero learned kernel logits. Training adds about 1.27 dB; it does not account for
+all improvement over a-trous. Linear HDR error remains a concern, particularly
+around bright emitters. The methods' different support policies must be considered.
+
+Saved evidence: [C5 summary](detail-development/c5-validation-summary.json),
+[all C5 per-image records](detail-development/c5-validation-per-image.jsonl.gz),
+[untrained summary](detail-development/untrained-validation-summary.json), and
+[all untrained records](detail-development/untrained-validation-per-image.jsonl.gz).
+The evaluations ran while other jobs were active. Their timing fields are retained
+for provenance and must not be used as uncontended runtime comparisons.
+
+**Left to right: raw 4 spp · a-trous 4 spp · trained C5 4 spp · independent 1,024-spp reference.**
+
+![Development validation comparison: raw, a-trous, trained guided model, reference](detail-development/c5-validation-4spp.png)
+
+This is `g0008-v000-n0-s4`, the first validation view at 4 spp, not a best-case
+selection. Each panel is 256×144 with the same ACES-fit/sRGB display at exposure 0.
+Residual wall/floor variation is still visible. OIDN is not shown in this strip.
+
+**Worst C5 edge-gradient case: prediction · reference · absolute linear error ×4.**
+
+![Worst validation edge-gradient case, prediction, reference and error](detail-development/edge_2px_gradient_mae-g0009-v001-n0-s1.png)
+
+This is `g0009-v001-n0-s1`, selected from the complete validation records by
+two-pixel edge-band gradient error. The checker pattern and narrow boundaries
+remain noisy. The artifact is preserved as a failure, not concealed by the mean
+score. Other saved extremes include the
+[worst halo case](detail-development/halo_display_mae-g0009-v002-n0-s1.png) and
+[worst linear HDR case](detail-development/linear_mse-g0010-v003-n0-s1.png), with the
+same prediction/reference/error order. Error scaling precedes the display transform.
 
 ## Implemented safeguards and remaining qualification
 
@@ -119,6 +186,6 @@ uses four geometry-validated taps, center normals/albedo, footprint-scaled posit
 tolerance, and translation/orientation/roll/FOV cut checks. Explicit sequence frame
 numbers distinguish a stationary camera video from cumulative still-image passes.
 Native/Python moving and stationary sequence parity has functional tests; long
-rollout quality remains unqualified. Adaptive sampling, bounded tiling, additional
+rollout quality remains unqualified. Adaptive sampling, additional
 transport support, long-sequence studies, and full release qualification remain
 work in the [issue plan](../../docs/neural-reconstruction-improvement-plan.md).

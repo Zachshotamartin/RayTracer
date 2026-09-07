@@ -25,6 +25,46 @@ from raytracer_ml.preprocessing import load_features
 from raytracer_ml.train import train, load_checkpoint
 
 
+def test_additive_head_can_reconstruct_missing_signal_without_changing_fallback():
+    cfg = dict(kind="unet", width=4, feature_schema=2)
+    bounded = build_model(cfg)
+    additive = build_model({**cfg, "output_head": "additive_log"})
+    with torch.no_grad():
+        bounded.head.bias.fill_(3)
+    additive.load_state_dict(bounded.state_dict())
+    x = torch.zeros(1, 27, 8, 12)
+    x[:, 10:12], x[:, 26], x[:, 15] = 1, 1, 4
+    x[:, 11, 0] = 0
+    x[:, 15, 1] = 128
+    y = additive(x)
+    assert bounded(x).max() < 0.064
+    assert y[:, :, 2:].min() > 10
+    torch.testing.assert_close(y[:, :, :2], x[:, :3, :2], atol=0, rtol=0)
+    y[:, :, 2:].sum().backward()
+    assert additive.head.bias.grad.min() > 0
+
+
+def test_boundary_feature_control_keeps_policy_and_capacity():
+    cfg = dict(kind="unet", width=4, feature_schema=2, output_head="additive_log")
+    all_features = build_model(cfg)
+    ablated = build_model({**cfg, "inputs": "no_boundary"})
+    with torch.no_grad():
+        all_features.head.weight.fill_(0.05)
+        all_features.head.bias.fill_(0.2)
+    ablated.load_state_dict(all_features.state_dict())
+    assert sum(p.numel() for p in ablated.parameters()) == sum(
+        p.numel() for p in all_features.parameters()
+    )
+    x = torch.rand(1, 27, 9, 13)
+    x[:, 10:12], x[:, 26], x[:, 15] = 1, 1, 4
+    other = x.clone()
+    other[:, 17:26] = 1 - other[:, 17:26]
+    torch.testing.assert_close(ablated(x), ablated(other), atol=0, rtol=0)
+    x[:, 26, :2] = 0
+    x[:, 23, :2] = 1
+    torch.testing.assert_close(ablated(x)[:, :, :2], x[:, :3, :2], atol=0, rtol=0)
+
+
 @pytest.mark.parametrize("turns", range(4))
 @pytest.mark.parametrize(
     "flip_x,flip_y", [(False, False), (True, False), (False, True), (True, True)]
@@ -146,6 +186,54 @@ def test_compact_storage_is_lossless_and_resumes(compact_dataset):
     assert previous == (compact / "manifest.jsonl").read_bytes()
 
 
+def test_measured_preservation_uses_real_independent_noise(compact_dataset):
+    from raytracer_ml.data.dataset import RenderDataset
+
+    root = compact_dataset[0] / "compact"
+    dataset = RenderDataset(
+        root,
+        "train",
+        feature_schema=2,
+        identity_probability=1,
+        preservation_mode="measured_near_clean",
+        near_clean_samples=5,
+    )
+    x, target = dataset[0]
+    assert torch.all(x[15] == 5) and torch.all(x[16] == 1)
+    assert (x[12:15] > 0).any()
+    assert not torch.equal(x[:3], target)
+    pairs = dataset.near_clean_pairs[dataset.view_key(dataset.rows[0])]
+    expected = [
+        fuse_measurements(load_example(root, a)["features"], load_example(root, b)["features"])
+        for a, b in pairs
+    ]
+    assert any(np.array_equal(x.numpy(), candidate) for candidate in expected)
+    model = build_model(dict(kind="unet", width=4, feature_schema=2, output_head="additive_log"))
+    with torch.no_grad():
+        model.head.bias.fill_(0.2)
+    (model(x[None]) - target[None]).square().mean().backward()
+    assert model.head.bias.grad.abs().sum() > 0
+    heldout = RenderDataset(
+        root,
+        "val",
+        feature_schema=2,
+        identity_probability=1,
+        preservation_mode="measured_near_clean",
+        near_clean_samples=5,
+    )
+    actual, _ = heldout[0]
+    np.testing.assert_array_equal(actual, load_example(root, heldout.rows[0])["features"])
+    with pytest.raises(ValueError, match="independent measurements"):
+        RenderDataset(
+            root,
+            "train",
+            feature_schema=2,
+            identity_probability=1,
+            preservation_mode="measured_near_clean",
+            near_clean_samples=7,
+        )
+
+
 def test_augmented_epoch_resume_is_exact(compact_dataset, tmp_path):
     root = compact_dataset[0] / "compact"
     cfg = dict(
@@ -178,10 +266,17 @@ def test_augmented_epoch_resume_is_exact(compact_dataset, tmp_path):
 
 @pytest.mark.parametrize(
     "kind,scale,precision",
-    [("guided", 1, "fp32"), ("refine", 2, "fp32"), ("guided", 1, "mixed-fp16")],
+    [
+        ("guided", 1, "fp32"),
+        ("refine", 2, "fp32"),
+        ("guided", 1, "mixed-fp16"),
+        ("unet", 1, "fp32"),
+    ],
 )
 def test_detail_export_and_native_parity(kind, scale, precision, compact_dataset, tmp_path):
     cfg = dict(kind=kind, width=8, feature_schema=2, scale=scale)
+    if kind == "unet":
+        cfg["output_head"] = "additive_log"
     torch.manual_seed(77)
     model = build_model(cfg).eval()
     # Nonzero learned weights exercise more than an untrained identity path.
@@ -232,6 +327,11 @@ def test_detail_export_and_native_parity(kind, scale, precision, compact_dataset
             .transpose(1, 2, 0)
         )
     np.testing.assert_allclose(read_pfm(tmp_path / "out.pfm"), expected, rtol=2e-4, atol=2e-5)
+    if kind == "unet":
+        assert (
+            model.output_head == "additive_log" and meta["model"]["output_head"] == "additive_log"
+        )
+        return  # The U-Net does not declare local tiling support.
     command = result.args.copy()
     command[command.index("--width") + 1] = "96"
     subprocess.run(command, check=True, capture_output=True)
