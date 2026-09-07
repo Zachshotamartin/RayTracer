@@ -19,6 +19,10 @@ struct frame_snapshot {
         color albedo, normal, variance;
         double depth = 0, coverage = 0, support = 0;
         point3 position;
+        color center_albedo, center_normal;
+        double center_depth = 0, depth_variance = 0, normal_spread = 0, center_support = 0;
+        int sample_count = 0;
+        double thin_coverage = 0;
     };
     std::vector<feature> features{};
     bool reconstructed = false;

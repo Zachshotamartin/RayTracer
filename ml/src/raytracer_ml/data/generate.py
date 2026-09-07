@@ -1,7 +1,6 @@
 """Bounded, resumable paired rendering. A validated example is the commit unit."""
 
 import json
-import os
 import shutil
 import subprocess
 import tempfile
@@ -78,6 +77,19 @@ def generate(cfg, binary, root, dry_run=False):
     if cfg["width"] % 16:
         raise ValueError("Dataset width must be a multiple of 16 for aligned 16:9 pairs")
     items = list(configurations(cfg))
+    feature_schema = int(cfg.get("feature_schema", 1))
+    if feature_schema not in (1, 2):
+        raise ValueError("Unsupported feature schema")
+    # External asset paths would make the inline scene hash incomplete. Dataset
+    # suites use embedded meshes; ordinary CLI scenes may still load OBJ files.
+    if any("path" in o for item in items for o in item["scene"].get("objects", [])):
+        raise ValueError("Dataset mesh assets must be embedded in scene JSON")
+    check_indices = list(range(min(len(items), cfg.get("reference_checks", 0))))
+    if cfg.get("reference_check_strategy") == "stratified":
+        chosen = {}
+        for i, item in enumerate(items):
+            chosen.setdefault((item["split"], item.get("stratum", "room")), i)
+        check_indices = list(chosen.values())
     count = len(items) * len(budgets) * cfg["noise_realizations"]
     estimate = {
         "configurations": len(items),
@@ -86,7 +98,7 @@ def generate(cfg, binary, root, dry_run=False):
         "uncompressed_input_gib": count
         * cfg["width"]
         * int(cfg["width"] * 9 / 16)
-        * 20
+        * (30 if feature_schema == 2 else 20)
         * 4
         / 2**30,
         "max_seconds": cfg["max_seconds"],
@@ -94,6 +106,12 @@ def generate(cfg, binary, root, dry_run=False):
     }
     if dry_run:
         return estimate
+    if cfg.get("require_clean_source", False):
+        status = subprocess.run(
+            ["git", "status", "--porcelain"], capture_output=True, text=True, check=True
+        )
+        if status.stdout.strip():
+            raise ValueError("Commit source changes before generating this reproducible dataset")
     root.mkdir(parents=True, exist_ok=True)
     with FileLock(str(root / ".generation.lock"), timeout=0):
         contract = {"schema_version": 1, "config": cfg, "renderer_sha256": digest(binary)}
@@ -116,12 +134,22 @@ def generate(cfg, binary, root, dry_run=False):
             )
         deadline = time.monotonic() + cfg["max_seconds"]
         records = []
+        persisted = 0
+        disk_checks = 0
+        # Individual example JSON/checksums are the resumable commit units.
+        # Rebuild the append-only manifest from those records instead of rewriting
+        # all previous rows after each example (quadratic IO on large datasets).
+        (root / "manifest.jsonl").write_text("")
 
         def guard():
+            nonlocal disk_checks
             if time.monotonic() >= deadline:
                 raise TimeoutError("Dataset generation time cap reached; rerun to resume")
+            disk_checks += 1
+            if disk_checks % 16 != 1:
+                return
             used = sum(p.stat().st_size for p in root.rglob("*") if p.is_file())
-            reserve = cfg["width"] ** 2 * 4 * 64 * cfg.get("scale", 1) ** 2
+            reserve = 16 * cfg["width"] ** 2 * 4 * 64 * cfg.get("scale", 1) ** 2
             if (
                 used + reserve > cfg["max_gib"] * 2**30
                 or shutil.disk_usage(root).free < reserve * 2
@@ -129,9 +157,11 @@ def generate(cfg, binary, root, dry_run=False):
                 raise RuntimeError("Dataset disk cap/free-space reserve reached")
 
         def persist():
-            temp = root / "manifest.jsonl.tmp"
-            temp.write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in records))
-            os.replace(temp, root / "manifest.jsonl")
+            nonlocal persisted
+            with (root / "manifest.jsonl").open("a") as stream:
+                for record in records[persisted:]:
+                    stream.write(json.dumps(record, sort_keys=True) + "\n")
+            persisted = len(records)
 
         for index, item in enumerate(items):
             guard()
@@ -155,14 +185,20 @@ def generate(cfg, binary, root, dry_run=False):
                         work / "target",
                         cfg,
                         deadline - time.monotonic(),
+                        feature_schema == 2,
                     )
-                    save_arrays(reference, target=target)
+                    extra = {}
+                    if feature_schema == 2:
+                        extra["features"] = load_features(work / "target/features", 2)
+                        extra["position"] = read_pfm(work / "target/features/position.pfm")
+                        extra["annotations"] = read_pfm(work / "target/features/annotations.pfm")
+                    save_arrays(reference, target=target, **extra)
                     write_json(
                         reference_info,
                         {"sha256": digest(reference), "seed": ref_seed, "stats": stats},
                     )
                 ref_record = json.loads(reference_info.read_text())
-                if index < cfg.get("reference_checks", 0):
+                if index in check_indices:
                     checked = root / "reference_checks" / f"{ident}.json"
                     if not checked.exists():
                         check_samples = int(
@@ -224,7 +260,7 @@ def generate(cfg, binary, root, dry_run=False):
                                 deadline - time.monotonic(),
                                 True,
                             )
-                            features = load_features(run_dir / "features")
+                            features = load_features(run_dir / "features", feature_schema)
                             validate_features(features)
                             if not np.array_equal(features[:3].transpose(1, 2, 0), raw):
                                 raise ValueError("Feature RGB differs from raw render")
@@ -236,12 +272,15 @@ def generate(cfg, binary, root, dry_run=False):
                             )
                             record = {
                                 "schema_version": 1,
+                                "feature_schema": feature_schema,
                                 "id": example_id,
                                 "configuration": ident,
                                 "group": item["group"],
                                 "split": item["split"],
                                 "cohort": item["cohort"],
                                 "frame": item["frame"],
+                                "stratum": item.get("stratum", "room"),
+                                "geometry_sha256": identity(item["scene"].get("objects", [])),
                                 "scene": item["scene"],
                                 "scene_sha256": identity(item["scene"]),
                                 "path": str(output.relative_to(root)),

@@ -1,0 +1,19 @@
+schema_version: 1
+feature_schema: 2
+suite: challenge-v2
+seed: 72026
+groups: 16
+split_counts: [8, 4, 4]
+views: 4
+width: 256
+budgets: [1, 2, 4, 8, 16, 32, 64]
+noise_realizations: 2
+reference_samples: 1024
+reference_check_samples: 4096
+reference_check_strategy: stratified
+scale: 1
+depth: 16
+threads: 6
+max_seconds: 7200
+max_gib: 16
+require_clean_source: true

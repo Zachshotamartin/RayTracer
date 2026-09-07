@@ -3,11 +3,25 @@
 #include "cube.h"
 #include "mesh.h"
 #include "sphere.h"
+#include "triangle.h"
 #include <fstream>
 #include <numbers>
 
 namespace {
 using json = nlohmann::json;
+class annotated_surface : public hittable {
+    std::shared_ptr<hittable> surface_;
+
+  public:
+    explicit annotated_surface(std::shared_ptr<hittable> surface) : surface_(std::move(surface)) {}
+    bool hit(const ray &r, interval range, hit_record &rec) const override {
+        if (!surface_->hit(r, range, rec))
+            return false;
+        rec.annotation = 1;
+        return true;
+    }
+    aabb bounding_box() const override { return surface_->bounding_box(); }
+};
 vec3 vector3(const json &j) {
     if (!j.is_array() || j.size() != 3)
         throw std::invalid_argument("Expected a three-component vector");
@@ -37,6 +51,18 @@ std::shared_ptr<material> surface(const json &j) {
     if (type == "glass")
         return std::make_shared<dielectric>(number(j, "ior", 1.5, 1.01, 3));
     auto albedo = rgb(j.at("albedo"));
+    if (type == "diffuse" && j.contains("texture")) {
+        const auto &t = j.at("texture");
+        const auto kind = t.at("type").get<std::string>();
+        const auto other = rgb(t.at("color"));
+        if (kind == "checker")
+            return std::make_shared<lambertian>(std::make_shared<checker_texture>(
+                number(t, "scale", .25, .0001, 1e4), albedo, other));
+        if (kind == "bands")
+            return std::make_shared<lambertian>(std::make_shared<band_texture>(
+                albedo, other, number(t, "frequency", 12, .01, 1e4)));
+        throw std::invalid_argument("Unknown scene texture: " + kind);
+    }
     if (type == "diffuse")
         return std::make_shared<lambertian>(albedo);
     if (type == "metal")
@@ -75,6 +101,7 @@ scene read_scene_file(const std::filesystem::path &path) {
         if (!j.at("objects").is_array() || j.at("objects").size() > 10000)
             throw std::invalid_argument("Invalid scene object count");
         for (const auto &o : j.at("objects")) {
+            const auto first_object = s.objects.objects.size();
             auto mat = surface(o.at("material"));
             std::string type = o.at("type");
             if (type == "sphere")
@@ -92,8 +119,42 @@ scene read_scene_file(const std::filesystem::path &path) {
                 s.objects.add(std::make_shared<cube>(
                     vector3(o.at("center")), size, vec3(std::cos(angle), 0, -std::sin(angle)),
                     vec3(0, 1, 0), vec3(std::sin(angle), 0, std::cos(angle)), mat));
+            } else if (type == "mesh" && o.contains("path")) {
+                auto mesh_path = path.parent_path() / o.at("path").get<std::string>();
+                auto mesh = load_obj(mesh_path, o.value("normalize", false));
+                s.objects.add(std::make_shared<hittable_list>(mesh.geometry));
+            } else if (type == "mesh") {
+                const auto &vertices = o.at("vertices"), &faces = o.at("faces");
+                if (!vertices.is_array() || !faces.is_array() || vertices.size() > 100000 ||
+                    faces.empty() || faces.size() > 100000)
+                    throw std::invalid_argument("Invalid inline mesh size");
+                std::vector<point3> points;
+                for (const auto &vertex : vertices)
+                    points.push_back(vector3(vertex));
+                for (const auto &face : faces) {
+                    if (!face.is_array() || face.size() != 3)
+                        throw std::invalid_argument("Inline mesh requires triangle faces");
+                    std::array<point3, 3> triangle_points;
+                    for (int k = 0; k < 3; ++k) {
+                        if (!face[k].is_number_unsigned() && !face[k].is_number_integer())
+                            throw std::invalid_argument("Mesh index must be an integer");
+                        auto index = face[k].get<std::int64_t>();
+                        if (index < 0 || std::uint64_t(index) >= points.size())
+                            throw std::invalid_argument("Mesh index outside vertex array");
+                        triangle_points[k] = points[std::size_t(index)];
+                    }
+                    if (cross(triangle_points[1] - triangle_points[0],
+                              triangle_points[2] - triangle_points[0])
+                            .length() < 1e-12)
+                        throw std::invalid_argument("Degenerate inline mesh triangle");
+                    s.objects.add(std::make_shared<triangle>(triangle_points, mat));
+                }
             } else
                 throw std::invalid_argument("Unsupported scene object: " + type);
+            if (o.value("annotation", "solid") == "thin")
+                for (auto index = first_object; index < s.objects.objects.size(); ++index)
+                    s.objects.objects[index] =
+                        std::make_shared<annotated_surface>(s.objects.objects[index]);
         }
         if (!j.at("lights").is_array() || j.at("lights").empty() || j.at("lights").size() > 128)
             throw std::invalid_argument("Scene needs 1..128 lights");

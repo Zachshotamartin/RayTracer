@@ -134,6 +134,10 @@ struct render_session::impl {
                     g.depth *= scale;
                     g.coverage *= scale;
                     g.support *= scale;
+                    g.thin_coverage *= scale;
+                    g.depth_variance = std::max(0., g.depth_variance * scale - g.depth * g.depth);
+                    g.normal_spread = std::max(0., g.coverage - dot(g.normal, g.normal));
+                    g.sample_count = published.samples;
                     g.variance =
                         published.samples > 1
                             ? sample_m2[i] / (double(published.samples) * (published.samples - 1))
@@ -141,7 +145,7 @@ struct render_session::impl {
                     published.features[i] = g;
                 }
                 statistics.feature_rays =
-                    std::uint64_t(published.samples + 1) * feature_sums.size() + guides.size();
+                    (!feature_sums.empty() || !guides.empty()) ? accumulation.size() : 0;
                 statistics.samples = published.samples;
                 if (published.samples == 1 && !guides.empty())
                     published.guides = guides;
@@ -202,32 +206,43 @@ struct render_session::impl {
                             if (cancelled.load(std::memory_order_relaxed))
                                 break;
                             auto index = std::size_t(y) * width + x;
-                            if (pass == 0 && !guides.empty()) {
-                                auto primary = view->center_ray(x, y);
-                                hit_record rec;
-                                if (world->hit(primary, interval(1e-8, infinity), rec))
-                                    guides[index] = {rec.normal, rec.mat->guide_albedo(rec), rec.t,
-                                                     true, rec.mat->is_diffuse()};
+                            if (pass == 0 && (!guides.empty() || !feature_sums.empty())) {
+                                hit_record center;
+                                if (world->hit(view->center_ray(x, y), interval(1e-8, infinity),
+                                               center)) {
+                                    if (!guides.empty())
+                                        guides[index] = {center.normal,
+                                                         center.mat->guide_albedo(center), center.t,
+                                                         true, center.mat->is_diffuse()};
+                                    if (!feature_sums.empty()) {
+                                        auto &g = feature_sums[index];
+                                        g.position = center.p;
+                                        g.center_normal = center.normal;
+                                        g.center_albedo = center.mat->guide_albedo(center);
+                                        g.center_depth = center.t;
+                                        g.center_support = center.mat->is_diffuse() ? 1 : 0;
+                                    }
+                                }
                             }
                             auto rng = sampler::for_pixel(settings.seed, index, pass);
                             auto r = view->get_ray(x, y, rng);
-                            if (!feature_sums.empty()) {
-                                hit_record rec;
+                            hit_record primary;
+                            bool primary_valid = false;
+                            auto sample = trace_path(
+                                r, *world, content.lights, content.env, settings.max_depth, rng,
+                                counts, {settings.transparent_shadows, photons.get()},
+                                feature_sums.empty() ? nullptr : &primary,
+                                feature_sums.empty() ? nullptr : &primary_valid);
+                            if (!feature_sums.empty() && primary_valid) {
                                 auto &g = feature_sums[index];
-                                if (world->hit(r, interval(1e-8, infinity), rec)) {
-                                    g.albedo += rec.mat->guide_albedo(rec);
-                                    g.normal += rec.normal;
-                                    g.depth += rec.t;
-                                    g.coverage += 1;
-                                    g.support += rec.mat->is_diffuse() ? 1 : 0;
-                                }
-                                if (pass == 0 && world->hit(view->center_ray(x, y),
-                                                            interval(1e-8, infinity), rec))
-                                    g.position = rec.p;
+                                g.albedo += primary.mat->guide_albedo(primary);
+                                g.normal += primary.normal;
+                                g.depth += primary.t;
+                                g.depth_variance += primary.t * primary.t;
+                                g.coverage += 1;
+                                g.support += primary.mat->is_diffuse() ? 1 : 0;
+                                g.thin_coverage += primary.annotation == 1 ? 1 : 0;
                             }
-                            auto sample = trace_path(r, *world, content.lights, content.env,
-                                                     settings.max_depth, rng, counts,
-                                                     {settings.transparent_shadows, photons.get()});
                             accumulation[index] += sample;
                             if (!feature_sums.empty()) {
                                 auto delta = sample - sample_means[index];

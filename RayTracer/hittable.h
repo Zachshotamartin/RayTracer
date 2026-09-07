@@ -11,7 +11,9 @@ struct hit_record {
     bool front_face = true;
     std::shared_ptr<material> mat;
     const hittable *object = nullptr;
+    int annotation = 0;
     void set_face_normal(const ray &r, const vec3 &outward) {
+        annotation = 0;
         front_face = dot(r.d(), outward) < 0;
         normal = front_face ? outward : -outward;
         geometric_normal = normal;

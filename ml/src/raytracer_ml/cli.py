@@ -32,6 +32,12 @@ def main():
     p.add_argument("--device", default="auto")
     p.add_argument("--oidn")
     p.add_argument("--oidn-device", default="cpu")
+    p.add_argument("--registration")
+    p = commands.add_parser("register-evaluation")
+    p.add_argument("--checkpoint", required=True)
+    p.add_argument("--training-data", required=True)
+    p.add_argument("--data", required=True)
+    p.add_argument("--output", required=True)
     p = commands.add_parser("export")
     p.add_argument("--checkpoint", required=True)
     p.add_argument("--output", required=True)
@@ -72,7 +78,12 @@ def main():
                 args.device,
                 oidn=args.oidn,
                 oidn_device=args.oidn_device,
+                registration=args.registration,
             )
+        elif args.command == "register-evaluation":
+            from .evaluation_contract import register
+
+            result = register(args.checkpoint, args.training_data, args.data, args.output)
         elif args.command == "sequence":
             from .sequence import export_sequence
 

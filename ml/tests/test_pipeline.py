@@ -121,7 +121,13 @@ def test_features_leave_raw_unchanged(dataset, binary, tmp_path):
     np.testing.assert_array_equal(x[:3].transpose(1, 2, 0), read_pfm(tmp_path / "raw.pfm"))
     assert (x[12:15] >= -1e-8).all()
     stats = json.loads((tmp_path / "features.json").read_text())
-    assert stats["feature_rays"] == 32 * 18 * 6
+    assert stats["feature_rays"] == 32 * 18
+    boundary = load_features(tmp_path / "buffers", schema=2)
+    validate_features(boundary)
+    assert boundary.shape == (27, 18, 32)
+    np.testing.assert_array_equal(boundary[:17], x)
+    assert np.any(boundary[23] > 0)
+    assert np.any(boundary[24] > 0)
 
 
 def test_unknown_variance_rejected(dataset):

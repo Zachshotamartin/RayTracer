@@ -20,4 +20,5 @@ struct environment {
     }
 };
 color trace_path(ray r, const hittable &world, const light_list &lights, const environment &env,
-                 int max_depth, sampler &rng, ray_counts &counts, transport_options options = {});
+                 int max_depth, sampler &rng, ray_counts &counts, transport_options options = {},
+                 hit_record *primary_hit = nullptr, bool *primary_valid = nullptr);

@@ -9,7 +9,10 @@ double power_weight(double a, double b) {
 }
 } // namespace
 color trace_path(ray r, const hittable &world, const light_list &lights, const environment &env,
-                 int max_depth, sampler &rng, ray_counts &counts, transport_options options) {
+                 int max_depth, sampler &rng, ray_counts &counts, transport_options options,
+                 hit_record *primary_hit, bool *primary_valid) {
+    if (primary_valid)
+        *primary_valid = false;
     color radiance, throughput(1, 1, 1);
     bool previous_delta = true;
     double previous_pdf = 0;
@@ -22,6 +25,12 @@ color trace_path(ray r, const hittable &world, const light_list &lights, const e
         if (!world.hit(r, interval(1e-8, infinity), rec)) {
             radiance += throughput * env.radiance(r.d());
             break;
+        }
+        if (bounce == 0) {
+            if (primary_hit)
+                *primary_hit = rec;
+            if (primary_valid)
+                *primary_valid = true;
         }
         color emission = rec.mat->emitted(rec);
         double weight = previous_delta

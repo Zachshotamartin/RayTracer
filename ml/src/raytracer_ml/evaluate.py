@@ -8,6 +8,8 @@ from .metrics import image_metrics
 from .models import build_model
 from .train import load_checkpoint, device_for, synchronize
 from .data.validate import validate
+from .diagnostics import detail_metrics, grouped_summary
+from .evaluation_contract import authorize
 
 
 def evaluate(
@@ -19,12 +21,12 @@ def evaluate(
     repeats=3,
     oidn=None,
     oidn_device="cpu",
+    registration=None,
 ):
     root, output = Path(root), Path(output)
     validation = validate(root)
     state = load_checkpoint(checkpoint)
-    if state["manifest_sha256"] != validation["manifest_sha256"]:
-        raise ValueError("Checkpoint dataset differs from evaluation dataset")
+    evaluation_scope = authorize(state, checkpoint, validation, registration)
     device = device_for(device_name)
     torch.set_num_threads(2)
     model = build_model(state["config"]["model"]).to(device).eval()
@@ -34,16 +36,22 @@ def evaluate(
     histories = {}
     history_group = None
     temporal = state["config"]["model"].get("temporal", False)
+    base_channels = 27 if state["config"]["model"].get("feature_schema", 1) == 2 else 17
     results = []
     output.mkdir(parents=True, exist_ok=True)
     with torch.inference_mode():
         for index, r in enumerate(rows):
             with np.load(safe_path(root, r["path"])) as data:
                 x = data["features"].copy()
+                if x.shape[0] < base_channels:
+                    raise ValueError("Evaluation data lacks model boundary features")
+                x = x[:base_channels]
                 atrous = data["atrous"].copy()
                 position = data["position"].copy()
             with np.load(safe_path(root, r["reference"])) as data:
                 target = data["target"].copy()
+                reference_features = data["features"].copy() if "features" in data else None
+                annotations = data["annotations"].copy() if "annotations" in data else None
             temporal_start = time.perf_counter()
             model_input = x
             history_fraction = 0.0
@@ -136,7 +144,13 @@ def evaluate(
                     oidn_image = resize(oidn_image)
                 methods["oidn"] = oidn_image
 
-            metrics = {name: image_metrics(image, target) for name, image in methods.items()}
+            metrics = {
+                name: {
+                    **image_metrics(image, target),
+                    **detail_metrics(image, target, reference_features, annotations),
+                }
+                for name, image in methods.items()
+            }
             support = x[11] >= 0.999999
             if support.shape != target.shape[:2]:
                 support = np.repeat(np.repeat(support, 2, 0), 2, 1)
@@ -155,6 +169,8 @@ def evaluate(
                 "id": r["id"],
                 "samples": r["samples"],
                 "cohort": r["cohort"],
+                "group": r["group"],
+                "stratum": r.get("stratum", "room"),
                 "metrics": metrics,
                 "first_call_seconds": cold,
                 "temporal_preprocess_seconds": temporal_seconds,
@@ -177,6 +193,7 @@ def evaluate(
     temp = output / "per_image.jsonl"
     temp.write_text("".join(json.dumps(r) + "\n" for r in results))
     summary = {
+        "evaluation_scope": evaluation_scope,
         "split": split,
         "images": len(results),
         "device": str(device),
@@ -206,5 +223,56 @@ def evaluate(
         ),
         "timing_scope": "synchronized tensor transfer + model + output transfer; full renderer benchmark is separate",
     }
+    keys = [
+        "linear_mse",
+        "psnr",
+        "ssim",
+        "edge_1px_gradient_mae",
+        "edge_2px_gradient_mae",
+        "edge_4px_gradient_mae",
+        "image_edge_recall_1px",
+        "image_edge_precision_1px",
+        "halo_display_mae",
+        "highlight_linear_mse",
+        "dark_linear_mse",
+        "flat_display_residual_variance",
+        "linear_energy_relative_bias",
+        "thin_linear_mse",
+        "thin_gradient_mae",
+        "thin_edge_recall_1px",
+        "corner_displacement_p95_px",
+    ]
+    summary["distributions"] = {
+        name: {key: grouped_summary(results, name, key) for key in keys} for name in method_names
+    }
+    summary["strata"] = {
+        stratum: {
+            name: {
+                key: grouped_summary([r for r in results if r["stratum"] == stratum], name, key)
+                for key in keys
+            }
+            for name in method_names
+        }
+        for stratum in sorted({r["stratum"] for r in results})
+    }
+    summary["worst_cases"] = {}
+    lookup = {r["id"]: r for r in rows}
+    for key in ("linear_mse", "edge_2px_gradient_mae", "halo_display_mae"):
+        worst = sorted(
+            [r for r in results if r["metrics"]["neural"].get(key) is not None],
+            key=lambda r: r["metrics"]["neural"][key],
+            reverse=True,
+        )[:8]
+        summary["worst_cases"][key] = [r["id"] for r in worst]
+        for case in worst:
+            row = lookup[case["id"]]
+            with np.load(safe_path(root, row["reference"])) as data:
+                reference = data["target"]
+            with np.load(output / "predictions" / f"{row['id']}.npz") as data:
+                prediction = data["prediction"]
+            write_png(
+                output / "worst_cases" / f"{key}-{row['id']}.png",
+                np.concatenate([prediction, reference, np.abs(prediction - reference) * 4], axis=1),
+            )
     write_json(output / "summary.json", summary)
     return summary

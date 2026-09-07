@@ -42,6 +42,8 @@ def validate(root):
         with np.load(path, allow_pickle=False) as data:
             x = data["features"]
             validate_features(x)
+            if x.shape[0] != {1: 17, 2: 27}.get(r.get("feature_schema", 1)):
+                raise ValueError("Manifest feature schema differs from arrays")
             if x[15, 0, 0] != r["samples"] or data["atrous"].shape != (x.shape[1], x.shape[2], 3):
                 raise ValueError("Sample count/baseline dimensions disagree")
             if (
