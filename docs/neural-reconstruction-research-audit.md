@@ -17,7 +17,7 @@ machinery from measured results.
 | --- | --- | --- |
 | [Bako et al., SIGGRAPH 2017](https://la.disneyresearch.com/publication/deep-learning-denoising/), [paper](https://studios.disneyresearch.com/wp-content/uploads/2019/03/Kernel-Predicting-Convolutional-Networks-for-Denoising-Monte-Carlo-Renderings-Paper33.pdf) | Learn local filtering kernels from noisy radiance and auxiliary features; separate diffuse/specular treatment and albedo demodulation help their setting. | Our guided model follows the kernel idea. Its three small learned filtering stages and hand-set geometry penalties differ substantially from their deeper network and 21×21 kernels. It is not KPCN reproduced. We currently lack separate diffuse/specular training buffers. |
 | [Chaitanya et al., SIGGRAPH 2017](https://research.nvidia.com/publication/2017-07_interactive-reconstruction-monte-carlo-image-sequences-using-recurrent) | Recurrent reconstruction uses prior frames and auxiliary information to improve low-sample sequences. | Our prediction-history rollouts address the training/deployment mismatch. RGB reprojection with a learned gate differs from their recurrent autoencoder. Longer unseen sequences, ghosting, cuts and temporal quality still need evaluation. |
-| [OIDN 2.5.1 training instructions](https://github.com/RenderKit/oidn/blob/v2.5.1/README.md#training) | Train on paired noisy/reference renders, including multiple budgets/seeds. Match auxiliary noise to deployment and tune the learning-rate range. | We can generate these pairs ourselves. Existing OIDN results use its pretrained weights; they are not OIDN trained on our data. A same-data toolkit baseline is being added. |
+| [OIDN 2.5.1 training instructions](https://github.com/RenderKit/oidn/blob/v2.5.1/README.md#training) | Train on paired noisy/reference renders, including multiple budgets/seeds. Match auxiliary noise to deployment and tune the learning-rate range. | We generate these pairs ourselves. Historical OIDN results use pretrained weights. A separate same-data, 200-epoch toolkit control has now completed, with an explicitly labeled small-image loss adaptation. |
 | [OIDN dataset code](https://github.com/RenderKit/oidn/blob/v2.5.1/training/dataset.py) | Paired random crops, flips, transposes and channel permutations reuse images; preprocessed tensors are memory-mapped. | Our crops/flips/rotations are paired. Our illumination and independent-seed fusion augmentations are separate choices requiring ablation. Augmentation does not create new independent scene layouts. Our compressed per-example loading also needs a throughput comparison. |
 | [OIDN configuration](https://github.com/RenderKit/oidn/blob/v2.5.1/training/config.py), [loss](https://github.com/RenderKit/oidn/blob/v2.5.1/training/loss.py), [model](https://github.com/RenderKit/oidn/blob/v2.5.1/training/model.py) | RT defaults use a perceptual HDR transfer, an L1/MS-SSIM mixture, and U-Nets selected by quality mode. | Our log/relative/gradient/energy losses, two-pooling-level U-Net and learning rate are custom choices. Parameter count alone cannot establish comparable capacity or training quality. |
 
@@ -66,6 +66,10 @@ machinery from measured results.
 
 The current frozen screening runs remain unchanged. Their records must not be
 rewritten to imply cleaner causal comparisons than were actually run.
+The [completed upstream control](../ml/reports/oidn-training-control.md) reached
+36.13 dB / 0.9542 SSIM on the full pilot validation split. It trails the guided C5
+in SSIM and HDR error despite higher PSNR, so this audit has not established a
+uniformly superior recipe. The next controls and larger cohorts remain necessary.
 
 - **Upstream control:** export the original measured linear color, sampled albedo
   and sampled normals into OIDN's EXR naming convention, retaining scene splits,

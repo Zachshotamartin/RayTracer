@@ -55,6 +55,28 @@ def status(root):
     for config_path in sorted((root / "runs").rglob("config.json")):
         cfg = json.loads(config_path.read_text())
         directory = config_path.parent
+        if "epochs" not in cfg:
+            if not ("num_epochs" in cfg and isinstance(cfg.get("model"), str)):
+                continue  # This artifact tree can also contain unrelated tool configurations.
+            marker = directory / "checkpoints/latest"
+            value = marker.read_text().strip() if marker.exists() else ""
+            checkpoint = directory / "checkpoints" / f"checkpoint_{value}.pth"
+            epoch = int(value) if value.isdecimal() and checkpoint.is_file() else 0
+            runs.append(
+                dict(
+                    name=str(directory.relative_to(root / "runs")),
+                    path=str(directory),
+                    toolkit="oidn",
+                    epochs_complete=epoch,
+                    epoch_cap=cfg["num_epochs"],
+                    epoch_cap_percent=100 * epoch / cfg["num_epochs"],
+                    progress_basis="Last saved checkpoint receipt; may lag ongoing training",
+                    checkpoint_integrity_rechecked=False,
+                    stop_reason=None,
+                    validation_constraints_pass=None,
+                )
+            )
+            continue
         _, latest, _ = last_record(directory / "metrics.jsonl")
         summary_path = directory / "summary.json"
         summary = json.loads(summary_path.read_text()) if summary_path.exists() else None

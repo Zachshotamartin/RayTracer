@@ -1,0 +1,11 @@
+{
+  "criterion": "minimum upstream validation L1+gradient loss",
+  "selected_epoch": 175,
+  "validation_loss": 0.003176990430802107,
+  "training_epochs": 200,
+  "training_seed": 42,
+  "checkpoint_sha256": "b1fcd38a3dd8791f6829cac7f712a84c4c8c4b8884d68412da7f364f610751ad",
+  "test_used_for_selection": false,
+  "upstream_commit": "6602ee2ca38a1a2a02135beed8f6e68eed630180",
+  "parameters": 919811
+}

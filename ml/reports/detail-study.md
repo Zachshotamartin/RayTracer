@@ -13,6 +13,8 @@ example/reference receipts, epochs versus their configured maximum, validation
 structure scores, parameter counts, and stopping reasons. It does not mistake
 receipt counts for a fresh checksum audit, infer process liveness, or combine
 dataset completion and model quality into a misleading overall percentage.
+For upstream OIDN runs it reads the latest saved checkpoint marker, which can lag
+ongoing training; it does not infer model quality from checkpoint presence.
 
 ## Data and storage
 
@@ -21,6 +23,8 @@ dataset completion and model quality into a misleading overall percentage.
 | Original `pilot-v1` | 32 / 128 | 2,304 | 512 spp | Historical benchmark |
 | `detail-pilot-v2` | 16 / 64 | 896 | 1,024 spp; 12 independent 4,096-spp checks | Generated and integrity-validated |
 | `detail-full-v3` | 1,024 / 4,096 | 57,344 | Planned 2,048 spp; 96 independent 8,192-spp checks | Generator/configuration implemented; not yet a completed dataset |
+| `detail-sequence-v2` | 16 / 512 | 2,048 | 1,024 spp; independent 4,096-spp checks | Generated and integrity-validated |
+| `detail-pilot-512` | 16 / 64 | 896 | 2,048 spp; independent 8,192-spp checks | Generation running; 512×288 resolution cohort |
 
 The new pilot has 8/4/4 training/validation/test layouts. Its manifest SHA-256 is
 `e782c0dccf9ab0c47169e8bf2ffc8f6e5b3c0f038e2f49c916e58ee42e236894`.
@@ -125,6 +129,7 @@ do not establish generalization to the larger scene collection or a speed advant
 | A-trous | 33.09 | 0.9579 | 0.24978 |
 | Guided model, untrained control | 34.27 | 0.9609 | 0.25113 |
 | Guided model, trained C5 | 35.55 | 0.9638 | 0.25111 |
+| OIDN toolkit trained on this pilot | 36.13 | 0.9542 | 0.40813 |
 | Pretrained OIDN | 36.99 | 0.9682 | 0.45631 |
 
 The untrained control includes the same hand-set geometric filtering prior with
@@ -158,6 +163,11 @@ score. Other saved extremes include the
 [worst halo case](detail-development/halo_display_mae-g0009-v002-n0-s1.png) and
 [worst linear HDR case](detail-development/linear_mse-g0010-v003-n0-s1.png), with the
 same prediction/reference/error order. Error scaling precedes the display transform.
+
+The [completed upstream training control](oidn-training-control.md) used 200 epochs,
+128-pixel crops and a small-image loss adaptation. It is not a matched-compute
+comparison with the 50-epoch custom screen. Its PSNR gain accompanies worse SSIM
+and HDR error than C5; none of these candidates is qualified for promotion yet.
 
 ## Implemented safeguards and remaining qualification
 

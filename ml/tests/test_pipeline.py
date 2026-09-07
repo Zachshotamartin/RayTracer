@@ -119,6 +119,32 @@ def test_oidn_export_retains_linear_pixels_and_excludes_test(dataset, tmp_path):
     np.testing.assert_array_equal(read(tmp_path / "float32.exr"), pixels)
 
 
+def test_upstream_scoring_requires_complete_pairing_and_matches_existing_metrics(dataset, tmp_path):
+    pytest.importorskip("OpenImageIO")
+    from raytracer_ml.data.arrays import load_example
+    from raytracer_ml.oidn_dataset import export_dataset, write_exr
+    from raytracer_ml.oidn_scoring import score_outputs
+
+    root, _ = dataset
+    exported, predictions = tmp_path / "export", tmp_path / "predictions"
+    receipt = export_dataset(root, exported)
+    source = {r["id"]: r for r in manifest(root / "manifest.jsonl")}
+    selection = tmp_path / "selection.json"
+    write_json(selection, {"test_fixture": True, "criterion": "no model selection in IO test"})
+    with pytest.raises(ValueError, match="Missing prediction"):
+        score_outputs(root, exported, predictions, selection, tmp_path / "missing")
+    for entry in receipt["records"]:
+        if entry["split"] != "val":
+            continue
+        path = predictions / (entry["input"] + ".trained.hdr.exr")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        write_exr(path, load_example(root, source[entry["id"]])["atrous"])
+    result = score_outputs(root, exported, predictions, selection, tmp_path / "scores")
+    assert result["methods"]["oidn_trained"] == result["methods"]["atrous"]
+    assert result["images"] == sum(r["split"] == "val" for r in source.values())
+    assert not result["inference_timing_measured"]
+
+
 def test_generate_validate_resume(dataset, binary):
     root, cfg = dataset
     before = (root / "manifest.jsonl").read_bytes()

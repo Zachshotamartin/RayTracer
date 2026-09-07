@@ -1,6 +1,7 @@
 # OIDN training control
 
-Status: development control; no qualified weights from this experiment yet.
+Status: 200-epoch development control and full pilot validation completed; no
+qualified release weights from this experiment yet.
 This trains a randomly initialized upstream network on our renderer's data.
 It is distinct from the pretrained OIDN comparisons in the historical model card.
 See the [research audit](../../docs/neural-reconstruction-research-audit.md).
@@ -47,8 +48,46 @@ sets the Torch RNG before upstream `find_lr.py`, whose accepted `--seed` argumen
 is otherwise not used to initialize that script's model.
 
 The completed probe records are [seed 42](detail-development/oidn-lr-seed42.csv) and
-[seed 43](detail-development/oidn-lr-seed43.csv). The 200-epoch training run is in
-progress; these learning-rate probes are not completed denoising models.
+[seed 43](detail-development/oidn-lr-seed43.csv). They are training diagnostics,
+separate from the completed denoising run below.
+
+## Measured pilot result
+
+The 919,811-parameter model completed 200 epochs / 11,200 updates. Epoch 175 had
+the lowest upstream validation loss, 0.003177. Selection used validation only;
+the test split remains unused for model selection. The
+[selection receipt](detail-development/oidn-pilot-selection.json) includes the
+checkpoint hash, and the [training curves](detail-development/oidn-pilot-history.json)
+preserve every logged training/validation loss and learning rate.
+
+| Method on all 224 validation inputs | PSNR (dB) ↑ | SSIM ↑ | Linear HDR MSE ↓ |
+| --- | ---: | ---: | ---: |
+| A-trous | 33.09 | 0.9579 | 0.24978 |
+| Custom guided C5 | 35.55 | 0.9638 | 0.25111 |
+| OIDN toolkit trained on this pilot | 36.13 | 0.9542 | 0.40813 |
+| Pretrained OIDN | 36.99 | 0.9682 | 0.45631 |
+
+This is a useful training control, not a uniform improvement: it improves PSNR,
+but trails C5 in SSIM and linear HDR error. Its mean edge-band gradient error is
+0.03636 and mean luminance-energy bias is −3.86%. Four validation layouts, the
+small-image loss adaptation and different support policies limit interpretation.
+The result supports further data/loss/architecture study; it does not establish
+that the current recipe or data volume is sufficient.
+
+The [summary](detail-development/oidn-trained-validation-summary.json) and
+[all per-image scores](detail-development/oidn-trained-validation-per-image.jsonl.gz)
+use our fixed-exposure display/region metrics. Raw/a-trous scores were checked
+against the existing evaluator and match exactly. Upstream inference used exposure
+from its noisy input. Its separately computed display metrics were disabled.
+No inference speed advantage is claimed from this contended experiment.
+
+**Left to right: raw 4 spp · a-trous 4 spp · pilot-trained OIDN 4 spp · independent 1,024-spp reference.**
+
+![Pilot-trained upstream network on the first validation view, with raw, a-trous and reference](detail-development/oidn-trained-validation-4spp.png)
+
+The example is `g0008-v000-n0-s4`, the same first validation view used for C5.
+Each panel is 256×144 at exposure 0 with ACES-fit/sRGB. The full worst-case lists
+are preserved in the summary; this strip is not a best-case selection.
 
 ## Reproduction
 
@@ -92,12 +131,24 @@ For LR probes use launcher stage `find_lr`, omit the training JSON config, and p
 along with the same training/preprocessed/result directories. Use separate result
 names and receipt directories for seeds 42 and 43.
 
-## Evaluation still required
+## Evaluation and remaining qualification
 
-Select a checkpoint using validation only. Run upstream inference with exposure
-derived from the noisy input, then compute our full-frame/region metrics from its
-linear outputs under the same display transform as other methods. Upstream's own
-tonemapped metrics must not be placed directly in our tables as equivalent scores.
+For a validation-selected checkpoint, use an evaluation-only result directory
+containing its config, selected checkpoint and `checkpoints/latest` marker. Leave
+the training result intact. Run upstream inference with `--output_suffix trained
+--format exr --metric` (no upstream display metrics). Score its linear outputs with:
+
+```sh
+"$RTML_OIDN_PYTHON" -m raytracer_ml.oidn_scoring \
+  --data "$RTML_ARTIFACTS/datasets/detail-pilot-v2" \
+  --exported "$RTML_ARTIFACTS/datasets/oidn-pilot-v2" \
+  --predictions "$RTML_ARTIFACTS/reports/oidn-pilot-predictions" \
+  --selection "$RTML_ARTIFACTS/reports/oidn-pilot-selection.json" \
+  --output "$RTML_ARTIFACTS/reports/oidn-pilot-validation"
+```
+
+The scoring tool rejects missing outputs and mismatched dataset/pair identities.
+It records output hashes, regional errors, scene-group intervals and worst cases.
 Record the different support policies: upstream predicts the entire image, while
 custom candidates preserve unsupported pixels. Qualify the default-loss,
 higher-resolution control separately. No held-out test selection, full-data model
