@@ -232,3 +232,14 @@ def test_detail_export_and_native_parity(kind, scale, precision, compact_dataset
             .transpose(1, 2, 0)
         )
     np.testing.assert_allclose(read_pfm(tmp_path / "out.pfm"), expected, rtol=2e-4, atol=2e-5)
+    command = result.args.copy()
+    command[command.index("--width") + 1] = "96"
+    subprocess.run(command, check=True, capture_output=True)
+    whole = read_pfm(tmp_path / "out.pfm")
+    for tile in (16, 31):
+        tiled = subprocess.run(
+            command + ["--neural-tile", str(tile)], check=True, capture_output=True, text=True
+        )
+        stats = json.loads(tiled.stdout)
+        assert stats["reconstructed"] and stats["neural_tiles"] > 1
+        np.testing.assert_allclose(read_pfm(tmp_path / "out.pfm"), whole, rtol=2e-4, atol=2e-5)

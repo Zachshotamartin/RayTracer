@@ -161,6 +161,8 @@ void help() {
            "  --model PATH.onnx           Reconstruct with trained weights; N toggles in viewer\n"
            "  --neural-provider NAME      cpu (default) or coreml\n"
            "  --neural-threads N          Inference CPU threads (default 2)\n"
+           "  --neural-tile N             Tile size; 0 selects automatic local-model tiling\n"
+           "  --neural-input-mib N        Limit packed frame input (default 1024 MiB)\n"
            "  --neural-cache DIR          Cache compiled Core ML models\n"
            "  --neural-profile PATH       Write ORT profile with this prefix\n"
            "  --neural-interval-ms N      Minimum time between preview requests (default 150)\n"
@@ -219,6 +221,7 @@ std::string report(const options &opts, const frame_snapshot &frame, const rende
         << ",\n  \"neural_inference_seconds\": " << opts.neural_details.inference_seconds
         << ",\n  \"neural_output_seconds\": " << opts.neural_details.output_seconds
         << ",\n  \"neural_input_bytes\": " << opts.neural_details.input_bytes
+        << ",\n  \"neural_tiles\": " << opts.neural_details.tiles
         << ",\n  \"neural_threads\": " << opts.neural_config.threads
         << ",\n  \"model_load_seconds\": " << opts.model_load_seconds
         << ",\n  \"pipeline_seconds\": " << opts.pipeline_seconds
@@ -310,6 +313,10 @@ int main(int argc, char **argv) {
                 opts.neural_provider = value();
             else if (arg == "--neural-threads")
                 opts.neural_config.threads = integer<int>(value());
+            else if (arg == "--neural-tile")
+                opts.neural_config.tile_size = integer<int>(value());
+            else if (arg == "--neural-input-mib")
+                opts.neural_config.max_input_mib = integer<int>(value());
             else if (arg == "--neural-cache")
                 opts.neural_config.cache_directory = value();
             else if (arg == "--neural-profile")
@@ -482,6 +489,7 @@ int main(int argc, char **argv) {
                 if (frame.samples > 0 && !opts.feature_directory.empty())
                     write_feature_buffers(opts.feature_directory, frame);
                 frame_snapshot prediction;
+                opts.neural_details = {};
                 if (model && frame.samples > 0) {
                     auto start = std::chrono::steady_clock::now();
                     try {

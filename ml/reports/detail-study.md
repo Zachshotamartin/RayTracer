@@ -104,7 +104,14 @@ exports have numerical parity checks; precision quality requires image evaluatio
 
 Native profiling separates packing, inference, and output copying; input storage
 is reused, CPU thread count is configurable, and viewer requests are throttled by
-time. These changes need end-to-end measurements. Schema-2 temporal training now
+time. Exported local detail models declare a conservative 32-pixel inference halo.
+Dynamic local models automatically use 256-pixel tiles above 512×512; `--neural-tile`
+sets a tile size explicitly. Tests compare odd/even tile partitions with full-frame
+1× and 2× output. Fixed-size exports and U-Nets do not declare tile support.
+`--neural-input-mib` bounds the full packed frame input; it is not a bound on all
+renderer/model memory. Tiling limits the spatial size of individual model calls;
+full raw/feature/history frames remain resident. These changes still need measured
+peak memory and end-to-end performance comparisons. Schema-2 temporal training now
 supports 2–8-frame differentiable autoregressive windows, paired sequence-level
 augmentation, a masked temporal-change loss, and complete validation rollouts.
 History comes from predictions; targets enter only supervised losses. Reprojection

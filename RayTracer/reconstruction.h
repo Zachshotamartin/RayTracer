@@ -10,11 +10,14 @@ void append_reprojected_history(const frame_snapshot &current, const frame_snaps
 
 struct neural_settings {
     int threads = 2;
+    int tile_size = 0; // 0 selects automatic tiling for declared local models above 512x512.
+    int max_input_mib = 1024;
     std::filesystem::path cache_directory, profile_prefix;
 };
 struct neural_stats {
     double packing_seconds = 0, inference_seconds = 0, output_seconds = 0;
     std::size_t input_bytes = 0;
+    int tiles = 0;
 };
 
 class neural_denoiser {

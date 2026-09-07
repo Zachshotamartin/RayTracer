@@ -131,6 +131,8 @@ struct neural_denoiser::impl {
     int output_scale = 1;
     int feature_schema = 1, base_channels = 17;
     std::vector<float> input_buffer;
+    std::vector<float> tile_buffer;
+    int tile_size = 0, tile_halo = 0, max_input_mib = 1024;
     neural_stats statistics;
     bool temporal = false;
     std::optional<frame_snapshot> current, previous;
@@ -143,6 +145,11 @@ struct neural_denoiser::impl {
          const neural_settings &settings) {
         if (settings.threads < 1 || settings.threads > 64)
             throw std::invalid_argument("Neural threads must be 1..64");
+        if ((settings.tile_size != 0 && (settings.tile_size < 16 || settings.tile_size > 2048)) ||
+            settings.max_input_mib < 16 || settings.max_input_mib > 8192)
+            throw std::invalid_argument("Invalid neural tile size or input memory limit");
+        tile_size = settings.tile_size;
+        max_input_mib = settings.max_input_mib;
         options.SetIntraOpNumThreads(settings.threads);
         options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
         if (!settings.profile_prefix.empty()) {
@@ -208,11 +215,22 @@ struct neural_denoiser::impl {
         auto input_type = session->GetInputTypeInfo(0);
         auto input = input_type.GetTensorTypeAndShapeInfo();
         auto shape = input.GetShape();
+        auto halo = metadata.LookupCustomMetadataMapAllocated("rt_tile_halo", allocator);
+        if (halo) {
+            tile_halo = std::stoi(halo.get());
+            if (tile_halo < 0 || tile_halo > 64)
+                throw std::invalid_argument("Invalid model tile halo");
+        }
         if (std::string(input_name.get()) != "features" ||
             std::string(output_name.get()) != "radiance" ||
             input.GetElementType() != ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT || shape.size() != 4 ||
             shape[1] != base_channels + (temporal ? 4 : 0))
             throw std::invalid_argument("Incompatible neural tensor schema");
+        if (shape[2] > 0 || shape[3] > 0)
+            tile_halo = 0;
+        if (tile_size && !tile_halo)
+            throw std::invalid_argument(
+                "Tiling requires a dynamic model with a declared local receptive field");
     }
 #else
     impl(const std::filesystem::path &, const std::string &, const neural_settings &) {
@@ -237,6 +255,11 @@ frame_snapshot neural_denoiser::reconstruct(const frame_snapshot &frame) {
         throw std::invalid_argument("Neural output exceeds 16 megapixels");
     using clock = std::chrono::steady_clock;
     const auto start = clock::now();
+    impl_->statistics = {};
+    const int channels = impl_->base_channels + (impl_->temporal ? 4 : 0);
+    if (std::uint64_t(frame.width) * frame.height * channels * sizeof(float) >
+        std::uint64_t(impl_->max_input_mib) * 1024 * 1024)
+        throw std::invalid_argument("Neural input exceeds its configured memory limit");
     auto &data = impl_->input_buffer;
     pack_reconstruction_input(frame, data, impl_->feature_schema);
     if (impl_->temporal) {
@@ -258,33 +281,81 @@ frame_snapshot neural_denoiser::reconstruct(const frame_snapshot &frame) {
             data.resize(frame.linear.size() * (impl_->base_channels + 4), 0);
     }
     impl_->statistics.input_bytes = data.size() * sizeof(float);
-    std::array<int64_t, 4> dimensions{1, impl_->base_channels + (impl_->temporal ? 4 : 0),
-                                      frame.height, frame.width};
     auto memory = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
-    auto input =
-        Ort::Value::CreateTensor<float>(memory, data.data(), data.size(), dimensions.data(), 4);
     const char *names[] = {"features"}, *outputs[] = {"radiance"};
     const auto packed = clock::now();
     impl_->statistics.packing_seconds = std::chrono::duration<double>(packed - start).count();
-    auto result = impl_->session->Run(Ort::RunOptions{nullptr}, names, &input, 1, outputs, 1);
-    const auto inferred = clock::now();
-    impl_->statistics.inference_seconds = std::chrono::duration<double>(inferred - packed).count();
-    auto info = result[0].GetTensorTypeAndShapeInfo();
-    if (info.GetShape() !=
-            std::vector<int64_t>{1, 3, frame.height * scale(), frame.width * scale()} ||
-        info.GetElementType() != ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT)
-        throw std::runtime_error("Unexpected neural output shape/type");
     frame_snapshot out{
         frame.width * scale(), frame.height * scale(), frame.samples,
         std::vector<color>(std::size_t(frame.width) * frame.height * scale() * scale())};
-    const float *values = result[0].GetTensorData<float>();
-    for (std::size_t i = 0; i < out.linear.size(); ++i)
-        for (int c = 0; c < 3; ++c) {
-            auto value = values[std::size_t(c) * out.linear.size() + i];
-            if (!std::isfinite(value) || value < 0 || value > 1e30)
-                throw std::runtime_error("Invalid neural radiance");
-            out.linear[i][c] = value;
+    impl_->statistics.output_seconds +=
+        std::chrono::duration<double>(clock::now() - packed).count();
+    int tile = impl_->tile_size;
+    if (!tile && impl_->tile_halo && frame.linear.size() > 512 * 512)
+        tile = 256;
+    if (!tile)
+        tile = std::max(frame.width, frame.height);
+    for (int top = 0; top < frame.height; top += tile)
+        for (int left = 0; left < frame.width; left += tile) {
+            const auto copy_start = clock::now();
+            const int right = std::min(frame.width, left + tile);
+            const int bottom = std::min(frame.height, top + tile);
+            const int x0 = std::max(0, left - impl_->tile_halo);
+            const int y0 = std::max(0, top - impl_->tile_halo);
+            const int x1 = std::min(frame.width, right + impl_->tile_halo);
+            const int y1 = std::min(frame.height, bottom + impl_->tile_halo);
+            const int width = x1 - x0, height = y1 - y0;
+            const auto pixels = std::size_t(width) * height;
+            const bool whole = width == frame.width && height == frame.height;
+            float *input_data = data.data();
+            if (!whole) {
+                auto &buffer = impl_->tile_buffer;
+                buffer.resize(pixels * channels);
+                for (int c = 0; c < channels; ++c)
+                    for (int y = 0; y < height; ++y)
+                        std::copy_n(data.data() + std::size_t(c) * frame.linear.size() +
+                                        std::size_t(y0 + y) * frame.width + x0,
+                                    width,
+                                    buffer.data() + std::size_t(c) * pixels +
+                                        std::size_t(y) * width);
+                input_data = buffer.data();
+            }
+            std::array<int64_t, 4> dimensions{1, channels, height, width};
+            auto input = Ort::Value::CreateTensor<float>(memory, input_data, pixels * channels,
+                                                         dimensions.data(), 4);
+            const auto infer_start = clock::now();
+            impl_->statistics.packing_seconds +=
+                std::chrono::duration<double>(infer_start - copy_start).count();
+            auto result =
+                impl_->session->Run(Ort::RunOptions{nullptr}, names, &input, 1, outputs, 1);
+            const auto inferred = clock::now();
+            impl_->statistics.inference_seconds +=
+                std::chrono::duration<double>(inferred - infer_start).count();
+            auto info = result[0].GetTensorTypeAndShapeInfo();
+            if (info.GetShape() != std::vector<int64_t>{1, 3, height * scale(), width * scale()} ||
+                info.GetElementType() != ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT)
+                throw std::runtime_error("Unexpected neural output shape/type");
+            const float *values = result[0].GetTensorData<float>();
+            for (int y = top * scale(); y < bottom * scale(); ++y)
+                for (int x = left * scale(); x < right * scale(); ++x) {
+                    const auto source =
+                        std::size_t(y - y0 * scale()) * width * scale() + x - x0 * scale();
+                    const auto destination = std::size_t(y) * out.width + x;
+                    for (int c = 0; c < 3; ++c) {
+                        const auto value =
+                            values[std::size_t(c) * pixels * scale() * scale() + source];
+                        if (!std::isfinite(value) || value < 0 || value > 1e30)
+                            throw std::runtime_error("Invalid neural radiance");
+                        out.linear[destination][c] = value;
+                    }
+                }
+            impl_->statistics.output_seconds +=
+                std::chrono::duration<double>(clock::now() - inferred).count();
+            ++impl_->statistics.tiles;
         }
+    impl_->statistics.input_bytes =
+        (impl_->input_buffer.capacity() + impl_->tile_buffer.capacity()) * sizeof(float);
+    const auto history_start = clock::now();
     out.reconstructed = true;
     out.camera = frame.camera;
     out.frame_index = frame.frame_index;
@@ -293,8 +364,8 @@ frame_snapshot neural_denoiser::reconstruct(const frame_snapshot &frame) {
         impl_->current = frame;
         impl_->current_rgb = out.linear;
     }
-    impl_->statistics.output_seconds =
-        std::chrono::duration<double>(clock::now() - inferred).count();
+    impl_->statistics.output_seconds +=
+        std::chrono::duration<double>(clock::now() - history_start).count();
     return out;
 #else
     (void)frame;

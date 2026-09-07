@@ -62,6 +62,9 @@ def export_model(checkpoint, output, width=None, height=None, precision="fp32"):
         "rt_domain": "diffuse-pinhole",
         "rt_checkpoint_sha256": digest(checkpoint),
         "rt_precision": precision,
+        "rt_tile_halo": "32"
+        if state["config"]["model"].get("kind") in ("guided", "refine") and width is None
+        else "0",
     }.items():
         entry = graph.metadata_props.add()
         entry.key = key
