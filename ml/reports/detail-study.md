@@ -100,6 +100,10 @@ C6 also changes both learned conditioning and the explicit geometric prior.
 C9–C12 were added after that audit and are separate from the frozen initial screen.
 The [learning diagnosis](learning-diagnosis.md) records C13's optimization controls,
 training-health telemetry, and corrected model/fallback HDR accounting.
+The [qualification corrections](qualification-fixes.md) add eligible-first
+selection, explicit HDR/preservation/temporal development gates and retained
+reference checks. C14 and the temporal quality recipe are new, untrained recipes;
+the completed temporal model's comparable baseline audit is reported separately.
 Measured preservation combines a 32-sample stream with an independent 64-sample
 stream of the same view/target. It retains their measured guides and combined
 variance; it does not substitute target pixels for input. The resulting 96-sample

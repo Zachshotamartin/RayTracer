@@ -7,6 +7,11 @@ training-recipe gaps and additional controls discovered during implementation.
 The [learning diagnosis](../ml/reports/learning-diagnosis.md) adds a tested radiance
 conditioning correction, ineffective-learning telemetry, and model/fallback HDR
 accounting. These address parts of Q3/Q15/Q16; the full release gates remain open.
+The [qualification corrections](../ml/reports/qualification-fixes.md) add hard
+eligible-first checkpoint selection, explicit HDR/preservation/temporal development
+gates, comparable temporal baseline metrics and retained regional reference checks.
+The completed temporal model improves motion-corrected log error on four validation
+layouts; Q11/Q14/Q15/Q16 still require the broader qualification described below.
 The baseline audit was performed on 2026-09-06 against
 `cb53883bc487a522d1dce25d1c96e748491e4d04` and the recorded `pilot-v1` artifacts.
 This is the next research iteration after the [original roadmap](neural-rendering-plan.md).

@@ -107,13 +107,26 @@ Loss combines log L1 and relative linear L1; AdamW, cosine decay, gradient clipp
 epoch/time limits, validation checkpoint selection and early stopping are configured.
 The model accepts `kind: conv|unet`, `inputs: rgb|guides|all`, and width 4–128.
 These switches support architecture and feature ablations with independent run dirs.
-Random aligned crops are the only augmentation; normals are not incorrectly treated
-as ordinary image colors. Validation uses complete images.
+The original recipes use random aligned crops. Detail recipes also support paired
+flips/rotations, radiance/variance-consistent lighting augmentation, independent-noise
+fusion and measured near-clean inputs. World-space normals are not treated as image
+colors. Validation uses complete images.
 
 Every run writes resolved `config.json`, `environment.json`, `metrics.jsonl`,
-`latest.pt`, `best.pt` and `summary.json`. Checkpoints contain optimizer, scheduler,
-random generators and data contract. Resume is tested bit-for-bit on CPU at epoch
+`latest.pt`, `best.pt`, `best_score.pt` and `summary.json`. `best_eligible.pt` exists
+only after a candidate passes configured constraints. `best.pt` prioritizes that
+candidate; when none passes it retains an explicitly unqualified diagnostic model.
+The atomic `latest.pt` contains optimizer, scheduler, random generators, data
+contract and selection snapshots; the model aliases contain weights and selection
+metadata. Resume is tested bit-for-bit on CPU at epoch
 boundaries; equivalence across devices/platforms is not promised.
+
+For new runs, [C14](configs/train/detail/c14-quality-selection.yaml) adds HDR and
+measured 96-spp preservation constraints, while
+[temporal quality](configs/train/detail-temporal-quality.yaml) adds comparable
+a-trous temporal constraints. Missing required coverage fails selection. Read the
+[qualification corrections and measured results](reports/qualification-fixes.md)
+before treating any development pass as release qualification.
 
 ```sh
 ml/.venv/bin/rtml train --config ml/configs/train/smoke.yaml --data artifacts/datasets/my-smoke --output artifacts/runs/paused --max-new-epochs 1
@@ -209,8 +222,11 @@ normal/support checks and geometric disocclusion rejection; light/geometry chang
 large camera translations and resolution changes invalidate history. Repeated
 passes at the same camera use a fixed previous-frame history, not independent
 observations. Dynamic objects, learned flow and simultaneous temporal+2× inference
-are not supported. The evaluation reports valid-history fraction and temporal
-residual error relative to reference motion; these are not a full flicker study.
+are not supported. Evaluation reports valid-history fraction and comparable linear/log
+temporal errors for raw, a-trous and neural outputs under identical geometry masks,
+plus OIDN when requested. Cuts/unmatched frames are unmeasured, and coverage is
+explicit. These measurements are part of the [development temporal audit](reports/qualification-fixes.md),
+not a complete motion or flicker qualification.
 
 ## Evaluation and benchmarks
 

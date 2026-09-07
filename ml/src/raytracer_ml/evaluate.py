@@ -12,6 +12,7 @@ from .data.validate import validate
 from .diagnostics import detail_metrics, grouped_summary, reconstruction_region_metrics
 from .evaluation_contract import authorize
 from .data.arrays import load_example
+from .temporal_metrics import TemporalComparison
 
 
 def evaluate(
@@ -36,6 +37,7 @@ def evaluate(
     rows = [r for r in manifest(root / "manifest.jsonl") if r["split"] == split]
     method_names = ["raw", "atrous", "neural"] + (["oidn"] if oidn else [])
     histories = {}
+    temporal_comparison = TemporalComparison()
     history_group = None
     temporal = state["config"]["model"].get("temporal", False)
     base_channels = 27 if model_schema(state["config"]["model"]) == 2 else 17
@@ -154,6 +156,10 @@ def evaluate(
                 }
                 for name, image in methods.items()
             }
+            if temporal:
+                comparisons = temporal_comparison.measure(r, x, position, target, methods)
+                for name in methods:
+                    metrics[name].update(comparisons[name])
             for name, image in methods.items():
                 metrics[name]["supported_linear_mse"] = metrics[name]["model_region_linear_mse"]
                 metrics[name]["highlight_linear_mse"] = (
@@ -189,6 +195,8 @@ def evaluate(
     temp = output / "per_image.jsonl"
     temp.write_text("".join(json.dumps(r) + "\n" for r in results))
     summary = {
+        "temporal_metric_schema": 1,
+        "temporal_metric_policy": "Confidence-weighted changes minus reprojected reference changes; identical geometry for all methods. Cuts/unmatched frames are unmeasured, not zero error.",
         "region_metric_schema": 2,
         "region_metric_policy": "Current custom-model input support and sample bypass; shared across methods",
         "evaluation_scope": evaluation_scope,
@@ -227,6 +235,8 @@ def evaluate(
         "fallback_region_linear_mse",
         "model_region_linear_mse_contribution",
         "fallback_region_linear_mse_contribution",
+        "temporal_linear_mae",
+        "temporal_log_mae",
         "psnr",
         "ssim",
         "edge_1px_gradient_mae",
@@ -247,6 +257,27 @@ def evaluate(
     summary["distributions"] = {
         name: {key: grouped_summary(results, name, key) for key in keys} for name in method_names
     }
+    summary["temporal_coverage"] = (
+        {
+            name: {
+                "measured_transitions": sum(
+                    r["metrics"][name].get("temporal_log_mae") is not None for r in results
+                ),
+                "unmeasured_frames": sum(
+                    r["metrics"][name].get("temporal_log_mae") is None for r in results
+                ),
+                "valid_pixels": sum(
+                    r["metrics"][name].get("temporal_valid_pixels", 0) for r in results
+                ),
+                "confidence_sum": sum(
+                    r["metrics"][name].get("temporal_confidence_sum", 0) for r in results
+                ),
+            }
+            for name in method_names
+        }
+        if temporal
+        else None
+    )
     summary["strata"] = {
         stratum: {
             name: {

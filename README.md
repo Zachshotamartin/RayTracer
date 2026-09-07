@@ -54,11 +54,14 @@ The [active detail study](ml/reports/detail-study.md) records the expanded scene
 collection, augmentation and capacity comparisons, and the artifact progress command.
 The [training diagnosis](ml/reports/learning-diagnosis.md) documents the stalled
 U-Net investigation, radiance-conditioning correction, and model/fallback HDR audit.
+The [qualification corrections](ml/reports/qualification-fixes.md) cover eligible-first
+checkpoint selection, HDR/preservation/flicker gates and retained reference checks.
 
 The [full results and error image](ml/reports/README.md),
 [model card](ml/reports/model_card.md), and [timing report](ml/reports/timing.md)
 include the evidence and limitations. The 2× and temporal modes have working smoke
-runs; a quality or speed advantage for those extensions has not been established.
+runs. The newer temporal model has 25.8% lower motion-corrected log error than a-trous
+on four development layouts; broad temporal qualification and acceleration remain open.
 
 ## Build and run
 

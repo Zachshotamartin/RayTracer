@@ -1,0 +1,317 @@
+{
+  "temporal_metric_schema": 1,
+  "split": "val",
+  "images": 512,
+  "groups": 4,
+  "checkpoint_sha256": "8ed611af0e1c910625fda2179e6d3fe9862b816f419c57ce3291e97e4b68e9df",
+  "manifest_sha256": "239a6bdb3b7636f92c96886ba8ccd27be9241bc988e2d3f259aa2de1259a6537",
+  "reference_checks": {
+    "retained_images": 0,
+    "legacy_scalar_only": 12
+  },
+  "source_evaluation_sha256": "4b131a548741e842c863238e275ef641e9c9bd13e9331e10e08452aeae370b93",
+  "audit_source_sha256": "2c6b44f606b57c4d2f4980d3fa8ab77a5cf1286e8c54bb47062b0a076415c27e",
+  "package_sources": {
+    "metrics.py": "71771781ee674798ce2a183de601f9f8dfed8016ee11f013be6d67d34c46a86b",
+    "checkpoint_selection.py": "97371ba3b39958d06f46622b89d69bc1f7f8834f833e0e0e00b52748bfa11036",
+    "temporal.py": "39c86f5919495884f005c8abda30b8db9227893de661f8a8de40dbca6914eaed",
+    "temporal_metrics.py": "7747e6a96cc07292becc5aa886131058a27aa1155335a37ee09e966eb7f0545e",
+    "benchmark.py": "96d44694ead4cb64138a2b1eabd26091fe87abfc6cb72b867bf9f5bdad38b2f5",
+    "diagnostics.py": "a0215e26d1f53aaf3e0e00a5d8c11a8193b7cb407277fa1f1c176119df45db9e",
+    "sequence.py": "6a1783dcd69f31f9964d9405f8b18425671d672f7b7c5037e8e2645fbb821ab1",
+    "io.py": "7936b6bcae2478cdcf34c734a61aea760eed72e156348a80592b99eee7bd7e9e",
+    "__init__.py": "8ca25fc7aedf64e660a1d4c996da0c5991c9a72c6160573c2fc8e8603ff7179a",
+    "oidn_scoring.py": "81777b92aba5b65ff3bab4c6fa18d8cd9e815aa3deaee368062390447e76e5a5",
+    "export.py": "bfbd8c48b500f604baee43ae315dab91667b993d98140bfec3f498dbdac3f20d",
+    "augment.py": "aeeea5fe0f672feea16477e1405b5459ee88eee9f1840ba2d7b28a841b95576e",
+    "evaluation_contract.py": "2b063fc176d09503a01d7916f69b3162cace1e1220703859e1263c85c0452db5",
+    "learning_health.py": "f7d0bc8830679c75275342d590aa1ab80936dd32d8edf79b0a9c38f621c5f82e",
+    "cli.py": "222cc3e466824fe8ca3d0bf22402559a0b897678d664d2ef8bd1d0fd90ba0558",
+    "preprocessing.py": "367ca77e1d954bfd3b6a5fcb06dd661e193ebf2bca6349e08ea8f511684b5126",
+    "rollout.py": "f188944fbfd59032b59329177fb065cd51c5f162892448b991ebf953513acd3f",
+    "oidn_dataset.py": "26d84c1e5d7565d035ad4ba8fb23429c98d4417d3a328cdbae76603b6414ccb2",
+    "train.py": "8458d67e167e1a5efabb7edd2a174160c066b5f2ebf27fb04571be6e43b1fc78",
+    "contracts.py": "4f0d2c09aad5ef5e7271a431c6366f5a1959c10670df49b3ac86fe47159c0d5b",
+    "oidn.py": "f10f47d58a42c22747bd8c2e7943569ade4cb7723338def83a2e824d01ae3a41",
+    "evaluate.py": "8f34be913d6a6a171fe13882a7e3ba568907791ebba99096de230df6c8559dd0",
+    "losses.py": "415703c2b13810dfc4177277c75168e9283736bfa946cd103bf7b05d3349a0a0",
+    "selection.py": "a14470060f06de043f4753acbc9392abf03be07055a4a64d8cc1e4197677d690",
+    "status.py": "736a38dcdb8985cfa56e5e6c9269daac0a825481088aaa9d83045d4597312ae8",
+    "models/unet.py": "11f827a8ba25a28d1d0aafc3b0d7bde57f1658e6ef8f8c08c63ff95b51a3e0c9",
+    "models/__init__.py": "f1f0b75c13ca35d691e0f344cca48d06f6dedb30eb9de60a8ad9bec60733a3b1",
+    "models/detail.py": "6db8084ffd94dde4236f7b1896592ebd2426c7cb1ea489da8a0c365b96316fd3",
+    "data/sequences.py": "15ebdbd7014daccf796638d61e69af73d1fb00ee7fff43f38655e1298a0a3008",
+    "data/arrays.py": "c9b7932b680296ee63c546d9925e1d6697cb1f70f0c144d8004e3e6a9048324d",
+    "data/generate.py": "fcbab43bdebdee50f87542802854745d65867cae87d9150bd504dab915ed4670",
+    "data/preservation.py": "b671d91ef4e668dd4824037c809c48904a7d0f34cb2e17de0909b76b7c5e740c",
+    "data/families.py": "7ae817bd7ba5338ca18b769dc29bd87f19c3fe80714b6af4b86a048d0c99d28e",
+    "data/__init__.py": "02698c9acb95d352ff8a4a6c0f08b514a01289f8c6ed71f6d8ebf423ec84bb53",
+    "data/dataset.py": "8c54824a8cb9d13c938e9a071dd6673059c26b1901851aa2f39305a6a413e798",
+    "data/validate.py": "dc44242d94124ae34217aa41377d9dcb27e791ff755729b4e830fcb42e36ef88",
+    "data/scenes.py": "ff7f9316bac25088ea15c4d151e13b01c6fed53b6e5f1f460ef675e636516362",
+    "data/reference_checks.py": "c2156a95c98b9108f55951e6256b63d1d8963105b9b0cd770613a175e7d8001d"
+  },
+  "methods": {
+    "raw": {
+      "temporal_linear_mae": {
+        "images": 488,
+        "groups": 4,
+        "mean": 0.01750130805277362,
+        "median": 0.015503602769143723,
+        "p95": 0.0338792445317905,
+        "group_mean": 0.017447166243959835,
+        "group_mean_ci95": [
+          0.008614314406328497,
+          0.023691368445324077
+        ]
+      },
+      "temporal_log_mae": {
+        "images": 488,
+        "groups": 4,
+        "mean": 0.014245704309152367,
+        "median": 0.012619349146324918,
+        "p95": 0.026352338725866026,
+        "group_mean": 0.014201089895798946,
+        "group_mean_ci95": [
+          0.00732848325492711,
+          0.0190186512518969
+        ]
+      }
+    },
+    "atrous": {
+      "temporal_linear_mae": {
+        "images": 488,
+        "groups": 4,
+        "mean": 0.004999125585647024,
+        "median": 0.00536138560553008,
+        "p95": 0.009859656368203353,
+        "group_mean": 0.004990379714018236,
+        "group_mean_ci95": [
+          0.00231955612353504,
+          0.007526287893029221
+        ]
+      },
+      "temporal_log_mae": {
+        "images": 488,
+        "groups": 4,
+        "mean": 0.004000210091726115,
+        "median": 0.004299871491740834,
+        "p95": 0.007772598530692006,
+        "group_mean": 0.0039934170746709595,
+        "group_mean_ci95": [
+          0.0018893636481593582,
+          0.0059083547537697855
+        ]
+      }
+    },
+    "neural": {
+      "temporal_linear_mae": {
+        "images": 488,
+        "groups": 4,
+        "mean": 0.0037152006263855447,
+        "median": 0.0037874367331376677,
+        "p95": 0.00735887396915777,
+        "group_mean": 0.00371150647070035,
+        "group_mean_ci95": [
+          0.0016804144198979722,
+          0.005742598521502728
+        ]
+      },
+      "temporal_log_mae": {
+        "images": 488,
+        "groups": 4,
+        "mean": 0.0029674799960618557,
+        "median": 0.003031323031171247,
+        "p95": 0.005856592222859134,
+        "group_mean": 0.00296476920958816,
+        "group_mean_ci95": [
+          0.0014055916262043604,
+          0.00450791859730648
+        ]
+      }
+    }
+  },
+  "budgets": {
+    "4": {
+      "raw": {
+        "temporal_linear_mae": {
+          "images": 244,
+          "groups": 4,
+          "mean": 0.023186093266504892,
+          "median": 0.027540552170888983,
+          "p95": 0.035030475330904066,
+          "group_mean": 0.02311419523778609,
+          "group_mean_ci95": [
+            0.011387622447403118,
+            0.03141240454497252
+          ]
+        },
+        "temporal_log_mae": {
+          "images": 244,
+          "groups": 4,
+          "mean": 0.01885005286147452,
+          "median": 0.02229123600490098,
+          "p95": 0.027278371663599667,
+          "group_mean": 0.018790910755374226,
+          "group_mean_ci95": [
+            0.009676461105162543,
+            0.025192639582413127
+          ]
+        }
+      },
+      "atrous": {
+        "temporal_linear_mae": {
+          "images": 244,
+          "groups": 4,
+          "mean": 0.006057566211689638,
+          "median": 0.006622770668772793,
+          "p95": 0.009989651057222262,
+          "group_mean": 0.006046001920596835,
+          "group_mean_ci95": [
+            0.0027784808475802883,
+            0.00904266495780667
+          ]
+        },
+        "temporal_log_mae": {
+          "images": 244,
+          "groups": 4,
+          "mean": 0.004844463186977697,
+          "median": 0.005261199450641376,
+          "p95": 0.007949340007529358,
+          "group_mean": 0.00483535220419203,
+          "group_mean_ci95": [
+            0.0022588591670234578,
+            0.0070869612821183765
+          ]
+        }
+      },
+      "neural": {
+        "temporal_linear_mae": {
+          "images": 244,
+          "groups": 4,
+          "mean": 0.004151784644449765,
+          "median": 0.004303423307332042,
+          "p95": 0.00749291130635188,
+          "group_mean": 0.004148303969863461,
+          "group_mean_ci95": [
+            0.0018004317578424554,
+            0.006496176181884467
+          ]
+        },
+        "temporal_log_mae": {
+          "images": 244,
+          "groups": 4,
+          "mean": 0.0033095564301867564,
+          "median": 0.003422885518566266,
+          "p95": 0.005983978603852615,
+          "group_mean": 0.003307118508421661,
+          "group_mean_ci95": [
+            0.001522632125720907,
+            0.005091604891122415
+          ]
+        }
+      }
+    },
+    "16": {
+      "raw": {
+        "temporal_linear_mae": {
+          "images": 244,
+          "groups": 4,
+          "mean": 0.011816522839042335,
+          "median": 0.013831649877648563,
+          "p95": 0.017724562891650055,
+          "group_mean": 0.011780137250133582,
+          "group_mean_ci95": [
+            0.005841006365253876,
+            0.01597033234567563
+          ]
+        },
+        "temporal_log_mae": {
+          "images": 244,
+          "groups": 4,
+          "mean": 0.009641355756830217,
+          "median": 0.01124443792351833,
+          "p95": 0.013888872728807832,
+          "group_mean": 0.009611269036223672,
+          "group_mean_ci95": [
+            0.004980505404691679,
+            0.012844662921380673
+          ]
+        }
+      },
+      "atrous": {
+        "temporal_linear_mae": {
+          "images": 244,
+          "groups": 4,
+          "mean": 0.0039406849596044105,
+          "median": 0.004291964026187339,
+          "p95": 0.006915647776090008,
+          "group_mean": 0.003934757507439638,
+          "group_mean_ci95": [
+            0.0018596041866275,
+            0.006009910828251775
+          ]
+        },
+        "temporal_log_mae": {
+          "images": 244,
+          "groups": 4,
+          "mean": 0.003155956996474532,
+          "median": 0.0034251436338348447,
+          "p95": 0.0054469758159025276,
+          "group_mean": 0.003151481945149889,
+          "group_mean_ci95": [
+            0.0015198681292952583,
+            0.004729748225421193
+          ]
+        }
+      },
+      "neural": {
+        "temporal_linear_mae": {
+          "images": 244,
+          "groups": 4,
+          "mean": 0.0032786166083213237,
+          "median": 0.0035834981504501645,
+          "p95": 0.0056362178472718055,
+          "group_mean": 0.003274708971537239,
+          "group_mean_ci95": [
+            0.0015314530591121398,
+            0.004989020861120989
+          ]
+        },
+        "temporal_log_mae": {
+          "images": 244,
+          "groups": 4,
+          "mean": 0.002625403561936955,
+          "median": 0.0028620577024393995,
+          "p95": 0.004468940099254601,
+          "group_mean": 0.0026224199107546596,
+          "group_mean_ci95": [
+            0.0012550359283113714,
+            0.003924232303490547
+          ]
+        }
+      }
+    }
+  },
+  "coverage": {
+    "raw": {
+      "measured_transitions": 488,
+      "confidence_sum": 3131557.684621811,
+      "valid_pixels": 3449668
+    },
+    "atrous": {
+      "measured_transitions": 488,
+      "confidence_sum": 3131557.684621811,
+      "valid_pixels": 3449668
+    },
+    "neural": {
+      "measured_transitions": 488,
+      "confidence_sum": 3131557.684621811,
+      "valid_pixels": 3449668
+    }
+  },
+  "interpretation": "Confidence-weighted reference-corrected changes, identical input-geometry masks for all methods. Cuts and unmatched frames are missing measurements. Means/bootstrap intervals are grouped by scene. No inference timing, new training, reference-noise subtraction, dynamic-object qualification or release approval is implied.",
+  "per_image_file": "temporal-baselines-per-image.jsonl.gz",
+  "per_image_sha256": "bcaf972b2c4e43519fae52137adf240514883213ad95ec98dc4aedd0c11f9853",
+  "raw_audit_sha256": "3de2e73cbdc32b6e89690bacdf3cd363615fccb207bd71ffd2c692174d5a0442"
+}

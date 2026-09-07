@@ -13,6 +13,7 @@ from filelock import FileLock
 from ..io import digest, identity, read_pfm, save_arrays, write_json, git_revision
 from ..preprocessing import load_features, validate_features
 from .scenes import configurations
+from .reference_checks import reference_errors, validate_reference_check
 
 
 def sampling_seed(*parts):
@@ -100,6 +101,7 @@ def generate(cfg, binary, root, dry_run=False):
         "configurations": len(items),
         "examples": count,
         "reference_images": len(items),
+        "reference_check_images": len(check_indices),
         "uncompressed_input_gib": count
         * cfg["width"]
         * int(cfg["width"] * 9 / 16)
@@ -123,7 +125,7 @@ def generate(cfg, binary, root, dry_run=False):
         generator_sources = {
             str(p.relative_to(package)): digest(p) for p in (package / "data").glob("*.py")
         }
-        for name in ("io.py", "preprocessing.py"):
+        for name in ("io.py", "preprocessing.py", "diagnostics.py"):
             generator_sources[name] = digest(package / name)
         renderer_sha = digest(binary)
         renderer_source = None
@@ -240,6 +242,21 @@ def generate(cfg, binary, root, dry_run=False):
                 ref_record = json.loads(reference_info.read_text())
                 if index in check_indices:
                     checked = root / "reference_checks" / f"{ident}.json"
+                    check_seed = sampling_seed(cfg["seed"], ident, "reference-check")
+                    pairing = {
+                        "reference": str(reference.relative_to(root)),
+                        "reference_sha256": ref_record["sha256"],
+                        "reference_samples": cfg["reference_samples"],
+                        "target_seed": ref_seed,
+                        "scene_sha256": identity(item["scene"]),
+                        "split": item["split"],
+                    }
+                    check_rows = [
+                        {**pairing, "input_seed": sampling_seed(cfg["seed"], ident, "input", n)}
+                        for n in range(cfg["noise_realizations"])
+                    ]
+                    if checked.exists():
+                        validate_reference_check(root, json.loads(checked.read_text()), check_rows)
                     if not checked.exists():
                         check_samples = int(
                             cfg.get("reference_check_samples", 4 * cfg["reference_samples"])
@@ -251,22 +268,30 @@ def generate(cfg, binary, root, dry_run=False):
                             item["scene"],
                             cfg["width"] * cfg.get("scale", 1),
                             check_samples,
-                            sampling_seed(cfg["seed"], ident, "reference-check"),
+                            check_seed,
                             work / "check",
                             cfg,
                             deadline - time.monotonic(),
                         )
-                        with np.load(reference) as data:
+                        with np.load(reference, allow_pickle=False) as data:
                             target = data["target"]
+                            errors = reference_errors(
+                                target, alternate, data["features"] if "features" in data else None
+                            )
+                        check_image = checked.with_suffix(".npz")
+                        guard()
+                        record_arrays(check_image, target=alternate)
                         record_json(
                             checked,
                             {
+                                "schema_version": 2,
+                                **pairing,
+                                "path": str(check_image.relative_to(root)),
+                                "sha256": digest(check_image),
+                                "seed": check_seed,
                                 "samples": check_samples,
                                 "independent_seed": True,
-                                "linear_mse": float(np.mean((target - alternate) ** 2)),
-                                "log_mse": float(
-                                    np.mean((np.log1p(target) - np.log1p(alternate)) ** 2)
-                                ),
+                                **errors,
                                 "stats": stats,
                             },
                         )

@@ -106,6 +106,13 @@ def status(root):
                 accumulated_training_seconds=latest.get("total_seconds", 0) if latest else 0,
                 latest_epoch_seconds=latest.get("seconds") if latest else None,
                 learning_health=latest.get("learning_health") if latest else None,
+                selected_checkpoint_epoch=latest.get("selected_checkpoint_epoch")
+                if latest
+                else None,
+                selected_checkpoint_eligible=latest.get("selected_checkpoint_eligible")
+                if latest
+                else None,
+                validation_constraints=latest.get("validation_constraints") if latest else None,
             )
         )
     return dict(

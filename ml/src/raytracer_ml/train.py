@@ -19,10 +19,24 @@ from .losses import reconstruction_loss
 from .models import build_model
 from .preprocessing import model_schema
 from .data.arrays import load_example
-from .selection import structural_scores, checkpoint_score
+from .selection import (
+    quality_scores,
+    checkpoint_score,
+    aggregate_scores,
+    constraint_report,
+    validate_selection_config,
+)
+from .data.preservation import PreservationValidation
+from .temporal_metrics import TemporalComparison
 from .data.sequences import SequenceDataset, collate_sequences
 from .rollout import sequence_loss, validation_predictions
 from .learning_health import LearningHealth, validate_health_config
+from .checkpoint_selection import (
+    update_selection,
+    selected_checkpoint,
+    publish_selection,
+    restore_selection,
+)
 
 
 def device_for(name):
@@ -89,6 +103,16 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
     generator = torch.Generator().manual_seed(seed)
     feature_schema = model_schema(cfg["model"])
     unroll = int(cfg.get("autoregressive_unroll", 0))
+    selection_config = cfg.get("selection") or {}
+    validate_selection_config(selection_config)
+    temporal_gate = "temporal_ratio" in selection_config
+    if temporal_gate and (not unroll or cfg["model"].get("scale", 1) != 1):
+        raise ValueError("Temporal selection requires autoregressive same-resolution validation")
+    preservation = None
+    if "preservation_ratio" in selection_config:
+        if cfg["model"].get("temporal") or feature_schema != 2 or cfg["model"].get("scale", 1) != 1:
+            raise ValueError("Preservation selection requires a spatial schema-2 model at scale 1")
+        preservation = PreservationValidation(root, cfg.get("near_clean_samples", 96))
     health_config = cfg.get("learning_diagnostics")
     if health_config is not None:
         validate_health_config(health_config)
@@ -161,6 +185,7 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
     first_epoch = 0
     best = math.inf
     best_loss = math.inf
+    selection_state = {}
     baseline_scores = {}
     stale = 0
     total_seconds = 0.0
@@ -178,6 +203,12 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
         stale = state["stale"]
         step = state["step"]
         total_seconds = state["total_seconds"]
+        selection_state = restore_selection(
+            state, output, load_checkpoint, bool(cfg.get("selection"))
+        )
+        publish_selection(selection_state, output, save_checkpoint)
+        selected = selected_checkpoint(selection_state)
+        best, best_loss = selected["selection_score"], selected["validation_loss"]
         restore_rng(state["rng"], generator, device)
         # Discard logs written after the last atomic checkpoint, if a process died there.
         log = output / "metrics.jsonl"
@@ -253,6 +284,7 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
         val_losses = []
         raw_losses = []
         measured_scores = []
+        comparison = TemporalComparison() if temporal_gate else None
         with torch.inference_mode():
             for validation_index, (prediction, y, x, frame) in enumerate(
                 validation_predictions(model, val_loader, device, bool(unroll))
@@ -267,8 +299,9 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
                 if cfg.get("selection"):
                     target_image = y[0].cpu().numpy().transpose(1, 2, 0)
                     image = prediction[0].cpu().numpy().transpose(1, 2, 0)
-                    measured_scores.append(structural_scores(image, target_image))
-                    if validation_index not in baseline_scores:
+                    features = x[0, : 27 if feature_schema == 2 else 17].cpu().numpy()
+                    measured_score = quality_scores(image, target_image, features, cfg["model"])
+                    if validation_index not in baseline_scores or temporal_gate:
                         baseline = (
                             frame["atrous"]
                             if frame is not None
@@ -285,30 +318,53 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
                                 .numpy()
                                 .transpose(1, 2, 0)
                             )
-                        baseline_scores[validation_index] = structural_scores(
-                            baseline, target_image
+                        baseline_scores[validation_index] = quality_scores(
+                            baseline, target_image, features, cfg["model"]
                         )
+                    if temporal_gate:
+                        temporal_scores = comparison.measure(
+                            frame["row"],
+                            frame["features"],
+                            frame["position"],
+                            target_image,
+                            {"neural": image, "atrous": baseline},
+                        )
+                        measured_score.update(temporal_scores["neural"])
+                        baseline_scores[validation_index].update(temporal_scores["atrous"])
+                    measured_scores.append(measured_score)
         value = float(np.mean(val_losses))
         if not math.isfinite(value):
             raise FloatingPointError("Non-finite validation loss")
-        measured = (
-            {key: float(np.mean([s[key] for s in measured_scores])) for key in ("ssim", "edge")}
-            if measured_scores
-            else {}
-        )
-        baseline = (
-            {
-                key: float(np.mean([s[key] for s in baseline_scores.values()]))
-                for key in ("ssim", "edge")
-            }
-            if baseline_scores
-            else {}
-        )
+        measured = aggregate_scores(measured_scores)
+        baseline = aggregate_scores(list(baseline_scores.values()))
+        if preservation is not None:
+            near_clean, near_clean_raw = preservation.measure(model, device)
+            measured.update(near_clean)
+            baseline.update(near_clean_raw)
         score, eligible = checkpoint_score(value, measured, baseline, cfg.get("selection"))
-        improved = score < best
+        constraints = constraint_report(measured, baseline, selection_config)
+        snapshot = {
+            "selection_policy": "eligible-first-v1",
+            "config": cfg,
+            "contract": contract,
+            "model": model.state_dict(),
+            "epoch": epoch,
+            "step": step,
+            "selection_score": score,
+            "validation_loss": value,
+            "validation_constraints_pass": eligible,
+            "validation_structure": measured,
+            "validation_constraints": constraints,
+            "baseline_structure": baseline,
+            "manifest_sha256": validation["manifest_sha256"],
+            "training_scene_hashes": sorted({r["scene_sha256"] for r in training.rows}),
+        }
+        selection_state, improved = update_selection(
+            selection_state, snapshot, bool(cfg.get("selection"))
+        )
+        selected = selected_checkpoint(selection_state)
+        best, best_loss = selected["selection_score"], selected["validation_loss"]
         if improved:
-            best = score
-            best_loss = value
             stale = 0
         else:
             stale += 1
@@ -328,7 +384,10 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
             "step": step,
             "best": best,
             "best_loss": best_loss,
+            "selection_policy": "eligible-first-v1",
+            "selection_state": selection_state,
             "validation_constraints_pass": eligible,
+            "validation_constraints": constraints,
             "validation_structure": measured,
             "baseline_structure": baseline,
             "stale": stale,
@@ -336,9 +395,8 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
             "manifest_sha256": validation["manifest_sha256"],
             "training_scene_hashes": sorted({r["scene_sha256"] for r in training.rows}),
         }
-        if improved:
-            save_checkpoint(output / "best.pt", state)
         save_checkpoint(checkpoint_path, state)
+        publish_selection(selection_state, output, save_checkpoint, updated_epoch=epoch)
         metric = {
             "epoch": epoch,
             "step": step,
@@ -346,12 +404,17 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
             "validation_loss": value,
             "selection_score": score,
             "validation_constraints_pass": eligible,
+            "validation_constraints": constraints,
             "validation_structure": measured,
             "baseline_structure": baseline,
             "raw_validation_loss": float(np.mean(raw_losses)),
             "seconds": elapsed,
             "total_seconds": total_seconds,
             "best": best,
+            "selected_checkpoint_epoch": selected["epoch"],
+            "selected_checkpoint_eligible": bool(selection_state.get("best_eligible"))
+            if selection_config
+            else None,
             "learning_rate": learning_rate,
         }
         if health is not None:
@@ -368,6 +431,10 @@ def train(cfg, root, output, resume=False, max_new_epochs=None):
         "best_selection_score": None if not math.isfinite(best) else best,
         "total_seconds": total_seconds,
         "checkpoint": str(output / "best.pt"),
+        "eligible_checkpoint": str(output / "best_eligible.pt")
+        if selection_state.get("best_eligible")
+        else None,
+        "selection_policy": "eligible-first-v1",
         "device": str(device),
         "parameters": sum(p.numel() for p in model.parameters()),
     }

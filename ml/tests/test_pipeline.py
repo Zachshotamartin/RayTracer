@@ -450,9 +450,47 @@ def test_extensions_end_to_end(binary, tmp_path, temporal, scale, schema, statio
     if schema == 2:
         cfg["autoregressive_unroll"] = 2
         cfg["augmentation"] = dict(exposure_stops=1.5, lighting_color_stops=0.2)
+        cfg["selection"] = dict(temporal_ratio=1.02, min_temporal_transitions=1, hdr_ratio=1.01)
     train(cfg, root, run)
     result = evaluate(root, run / "best.pt", tmp_path / "eval", device_name="cpu", repeats=1)
     assert result["images"] == 4
+    if temporal:
+        assert result["temporal_metric_schema"] == 1
+        coverage = result["temporal_coverage"]
+        assert coverage["raw"] == coverage["atrous"] == coverage["neural"]
+        assert coverage["raw"]["measured_transitions"] + coverage["raw"]["unmeasured_frames"] == 4
+        records = [
+            json.loads(line)
+            for line in (tmp_path / "eval/per_image.jsonl").read_text().splitlines()
+        ]
+        assert all("temporal_log_mae" in r["metrics"][name] for r in records for name in coverage)
+    if schema == 2:
+        state = load_checkpoint(run / "latest.pt")
+        assert "temporal_ratio" in state["validation_constraints"]
+        assert "temporal_transitions" in state["validation_structure"]
+        if stationary:
+            import runpy
+
+            audit = runpy.run_path(
+                str(Path(__file__).resolve().parents[1] / "tools/audit_temporal_metrics.py")
+            )["audit"]
+            with pytest.raises(ValueError, match="sealed test"):
+                audit(root, tmp_path / "eval", run / "best.pt", tmp_path / "sealed.json")
+            val = evaluate(
+                root, run / "best.pt", tmp_path / "val", split="val", device_name="cpu", repeats=1
+            )
+            measured = audit(root, tmp_path / "val", run / "best.pt", tmp_path / "audit.json")
+            for method in ("raw", "atrous", "neural"):
+                assert (
+                    measured["methods"][method]["temporal_log_mae"]
+                    == val["distributions"][method]["temporal_log_mae"]
+                )
+                assert (
+                    measured["coverage"][method]["measured_transitions"]
+                    == val["temporal_coverage"][method]["measured_transitions"]
+                )
+            with pytest.raises(ValueError, match="new output"):
+                audit(root, tmp_path / "val", run / "best.pt", tmp_path / "audit.json")
     meta = export_model(run / "best.pt", tmp_path / "model.onnx")
     assert len(meta["channels"]) == ((27 if schema == 2 else 17) + (4 if temporal else 0))
     neural = os.environ.get("RAYTRACER_NEURAL_BINARY")

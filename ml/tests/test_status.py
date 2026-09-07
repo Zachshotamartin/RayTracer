@@ -47,3 +47,25 @@ def test_progress_exposes_ineffective_learning_without_inferring_completion(tmp_
     assert row["learning_health"] == health
     assert row["epochs_complete"] == 5
     assert row["stop_reason"] is None and row["validation_constraints_pass"] is None
+
+
+def test_progress_distinguishes_current_failure_from_selected_eligible_model(tmp_path):
+    run = tmp_path / "runs/selection"
+    run.mkdir(parents=True)
+    (run / "config.json").write_text(json.dumps(dict(epochs=50)))
+    constraints = {"hdr_ratio": {"passed": False, "value": 0.3, "limit": 0.2}}
+    (run / "metrics.jsonl").write_text(
+        json.dumps(
+            dict(
+                epoch=5,
+                validation_constraints_pass=False,
+                validation_constraints=constraints,
+                selected_checkpoint_epoch=2,
+                selected_checkpoint_eligible=True,
+            )
+        )
+        + "\n"
+    )
+    row = status(tmp_path)["runs"][0]
+    assert row["selected_checkpoint_eligible"] and row["selected_checkpoint_epoch"] == 2
+    assert not row["validation_constraints_pass"] and row["validation_constraints"] == constraints

@@ -7,6 +7,7 @@ from ..io import manifest, safe_path, digest, identity
 from ..preprocessing import validate_features
 from ..contracts import EXAMPLE_VALIDATOR
 from .arrays import load_example
+from .reference_checks import validate_reference_checks
 
 
 def validate(root):
@@ -83,5 +84,6 @@ def validate(root):
         "groups": len(groups),
         "splits": counts,
         "references": len(checked_refs),
+        "reference_checks": validate_reference_checks(root, rows, info),
         "manifest_sha256": digest(root / "manifest.jsonl"),
     }

@@ -8,6 +8,9 @@ and Open Image Denoise provides better image quality in this experiment.
 See the [issue audit and improvement plan](../../docs/neural-reconstruction-improvement-plan.md)
 for the next iteration: edge/detail preservation, broader training coverage,
 progressive and temporal stability, learned upscaling and measured acceleration.
+The [qualification corrections](qualification-fixes.md) document the new checkpoint
+and reference-integrity rules, and a baseline comparison of the completed temporal
+model: 25.8% lower motion-corrected log error than a-trous on four development layouts.
 
 ## Labeled result images
 
@@ -61,7 +64,7 @@ latency, cold start, median/p95, missed thresholds and the comparison with a-tro
 | Spatial reconstruction | Real 2,304-example dataset, 50-epoch training, held-out evaluation and bundled weights | One seed and one procedural scene family |
 | Native model mode | ONNX/Python parity, raw preservation, viewer checks and timed renders | CPU baseline; Core ML remains experimental |
 | 2× reconstruction | Paired low/high-resolution smoke training and native parity | No established quality or timing advantage |
-| Temporal reconstruction | History reprojection, camera/light cohorts and native sequence parity | No established flicker or ghosting improvement |
+| Temporal reconstruction | Native sequence parity and lower motion-corrected error on four v2 development layouts | Broader motion, ghosting, release and speed qualification remain open |
 
 ## Artifact index
 

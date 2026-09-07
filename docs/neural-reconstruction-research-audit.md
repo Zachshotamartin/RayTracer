@@ -58,8 +58,9 @@ machinery from measured results.
    viewpoints. All eight procedural families appear in training. New assets,
    unseen families, specular transport and resolution cohorts remain necessary.
 7. **Reference quality is still incompletely qualified.** Higher-sample independent
-   checks exist, but current summaries measure whole-image disagreement. Region
-   convergence, difficult-light escalation and unresolved-target exclusions are
+   checks exist; new generators retain their images and regional disagreement,
+   while frozen collections have scalar-only receipts. Region convergence,
+   difficult-light escalation and unresolved-target exclusions are
    still required before small quality gains can be trusted.
 8. **A stalled identity solution can be diagnosed before a large run.** Fixed-patch
    controls identified radiance conditioning as a contributor. C13 scales internal
@@ -73,6 +74,14 @@ machinery from measured results.
    the four-layout validation cohort. Its model-region error is slightly below
    a-trous, while whole-image error remains higher. Region-specific reference
    convergence and fallback qualification are still required.
+10. **A scalar penalty was not a hard eligibility rule.** A low-loss failing model
+    could displace a passing checkpoint. Eligible-first selection now prevents
+    that, and fresh recipes add explicit HDR, measured preservation or temporal
+    constraints with coverage requirements. The [correction report](../ml/reports/qualification-fixes.md)
+    records crash-safe selection, retained reference checks and a comparable
+    raw/a-trous/neural temporal audit. The existing temporal model reduces the
+    scene-mean motion-corrected log error by 25.8% versus a-trous on four validation
+    layouts; this does not qualify moving objects, broad generalization or speed.
 
 ## Next experiments and acceptance criteria
 

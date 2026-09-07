@@ -162,6 +162,8 @@ def compact_dataset(tmp_path_factory):
         budgets=[1, 4],
         noise_realizations=2,
         reference_samples=16,
+        reference_checks=1,
+        reference_check_samples=64,
         scale=1,
         depth=8,
         threads=2,
@@ -184,6 +186,87 @@ def test_compact_storage_is_lossless_and_resumes(compact_dataset):
     previous = (compact / "manifest.jsonl").read_bytes()
     generate({**cfg, "compact_storage": True}, binary, compact)
     assert previous == (compact / "manifest.jsonl").read_bytes()
+
+
+def test_independent_reference_images_and_regions_survive_resume(compact_dataset, tmp_path):
+    import shutil
+    from raytracer_ml.data.reference_checks import reference_errors
+
+    root, cfg, binary = compact_dataset
+    data = root / "compact"
+    assert validate(data)["reference_checks"] == dict(retained_images=1, legacy_scalar_only=0)
+    check = next((data / "reference_checks").glob("*.json"))
+    receipt = json.loads(check.read_text())
+    with np.load(data / receipt["reference"]) as ref, np.load(data / receipt["path"]) as alt:
+        errors = reference_errors(ref["target"], alt["target"], ref["features"])
+        assert all(receipt[key] == value for key, value in errors.items())
+        assert receipt["regions"]["edge_2px"]["pixels"] > 0
+    assert receipt["seed"] != receipt["target_seed"] and receipt["samples"] == 64
+    copy = tmp_path / "corrupt"
+    shutil.copytree(data, copy)
+    (copy / receipt["path"]).write_bytes(b"missing high-spp pixels")
+    with pytest.raises(ValueError, match="Reference check checksum"):
+        validate(copy)
+    with pytest.raises(ValueError, match="Reference check checksum"):
+        generate({**cfg, "compact_storage": True}, binary, copy)
+
+
+def test_measured_preservation_validation_is_deterministic_and_below_bypass(compact_dataset):
+    from raytracer_ml.data.preservation import PreservationValidation
+
+    cohort = PreservationValidation(compact_dataset[0] / "compact", samples=5)
+
+    class Identity(torch.nn.Module):
+        def forward(self, x):
+            assert torch.all(x[:, 15] == 5)
+            return x[:, :3]
+
+    original = torch.get_rng_state().clone()
+    first, raw = cohort.measure(Identity(), torch.device("cpu"))
+    assert first == raw and first["preservation_log_mae"] > 0
+    assert cohort.measure(Identity(), torch.device("cpu")) == (first, raw)
+    assert torch.equal(torch.get_rng_state(), original)
+    assert all(
+        a["split"] == b["split"] == "val" and a["input_seed"] != b["input_seed"]
+        for a, b in cohort.pairs
+    )
+    with pytest.raises(ValueError, match="bypass"):
+        PreservationValidation(compact_dataset[0] / "compact", samples=128)
+
+
+def test_training_retains_eligible_model_and_reports_extended_gates(
+    compact_dataset, tmp_path, monkeypatch
+):
+    from importlib import import_module
+
+    module = import_module("raytracer_ml.train")
+    scores = iter(((0.03, True), (0.01, False)))
+    monkeypatch.setattr(module, "checkpoint_score", lambda *args: next(scores))
+    cfg = dict(
+        seed=45,
+        device="cpu",
+        cpu_threads=1,
+        model=dict(kind="guided", width=4, feature_schema=2),
+        batch_size=2,
+        epochs=3,
+        patience=1,
+        learning_rate=0.001,
+        weight_decay=0.0001,
+        max_seconds=120,
+        near_clean_samples=5,
+        selection=dict(hdr_ratio=1.01, model_hdr_ratio=1.01, preservation_ratio=1.02),
+    )
+    result = train(cfg, compact_dataset[0] / "compact", tmp_path)
+    assert result["reason"] == "early-stopping"
+    assert load_checkpoint(tmp_path / "best.pt")["epoch"] == 0
+    assert load_checkpoint(tmp_path / "best_score.pt")["epoch"] == 1
+    assert load_checkpoint(tmp_path / "best_eligible.pt")["epoch"] == 0
+    last = json.loads((tmp_path / "metrics.jsonl").read_text().splitlines()[-1])
+    assert last["selected_checkpoint_epoch"] == 0 and last["selected_checkpoint_eligible"]
+    assert all(
+        key in last["validation_constraints"]
+        for key in ("hdr_ratio", "model_hdr_ratio", "preservation_ratio")
+    )
 
 
 def test_measured_preservation_uses_real_independent_noise(compact_dataset):
@@ -258,11 +341,21 @@ def test_augmented_epoch_resume_is_exact(compact_dataset, tmp_path):
     )
     train(cfg, root, tmp_path / "whole")
     train(cfg, root, tmp_path / "resumed", max_new_epochs=1)
+    (tmp_path / "resumed/best.pt").write_bytes(b"interrupted alias publication")
     train(cfg, root, tmp_path / "resumed", resume=True)
     a, b = (load_checkpoint(tmp_path / p / "latest.pt") for p in ("whole", "resumed"))
     assert a["step"] == b["step"] and a["best"] == b["best"]
     for key in a["model"]:
         torch.testing.assert_close(a["model"][key], b["model"][key], rtol=0, atol=0)
+    for name in a["selection_state"]:
+        assert a["selection_state"][name]["epoch"] == b["selection_state"][name]["epoch"]
+        for key in a["model"]:
+            torch.testing.assert_close(
+                a["selection_state"][name]["model"][key],
+                b["selection_state"][name]["model"][key],
+                rtol=0,
+                atol=0,
+            )
     reports = [
         json.loads(line) for line in (tmp_path / "whole/metrics.jsonl").read_text().splitlines()
     ]
