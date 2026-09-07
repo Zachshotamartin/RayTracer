@@ -58,6 +58,10 @@ The [qualification corrections](ml/reports/qualification-fixes.md) cover eligibl
 checkpoint selection, HDR/preservation/flicker gates and retained reference checks.
 The [literature cross-check](docs/neural-reconstruction-literature-review.md) distinguishes
 remaining implementation problems from research hypotheses and gives the next priorities.
+The [versioned corrections and controlled study](docs/neural-reconstruction-controls.md)
+cover the refinement head, single 2× blending, sampled guide/loss controls and
+support-aware learning metrics. The [completed paired results and labeled images](ml/reports/research-corrections.md)
+show what improved and which alternatives did not justify adoption.
 
 The [full results and error image](ml/reports/README.md),
 [model card](ml/reports/model_card.md), and [timing report](ml/reports/timing.md)

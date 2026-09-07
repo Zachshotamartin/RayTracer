@@ -12,6 +12,12 @@ the refinement head's remaining missing-signal cap. Additional concerns are
 clearly identified as design limitations or conditional research risks below.
 These findings do not justify discarding the existing diffuse datasets.
 
+**Implementation follow-up:** [Versioned corrections and controlled study](neural-reconstruction-controls.md)
+adds explicit additive refinement/conditioning and single-blend alternatives, sampled
+guide and stopped-denominator loss controls, and model-region learning diagnostics.
+The findings below describe the audited legacy configuration; old checkpoints retain
+that behavior. Their implementation status should be read with the follow-up.
+
 ## Evidence and priorities
 
 | Priority | Finding | Status | Action before a larger training commitment |

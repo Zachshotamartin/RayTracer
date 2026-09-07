@@ -107,7 +107,9 @@ ml/.venv/bin/python ml/tools/run_research_controls.py compare \
   --output "/Volumes/Zach's SSD/RayTracer/runs/literature-controls-v1"
 ```
 
-Results will be linked here after the bounded study completes. Large sample counts
+The [completed results and labeled comparison images](../ml/reports/research-corrections.md)
+record all 14 fits. Conditioned refinement improved; the sampled-guide and relative-L2
+alternatives did not justify changing defaults in this short study. Large sample counts
 alone do not qualify a reference: report regional disagreement and whether each
 observed improvement is stable against the independent check. Four validation
 layouts, two optimization seeds and 200 updates cannot establish generalization,

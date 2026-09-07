@@ -15,6 +15,10 @@ layouts; Q11/Q14/Q15/Q16 still require the broader qualification described below
 The [literature follow-up](neural-reconstruction-literature-review.md) adds
 reproduced refinement-head and 2× double-blending constraints, a conditional
 noisy-reference/loss risk, and an order for the next controlled experiments.
+The [versioned implementation](neural-reconstruction-controls.md) removes the head
+and double-blending constraints for explicitly configured new runs and implements
+guide/loss comparisons and support-aware telemetry. These address portions of
+Q3/Q4/Q8/Q10/Q16; they do not close the quality or release gates.
 The baseline audit was performed on 2026-09-06 against
 `cb53883bc487a522d1dce25d1c96e748491e4d04` and the recorded `pilot-v1` artifacts.
 This is the next research iteration after the [original roadmap](neural-rendering-plan.md).

@@ -278,6 +278,21 @@ def test_research_cohort_retains_references_and_runs_paired_controls(compact_dat
     trial = runs["trials"][0]
     assert trial["history"][0]["warning_metric"] == "model_region_log_mae"
     assert all(set(row["metrics"]) == {"target", "check"} for row in trial["rows"])
+    import runpy
+
+    summary_tools = runpy.run_path(
+        str(Path(__file__).parents[1] / "tools/summarize_research_controls.py")
+    )
+    summary = summary_tools["summarize"](cohort, tmp_path / "runs/comparison.json")
+    assert summary["validation_groups"] > 0
+    assert summary["trials"][0]["regions"]["model_region"]["reference_disagreement_mse"] > 0
+    assert (
+        summary_tools["scene_mean"](
+            [dict(group="a", value=1), dict(group="a", value=3), dict(group="b", value=8)],
+            lambda row: row["value"],
+        )
+        == 5
+    )  # Equal scene weights, despite unequal image counts.
     receipt = json.loads((cohort / "cohort.json").read_text())
     receipt["examples"][0]["split"] = "test"
     write_json(cohort / "cohort.json", receipt)

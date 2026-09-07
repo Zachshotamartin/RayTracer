@@ -208,6 +208,16 @@ policy. `model.radiance_scale` defaults to 1; the C13 development configuration 
 records learning relative to the noisy input and flags ineffective epochs in
 `rtml status`. See the [diagnosis and controls](reports/learning-diagnosis.md).
 
+DetailNet now also supports explicit `output_head: additive_log` and internal
+`radiance_scale: 16` conditioning for refinement/upscaling. New 2× experiments can
+set `blend_policy: single` to avoid the legacy double attenuation. Guided experiments
+can select `guide_policy: sampled`; loss experiments can select `loss.kind: relative_l2`.
+These alternatives retain legacy defaults and require fresh experimental runs.
+Set `learning_diagnostics.warning_metric: model_region_log_mae` to diagnose learning
+where the model can change the image; whole-image loss and bypass counts remain visible.
+See the [exact contracts and bounded comparison procedure](../docs/neural-reconstruction-controls.md)
+and [paired research configuration](configs/research/literature-controls.yaml).
+
 `--sequence DIRECTORY` plays sorted JSON scene frames in the viewer and exports
 numbered outputs. In headless mode it renders all frames with one loaded model:
 

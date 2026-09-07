@@ -7,6 +7,8 @@ The [follow-up literature cross-check](neural-reconstruction-literature-review.m
 reviews `cb501c4` against primary papers and current upstream documentation. It
 adds reproduced 2× double-blending and refinement-head limitations, a noisy-target
 loss caveat, and prioritized guide/support/telemetry experiments.
+The [implementation follow-up](neural-reconstruction-controls.md) supplies versioned
+head/blend corrections and a bounded comparison with retained independent references.
 
 The project follows a supported research direction: supervised reconstruction of
 low-sample path-traced measurements using auxiliary buffers. It does **not** yet
