@@ -56,6 +56,8 @@ The [training diagnosis](ml/reports/learning-diagnosis.md) documents the stalled
 U-Net investigation, radiance-conditioning correction, and model/fallback HDR audit.
 The [qualification corrections](ml/reports/qualification-fixes.md) cover eligible-first
 checkpoint selection, HDR/preservation/flicker gates and retained reference checks.
+The [literature cross-check](docs/neural-reconstruction-literature-review.md) distinguishes
+remaining implementation problems from research hypotheses and gives the next priorities.
 
 The [full results and error image](ml/reports/README.md),
 [model card](ml/reports/model_card.md), and [timing report](ml/reports/timing.md)

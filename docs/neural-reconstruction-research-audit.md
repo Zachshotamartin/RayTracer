@@ -3,6 +3,11 @@
 Reviewed 2026-09-06 against project commit `1a5249a` and Open Image Denoise
 2.5.1, commit `6602ee2ca38a1a2a02135beed8f6e68eed630180`.
 
+The [follow-up literature cross-check](neural-reconstruction-literature-review.md)
+reviews `cb501c4` against primary papers and current upstream documentation. It
+adds reproduced 2× double-blending and refinement-head limitations, a noisy-target
+loss caveat, and prioritized guide/support/telemetry experiments.
+
 The project follows a supported research direction: supervised reconstruction of
 low-sample path-traced measurements using auxiliary buffers. It does **not** yet
 have a validated training recipe or a qualified replacement for the released

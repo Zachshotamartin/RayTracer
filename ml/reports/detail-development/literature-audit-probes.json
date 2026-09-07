@@ -1,0 +1,133 @@
+{
+  "code_commit": "cb501c4cbe0ece4865e0be4ce0c05c10759a3252",
+  "seed": 19,
+  "torch_version": "2.14.0",
+  "scope": "Synthetic implementation/math probes; no trained quality estimate, dataset change, or training",
+  "probe_source_sha256": "aa29660576e8a7dd0a5f073147b61b314952d1dd81f26c367e46ad8f0fc6e662",
+  "source_sha256": {
+    "models/detail.py": "6db8084ffd94dde4236f7b1896592ebd2426c7cb1ea489da8a0c365b96316fd3",
+    "models/unet.py": "11f827a8ba25a28d1d0aafc3b0d7bde57f1658e6ef8f8c08c63ff95b51a3e0c9",
+    "losses.py": "415703c2b13810dfc4177277c75168e9283736bfa946cd103bf7b05d3349a0a0",
+    "learning_health.py": "f7d0bc8830679c75275342d590aa1ab80936dd32d8edf79b0a9c38f621c5f82e"
+  },
+  "refine_missing_signal": {
+    "raw": 0.0,
+    "correction_bias": 100,
+    "maximum_output": 0.06389056146144867,
+    "theoretical_limit": 0.06389056205749512
+  },
+  "upscale_double_blend": [
+    {
+      "samples": 4,
+      "spatial_correction_mae": 0.15299488604068756,
+      "upscale_correction_mae": 0.15299488604068756,
+      "remaining_correction_ratio": 1.0
+    },
+    {
+      "samples": 32,
+      "spatial_correction_mae": 0.15299488604068756,
+      "upscale_correction_mae": 0.15299488604068756,
+      "remaining_correction_ratio": 1.0
+    },
+    {
+      "samples": 64,
+      "spatial_correction_mae": 0.10199660062789917,
+      "upscale_correction_mae": 0.06799773871898651,
+      "remaining_correction_ratio": 0.6666667153648949
+    },
+    {
+      "samples": 96,
+      "spatial_correction_mae": 0.05099830403923988,
+      "upscale_correction_mae": 0.016999434679746628,
+      "remaining_correction_ratio": 0.3333333333333333
+    },
+    {
+      "samples": 128,
+      "spatial_correction_mae": 0.0,
+      "upscale_correction_mae": 0.0,
+      "remaining_correction_ratio": null
+    }
+  ],
+  "guided_local_signal": {
+    "stages": 3,
+    "radiance_radius": 7,
+    "brightness": 10,
+    "distance_8_output": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "distance_7_output": [
+      0.013427067548036575,
+      0.013427067548036575,
+      0.013427067548036575
+    ]
+  },
+  "unsupported_training": {
+    "output_equals_raw": true,
+    "sum_parameter_gradient": 0.0
+  },
+  "noisy_target_loss": {
+    "target_values": [
+      0,
+      0,
+      0,
+      4
+    ],
+    "true_linear_mean": 1.0,
+    "median": 0.0,
+    "probes": {
+      "base": [
+        {
+          "prediction": 0.0,
+          "loss": 0.42235949635505676,
+          "gradient": -0.2549999952316284
+        },
+        {
+          "prediction": 0.5,
+          "loss": 0.6600920557975769,
+          "gradient": 0.4033333659172058
+        },
+        {
+          "prediction": 1.0,
+          "loss": 0.8389330506324768,
+          "gradient": 0.320000022649765
+        },
+        {
+          "prediction": 2.0,
+          "loss": 1.1116656064987183,
+          "gradient": 0.23666666448116302
+        }
+      ],
+      "current_detail": [
+        {
+          "prediction": 0.0,
+          "loss": 0.43132227659225464,
+          "gradient": -0.2572407126426697
+        },
+        {
+          "prediction": 0.5,
+          "loss": 0.9179345369338989,
+          "gradient": 0.9010926485061646
+        },
+        {
+          "prediction": 1.0,
+          "loss": 1.3456552028656006,
+          "gradient": 0.8177593946456909
+        },
+        {
+          "prediction": 2.0,
+          "loss": 2.116147041320801,
+          "gradient": 0.734425961971283
+        }
+      ]
+    },
+    "interpretation": "Skewed unbiased target example demonstrates a risk when references are unconverged; not a measurement of current dataset bias."
+  },
+  "global_health_masking": {
+    "supported_fraction": 0.015625,
+    "supported_error_reduction": 1.0,
+    "full_image_loss_reduction": 0.0008064758634146463,
+    "warning_threshold": 0.02
+  }
+}
