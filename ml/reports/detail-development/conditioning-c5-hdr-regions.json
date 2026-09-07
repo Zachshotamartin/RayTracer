@@ -1,0 +1,35 @@
+{
+  "region_metric_schema": 2,
+  "images": 224,
+  "groups": 4,
+  "split": "val",
+  "checkpoint_sha256": "6a101bdc48fdccbb7b65bd7b493f9200ad789c660099d158427a95e0c7e909e5",
+  "manifest_sha256": "e782c0dccf9ab0c47169e8bf2ffc8f6e5b3c0f038e2f49c916e58ee42e236894",
+  "methods": {
+    "raw": {
+      "model_region_pixels": 29777.51785714286,
+      "model_region_linear_mse": 0.0026872694293007186,
+      "model_region_linear_mse_contribution": 0.0022159759907303374,
+      "fallback_region_pixels": 7086.482142857143,
+      "fallback_region_linear_mse": 0.941964267307191,
+      "fallback_region_linear_mse_contribution": 0.24954833644450874
+    },
+    "atrous": {
+      "model_region_pixels": 29777.51785714286,
+      "model_region_linear_mse": 0.0019497213945595233,
+      "model_region_linear_mse_contribution": 0.0015994423943445875,
+      "fallback_region_pixels": 7086.482142857143,
+      "fallback_region_linear_mse": 0.934552525011916,
+      "fallback_region_linear_mse_contribution": 0.2481827374797824
+    },
+    "neural": {
+      "model_region_pixels": 29777.51785714286,
+      "model_region_linear_mse": 0.0019082269886951547,
+      "model_region_linear_mse_contribution": 0.0015646098088100847,
+      "fallback_region_pixels": 7086.482142857143,
+      "fallback_region_linear_mse": 0.941964267307191,
+      "fallback_region_linear_mse_contribution": 0.24954833644450874
+    }
+  },
+  "interpretation": "All baselines share the custom model's input-defined policy. Contributions add to whole-image MSE; conditional regional means do not. No reference-noise subtraction or quality qualification is implied. Existing independent checks saved only scalar disagreement, so their regional noise floor cannot be reconstructed from those receipts."
+}

@@ -278,6 +278,23 @@ def test_export_parity(trained, tmp_path):
     assert len(meta["channels"]) == 17
 
 
+def test_evaluation_summarizes_hdr_partition(trained, tmp_path):
+    from raytracer_ml.evaluate import evaluate
+
+    root, output, _ = trained
+    result = evaluate(
+        root, output / "best.pt", tmp_path / "regions", split="val", device_name="cpu", repeats=1
+    )
+    assert result["region_metric_schema"] == 2
+    for name in ("raw", "atrous", "neural"):
+        distributions = result["distributions"][name]
+        total = sum(
+            distributions[f"{region}_linear_mse_contribution"]["mean"]
+            for region in ("model_region", "fallback_region")
+        )
+        assert total == pytest.approx(result["methods"][name]["linear_mse"])
+
+
 def test_native_prediction_matches_python(trained, binary, tmp_path):
     neural = os.environ.get("RAYTRACER_NEURAL_BINARY")
     if not neural:

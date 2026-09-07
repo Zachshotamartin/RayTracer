@@ -223,6 +223,10 @@ def evaluate(
     }
     keys = [
         "linear_mse",
+        "model_region_linear_mse",
+        "fallback_region_linear_mse",
+        "model_region_linear_mse_contribution",
+        "fallback_region_linear_mse_contribution",
         "psnr",
         "ssim",
         "edge_1px_gradient_mae",

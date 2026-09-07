@@ -90,6 +90,7 @@ The configurations in `ml/configs/train/detail/` preserve explicit comparisons:
 | C10 | C9 with encoder boundary channels zeroed; identical capacity/support/head |
 | C11 | C9 replacing synthetic identity pairs with measured 96-sample pairs |
 | C12 | C5 replacing synthetic identity pairs with measured 96-sample pairs |
+| C13 | C11 with 16× internal radiance conditioning, variance scaling and restored HDR output units |
 
 These are screening comparisons, not uniformly one-factor ablations. In
 particular, C3 cannot isolate the effect of guide channels. Schema-2 clean-input
@@ -97,6 +98,8 @@ pairs marked 128 spp also hit a hard raw-identity rule and supply no head gradie
 The research audit specifies additional controls before causal claims or promotion.
 C6 also changes both learned conditioning and the explicit geometric prior.
 C9–C12 were added after that audit and are separate from the frozen initial screen.
+The [learning diagnosis](learning-diagnosis.md) records C13's optimization controls,
+training-health telemetry, and corrected model/fallback HDR accounting.
 Measured preservation combines a 32-sample stream with an independent 64-sample
 stream of the same view/target. It retains their measured guides and combined
 variance; it does not substitute target pixels for input. The resulting 96-sample

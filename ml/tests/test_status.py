@@ -35,3 +35,15 @@ def test_status_handles_upstream_checkpoints_without_claiming_run_completion(tmp
     assert not row["checkpoint_integrity_rechecked"]
     (checkpoints / "latest").write_text("20")
     assert status(tmp_path)["runs"][0]["epochs_complete"] == 0  # no corresponding saved file
+
+
+def test_progress_exposes_ineffective_learning_without_inferring_completion(tmp_path):
+    run = tmp_path / "runs/conditioning/control"
+    run.mkdir(parents=True)
+    (run / "config.json").write_text(json.dumps(dict(epochs=50)))
+    health = dict(loss_reduction_vs_raw=0.001, warning="little-improvement-over-input")
+    (run / "metrics.jsonl").write_text(json.dumps(dict(epoch=4, learning_health=health)) + "\n")
+    row = status(tmp_path)["runs"][0]
+    assert row["learning_health"] == health
+    assert row["epochs_complete"] == 5
+    assert row["stop_reason"] is None and row["validation_constraints_pass"] is None

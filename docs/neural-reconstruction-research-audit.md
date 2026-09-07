@@ -61,6 +61,18 @@ machinery from measured results.
    checks exist, but current summaries measure whole-image disagreement. Region
    convergence, difficult-light escalation and unresolved-target exclusions are
    still required before small quality gains can be trusted.
+8. **A stalled identity solution can be diagnosed before a large run.** Fixed-patch
+   controls identified radiance conditioning as a contributor. C13 scales internal
+   radiance and variance consistently and restores physical output units. New
+   training-health measurements compare prediction and raw loss on identical
+   batches. The [diagnosis report](../ml/reports/learning-diagnosis.md) records the
+   controls and their limits; the failed models are not silently replaced.
+9. **The previous supported-region HDR metric used an outdated mask.** New reports
+   use the actual custom-model policy and report additive error contributions.
+   About 99.38% of C5's whole-image HDR error lies in its raw-fallback region on
+   the four-layout validation cohort. Its model-region error is slightly below
+   a-trous, while whole-image error remains higher. Region-specific reference
+   convergence and fallback qualification are still required.
 
 ## Next experiments and acceptance criteria
 

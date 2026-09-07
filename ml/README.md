@@ -188,6 +188,13 @@ for architecture, data and training-recipe findings. The
 [OIDN toolkit control](reports/oidn-training-control.md) uses a separately installed
 upstream training pipeline with our renders.
 
+Before scaling a new U-Net recipe, use the bounded fixed-training-patch diagnostic
+in `tools/diagnose_learning.py`, then a short matched run with the actual augmentation
+policy. `model.radiance_scale` defaults to 1; the C13 development configuration tests
+16 while restoring the original output units. Optional `learning_diagnostics`
+records learning relative to the noisy input and flags ineffective epochs in
+`rtml status`. See the [diagnosis and controls](reports/learning-diagnosis.md).
+
 `--sequence DIRECTORY` plays sorted JSON scene frames in the viewer and exports
 numbered outputs. In headless mode it renders all frames with one loaded model:
 

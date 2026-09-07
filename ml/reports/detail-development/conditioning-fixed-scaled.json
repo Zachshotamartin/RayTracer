@@ -1,0 +1,294 @@
+{
+  "scope": "Fixed training patches only; not validation or release qualification",
+  "config": {
+    "seed": 42,
+    "device": "auto",
+    "cpu_threads": 2,
+    "model": {
+      "kind": "unet",
+      "width": 32,
+      "scale": 1,
+      "inputs": "all",
+      "feature_schema": 2,
+      "output_head": "additive_log",
+      "radiance_scale": 16.0
+    },
+    "crop": 96,
+    "batch_size": 8,
+    "epochs": 50,
+    "patience": 10,
+    "learning_rate": 0.0003,
+    "weight_decay": 0.0001,
+    "max_seconds": 7200,
+    "validation_budgets": [
+      1,
+      4,
+      8,
+      16,
+      64
+    ],
+    "validation_first_noise_only": true,
+    "selection": {
+      "ssim_tolerance": 0.005,
+      "edge_ratio": 1.05,
+      "ssim_penalty": 1,
+      "edge_penalty": 0.05
+    },
+    "edge_sampling": 0.5,
+    "loss": {
+      "gradient": 0.25,
+      "edge_weight": 3,
+      "energy": 0.02
+    },
+    "identity_probability": 0.05,
+    "augmentation": {
+      "flip_x": 0.5,
+      "flip_y": 0.5,
+      "rotate90": true,
+      "exposure_stops": 1.5,
+      "lighting_color_stops": 0.2
+    },
+    "fuse_probability": 0.25,
+    "preservation_mode": "measured_near_clean",
+    "near_clean_samples": 96,
+    "learning_diagnostics": {
+      "stall_after_epochs": 5,
+      "minimum_loss_reduction": 0.02
+    }
+  },
+  "manifest_sha256": "e782c0dccf9ab0c47169e8bf2ffc8f6e5b3c0f038e2f49c916e58ee42e236894",
+  "code_commit": "fbee052997fd0cfb951fabd43a88d620752266c1",
+  "source_hashes": {
+    "tools/diagnose_learning.py": "43d98efc8644eb9b2ba18f885fd5fc7ae021247fe2dbbe2e6f9a0b66a9b014f6",
+    "src/raytracer_ml/models/unet.py": "11f827a8ba25a28d1d0aafc3b0d7bde57f1658e6ef8f8c08c63ff95b51a3e0c9"
+  },
+  "device": "cpu",
+  "torch": "2.14.0",
+  "patches": [
+    {
+      "id": "g0000-v000-n0-s4",
+      "group": "challenge-v2-72026-0000",
+      "top": 40,
+      "left": 96,
+      "crop": 64
+    },
+    {
+      "id": "g0001-v000-n0-s4",
+      "group": "challenge-v2-72026-0001",
+      "top": 40,
+      "left": 96,
+      "crop": 64
+    },
+    {
+      "id": "g0002-v000-n0-s4",
+      "group": "challenge-v2-72026-0002",
+      "top": 40,
+      "left": 96,
+      "crop": 64
+    },
+    {
+      "id": "g0003-v000-n0-s4",
+      "group": "challenge-v2-72026-0003",
+      "top": 40,
+      "left": 96,
+      "crop": 64
+    }
+  ],
+  "max_seconds": 300.0,
+  "state": "completed",
+  "trials": [
+    {
+      "model": {
+        "kind": "unet",
+        "width": 32,
+        "scale": 1,
+        "inputs": "all",
+        "feature_schema": 2,
+        "output_head": "additive_log",
+        "radiance_scale": 16.0,
+        "activation": "relu"
+      },
+      "learning_rate": 0.0003,
+      "seed": 42,
+      "optimizer_updates": 200,
+      "training_pixels": 3276800,
+      "seconds": 29.754393250099383,
+      "raw": {
+        "loss": 0.029549071565270424,
+        "mutable_log_mae": 0.019685477018356323
+      },
+      "history": [
+        {
+          "step": 0,
+          "loss": 0.029549071565270424,
+          "mutable_log_mae": 0.019685477018356323,
+          "gradient_norm_before_clip": 0.010086574591696262,
+          "encoder_gradient_norm": 0.0,
+          "decoder_zero_fraction": 0.3787727355957031
+        },
+        {
+          "step": 25,
+          "loss": 0.029522795230150223,
+          "mutable_log_mae": 0.01967819407582283,
+          "gradient_norm_before_clip": 0.011528530158102512,
+          "encoder_gradient_norm": 0.0006802684511058033,
+          "decoder_zero_fraction": 0.43198394775390625
+        },
+        {
+          "step": 50,
+          "loss": 0.029345307499170303,
+          "mutable_log_mae": 0.019560441374778748,
+          "gradient_norm_before_clip": 0.02752021513879299,
+          "encoder_gradient_norm": 0.0050221155397593975,
+          "decoder_zero_fraction": 0.24046707153320312
+        },
+        {
+          "step": 75,
+          "loss": 0.027594121173024178,
+          "mutable_log_mae": 0.018448852002620697,
+          "gradient_norm_before_clip": 0.024674056097865105,
+          "encoder_gradient_norm": 0.0028128582052886486,
+          "decoder_zero_fraction": 0.07991981506347656
+        },
+        {
+          "step": 100,
+          "loss": 0.02433745749294758,
+          "mutable_log_mae": 0.01634281687438488,
+          "gradient_norm_before_clip": 0.053917743265628815,
+          "encoder_gradient_norm": 0.004370122216641903,
+          "decoder_zero_fraction": 0.04081535339355469
+        },
+        {
+          "step": 125,
+          "loss": 0.021511176601052284,
+          "mutable_log_mae": 0.014500584453344345,
+          "gradient_norm_before_clip": 0.06930552423000336,
+          "encoder_gradient_norm": 0.007284550461918116,
+          "decoder_zero_fraction": 0.08791160583496094
+        },
+        {
+          "step": 150,
+          "loss": 0.019775088876485825,
+          "mutable_log_mae": 0.013386928476393223,
+          "gradient_norm_before_clip": 0.04825267195701599,
+          "encoder_gradient_norm": 0.008075044490396976,
+          "decoder_zero_fraction": 0.12485122680664062
+        },
+        {
+          "step": 175,
+          "loss": 0.018686553463339806,
+          "mutable_log_mae": 0.012609348632395267,
+          "gradient_norm_before_clip": 0.0866989865899086,
+          "encoder_gradient_norm": 0.018825674429535866,
+          "decoder_zero_fraction": 0.09713935852050781
+        },
+        {
+          "step": 200,
+          "loss": 0.017771733924746513,
+          "mutable_log_mae": 0.012002076022326946,
+          "gradient_norm_before_clip": 0.05298769846558571,
+          "encoder_gradient_norm": 0.004802157636731863,
+          "decoder_zero_fraction": 0.1425018310546875
+        }
+      ],
+      "mutable_error_reduction": 0.39030809306092784
+    },
+    {
+      "model": {
+        "kind": "unet",
+        "width": 32,
+        "scale": 1,
+        "inputs": "all",
+        "feature_schema": 2,
+        "output_head": "additive_log",
+        "radiance_scale": 16.0,
+        "activation": "relu"
+      },
+      "learning_rate": 0.0003,
+      "seed": 43,
+      "optimizer_updates": 200,
+      "training_pixels": 3276800,
+      "seconds": 33.823581625008956,
+      "raw": {
+        "loss": 0.029549071565270424,
+        "mutable_log_mae": 0.019685477018356323
+      },
+      "history": [
+        {
+          "step": 0,
+          "loss": 0.029549071565270424,
+          "mutable_log_mae": 0.019685477018356323,
+          "gradient_norm_before_clip": 0.00931200385093689,
+          "encoder_gradient_norm": 0.0,
+          "decoder_zero_fraction": 0.5853710174560547
+        },
+        {
+          "step": 25,
+          "loss": 0.02948913164436817,
+          "mutable_log_mae": 0.019663607701659203,
+          "gradient_norm_before_clip": 0.007709200028330088,
+          "encoder_gradient_norm": 0.0002860045642592013,
+          "decoder_zero_fraction": 0.4569282531738281
+        },
+        {
+          "step": 50,
+          "loss": 0.029242848977446556,
+          "mutable_log_mae": 0.019501224160194397,
+          "gradient_norm_before_clip": 0.017003700137138367,
+          "encoder_gradient_norm": 0.0027003581635653973,
+          "decoder_zero_fraction": 0.36446571350097656
+        },
+        {
+          "step": 75,
+          "loss": 0.027950750663876534,
+          "mutable_log_mae": 0.018682243302464485,
+          "gradient_norm_before_clip": 0.026558833196759224,
+          "encoder_gradient_norm": 0.003957035951316357,
+          "decoder_zero_fraction": 0.2633247375488281
+        },
+        {
+          "step": 100,
+          "loss": 0.02531607076525688,
+          "mutable_log_mae": 0.016983801499009132,
+          "gradient_norm_before_clip": 0.0492263026535511,
+          "encoder_gradient_norm": 0.0066213831305503845,
+          "decoder_zero_fraction": 0.15074920654296875
+        },
+        {
+          "step": 125,
+          "loss": 0.022705210372805595,
+          "mutable_log_mae": 0.015309740789234638,
+          "gradient_norm_before_clip": 0.04611864313483238,
+          "encoder_gradient_norm": 0.005013345740735531,
+          "decoder_zero_fraction": 0.16704559326171875
+        },
+        {
+          "step": 150,
+          "loss": 0.02012227103114128,
+          "mutable_log_mae": 0.013615756295621395,
+          "gradient_norm_before_clip": 0.0836486890912056,
+          "encoder_gradient_norm": 0.005245737731456757,
+          "decoder_zero_fraction": 0.14854812622070312
+        },
+        {
+          "step": 175,
+          "loss": 0.01844659447669983,
+          "mutable_log_mae": 0.012479890137910843,
+          "gradient_norm_before_clip": 0.06809090077877045,
+          "encoder_gradient_norm": 0.008762688376009464,
+          "decoder_zero_fraction": 0.1492328643798828
+        },
+        {
+          "step": 200,
+          "loss": 0.01718759723007679,
+          "mutable_log_mae": 0.011621001176536083,
+          "gradient_norm_before_clip": 0.06555379182100296,
+          "encoder_gradient_norm": 0.006023051682859659,
+          "decoder_zero_fraction": 0.20866966247558594
+        }
+      ],
+      "mutable_error_reduction": 0.4096662648459204
+    }
+  ],
+  "elapsed_seconds": 64.83385833306238
+}
