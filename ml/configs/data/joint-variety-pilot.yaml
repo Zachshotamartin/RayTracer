@@ -1,0 +1,28 @@
+# Bounded development collection. Native high-spp references, never enlarged targets.
+schema_version: 1
+feature_schema: 2
+suite: families-v3
+seed: 92026
+groups: 96
+split_counts: [32, 32, 32]
+views: 1
+resolutions: [[64, 48], [80, 60], [64, 64], [48, 80], [112, 48], [96, 64]]
+resolution_variants: 2
+camera_augmentation:
+  zoom: [0.7, 1.6]
+  roll_degrees: 25
+  lighting_filters: [[1, 1, 1], [1.15, 1, 0.85], [0.85, 1, 1.15]]
+  transport_probability: 0.3
+budgets: [1, 4, 16, 32, 64]
+noise_realizations: 2
+reference_samples: 512
+reference_check_samples: 2048
+reference_check_strategy: stratified
+reference_check_limit: 12
+scale: 2
+depth: 16
+threads: 6
+max_seconds: 1800
+max_gib: 12
+require_clean_source: true
+compact_storage: true

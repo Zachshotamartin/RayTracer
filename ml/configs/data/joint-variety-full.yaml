@@ -1,0 +1,28 @@
+# Expansion recipe; launch only after the pilot is measured. Time-capped and resumable.
+schema_version: 1
+feature_schema: 2
+suite: families-v3
+seed: 93026
+groups: 1024
+split_counts: [768, 128, 128]
+views: 2
+resolutions: [[128, 72], [192, 108], [256, 144], [384, 216], [192, 192], [128, 192], [336, 144], [256, 192]]
+resolution_variants: 2
+camera_augmentation:
+  zoom: [0.6, 1.8]
+  roll_degrees: 35
+  lighting_filters: [[1, 1, 1], [1.15, 1, 0.85], [0.85, 1, 1.15]]
+  transport_probability: 0.3
+budgets: [1, 2, 4, 8, 16, 32, 64]
+noise_realizations: 2
+reference_samples: 2048
+reference_check_samples: 8192
+reference_check_strategy: stratified
+reference_check_limit: 96
+scale: 2
+depth: 16
+threads: 6
+max_seconds: 7200
+max_gib: 160
+require_clean_source: true
+compact_storage: true

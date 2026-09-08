@@ -1,0 +1,58 @@
+# New experiment, not a resume of the old same-resolution checkpoint.
+seed: 42
+device: mps
+cpu_threads: 2
+model:
+  kind: joint
+  width: 32
+  scale: 2
+  inputs: all
+  feature_schema: 2
+  output_head: additive_log
+  activation: leaky_relu
+  radiance_scale: 16
+  refinement: true
+crop: 32
+batch_size: 8
+epochs: 30
+patience: 8
+learning_rate: 0.0003
+weight_decay: 0.0001
+max_seconds: 7200
+min_free_gib: 10
+checkpoint_history: true
+validation_budgets: [1, 4, 16, 64]
+validation_first_noise_only: true
+selection_by_resolution: true
+selection:
+  psnr_gain: 0.1
+  psnr_min: 30
+  ssim_min: 0.95
+  ssim_tolerance: 0
+  edge_ratio: 1
+  hdr_ratio: 1
+  preservation_ratio: 1
+  min_preservation_views: 64
+edge_sampling: 0.5
+border_sampling: 0.15
+loss:
+  kind: log_l1
+  gradient: 0.25
+  gradient_scales: [1, 2, 4]
+  edge_weight: 3
+  energy: 0.02
+identity_probability: 0.1
+preservation_mode: measured_near_clean
+near_clean_samples: 96
+fuse_probability: 0.25
+augmentation:
+  flip_x: 0.5
+  flip_y: 0.5
+  rotate90: true
+  exposure_stops: 1.5
+  lighting_color_stops: 0.2
+  rgb_filters: [[1, 1, 1], [1.1, 1, 0.9], [0.9, 1, 1.1]]
+learning_diagnostics:
+  warning_metric: whole_image_loss
+  stall_after_epochs: 3
+  minimum_loss_reduction: 0.02

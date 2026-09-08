@@ -1,5 +1,9 @@
 # Mac training readiness, 2026-09-07
 
+Historical preparation record. Update 2026-09-08: that run completed 33 epochs and
+was stopped at the user's request; epoch 31 is its selected best. The next task is
+[joint denoising and upscaling](../../docs/joint-reconstruction.md).
+
 The full dataset passed its file/schema/split audit. Apple MPS inference passed at
 the proposed batch shape, with zero optimizer updates. The first full-data run is
 prepared and awaiting approval; no full-data checkpoint exists yet.

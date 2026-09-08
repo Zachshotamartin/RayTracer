@@ -59,7 +59,7 @@ def export_model(checkpoint, output, width=None, height=None, precision="fp32"):
         "rt_channels": json.dumps(channels),
         "rt_temporal": "1" if temporal else "0",
         "rt_scale": str(state["config"]["model"].get("scale", 1)),
-        "rt_domain": "diffuse-pinhole",
+        "rt_domain": "joint-pinhole" if model.kind == "joint" else "diffuse-pinhole",
         "rt_checkpoint_sha256": digest(checkpoint),
         "rt_precision": precision,
         "rt_model_config": json.dumps(state["config"]["model"], sort_keys=True),
@@ -74,7 +74,11 @@ def export_model(checkpoint, output, width=None, height=None, precision="fp32"):
     onnx.save(graph, str(output))
     session = ort.InferenceSession(str(output), providers=["CPUExecutionProvider"])
     errors = []
-    sizes = [(height, width)] if width is not None else [(36, 64), (35, 61), (72, 128)]
+    sizes = (
+        [(height, width)]
+        if width is not None
+        else [(36, 64), (35, 61), (72, 128), (63, 37), (48, 48)]
+    )
     for h, w in sizes:
         x = torch.rand(1, len(channels), h, w)
         x[:, 15] = 8
@@ -108,7 +112,11 @@ def export_model(checkpoint, output, width=None, height=None, precision="fp32"):
         "checkpoint_sha256": digest(checkpoint),
         "manifest_sha256": state["manifest_sha256"],
         "parity_max_absolute_error": max(errors),
-        "domain": "diffuse pinhole scenes; unsupported primary pixels preserve raw RGB",
+        "domain": (
+            "experimental joint 2x reconstruction of full pinhole images; all pixels learned; quality qualification required"
+            if model.kind == "joint"
+            else "diffuse pinhole scenes; unsupported primary pixels preserve raw RGB"
+        ),
         "providers_tested": session.get_providers(),
         "onnxruntime": ort.__version__,
     }

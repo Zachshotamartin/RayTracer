@@ -8,22 +8,24 @@ from .metrics import image_metrics
 from .io import display
 
 
-def structural_scores(prediction, target):
+def structural_scores(prediction, target, metrics=None):
     p, t = display(prediction), display(target)
     mask = binary_dilation(edge_magnitude(t) > 0.04, iterations=2)
     px, py = gradient(p)
     tx, ty = gradient(t)
     error = np.mean(np.abs(px - tx) + np.abs(py - ty), axis=-1)
     return {
-        "ssim": image_metrics(prediction, target)["ssim"],
+        "ssim": (metrics if metrics is not None else image_metrics(prediction, target))["ssim"],
         "edge": float(error[mask].mean()) if mask.any() else 0.0,
     }
 
 
 def quality_scores(prediction, target, features, model_config):
     regions = reconstruction_region_metrics(prediction, target, features, model_config)
+    metrics = image_metrics(prediction, target)
     return {
-        **structural_scores(prediction, target),
+        **structural_scores(prediction, target, metrics),
+        "psnr": metrics["psnr"],
         "hdr_mse": float(np.mean((prediction.astype(np.float64) - target) ** 2)),
         "model_hdr_mse": regions["model_region_linear_mse"],
     }
@@ -55,6 +57,9 @@ def validate_selection_config(config):
         "temporal_ratio",
         "min_preservation_views",
         "min_temporal_transitions",
+        "psnr_gain",
+        "psnr_min",
+        "ssim_min",
     }
     if set(config) - allowed:
         raise ValueError(f"Unknown selection constraints: {sorted(set(config) - allowed)}")
@@ -95,6 +100,24 @@ def constraint_report(measured, baseline, config):
         if gate in config:
             specs.append((gate, metric, "ratio", config[gate]))
     result = {}
+    for name, metric in (("psnr_min", "psnr"), ("ssim_min", "ssim"), ("psnr_gain", "psnr")):
+        if name not in config:
+            continue
+        value = measured.get(metric)
+        reference = baseline.get(metric) if name == "psnr_gain" else None
+        present = value is not None and math.isfinite(value)
+        if name == "psnr_gain":
+            present = present and reference is not None and math.isfinite(reference)
+        limit = (
+            (reference + config[name] if name == "psnr_gain" else config[name]) if present else None
+        )
+        result[name] = dict(
+            value=value,
+            baseline=reference,
+            limit=limit,
+            passed=bool(present and value >= limit),
+            missing=not present,
+        )
     for name, metric, comparison, threshold in specs:
         value, reference = measured.get(metric), baseline.get(metric)
         present = all(v is not None and math.isfinite(v) for v in (value, reference))

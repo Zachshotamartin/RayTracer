@@ -14,6 +14,14 @@ def validate_loss_config(config):
         value = config.get(key, 0)
         if not isinstance(value, (float, int)) or not math.isfinite(value) or value < 0:
             raise ValueError(f"Loss {key} must be finite and nonnegative")
+    scales = config.get("gradient_scales", [1])
+    if (
+        not isinstance(scales, list)
+        or not scales
+        or any(type(s) is not int or not 1 <= s <= 8 for s in scales)
+        or len(set(scales)) != len(scales)
+    ):
+        raise ValueError("gradient_scales must be distinct integer offsets within 1..8")
 
 
 def reconstruction_loss(prediction, target, config=None):
@@ -33,9 +41,13 @@ def reconstruction_loss(prediction, target, config=None):
     p, t = torch.log1p(prediction), torch.log1p(target)
     if config.get("gradient", 0):
         terms = []
-        for axis in (-1, -2):
-            if target.shape[axis] > 1:
-                pg, tg = torch.diff(p, dim=axis), torch.diff(t, dim=axis)
+        for axis, step in (
+            (axis, step) for axis in (-1, -2) for step in config.get("gradient_scales", [1])
+        ):
+            if target.shape[axis] > step:
+                length = target.shape[axis] - step
+                pg = (p.narrow(axis, step, length) - p.narrow(axis, 0, length)) / step
+                tg = (t.narrow(axis, step, length) - t.narrow(axis, 0, length)) / step
                 weight = 1 + (tg.abs().mean(1, keepdim=True) * 10).clamp_max(
                     float(config.get("edge_weight", 3))
                 )

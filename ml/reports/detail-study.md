@@ -1,5 +1,9 @@
 # Detail reconstruction study
 
+2026-09-08: the large scale-1 run is stopped at the user's request, with epoch 33
+latest and epoch 31 best checkpoints preserved. The [joint reconstruction experiment](../../docs/joint-reconstruction.md)
+now defines the native multi-resolution data, trainable 2× output and comparison gates.
+
 Status: implementation and development experiments in progress. The bundled
 `diffuse-pilot-v1.onnx` and its measured limitations remain the released baseline.
 Passing implementation tests does not establish better image quality or acceleration.

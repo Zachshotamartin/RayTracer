@@ -19,12 +19,18 @@ class RenderDataset(Dataset):
         fuse_probability=0,
         preservation_mode="synthetic_identity",
         near_clean_samples=96,
+        border_sampling=0,
     ):
         from pathlib import Path
 
         self.root = Path(root)
         self.rows = [r for r in manifest(self.root / "manifest.jsonl") if r["split"] == split]
         self.crop = crop
+        if type(crop) is not int or crop < 0 or not 0 <= border_sampling <= 1:
+            raise ValueError("Invalid crop size/border sampling")
+        if crop and any(min(r["stats"]["height"], r["stats"]["width"]) < crop for r in self.rows):
+            raise ValueError("Crop exceeds a native input dimension; use a smaller fixed crop")
+        self.border_sampling = border_sampling
         self.temporal = temporal
         self.split = split
         if (
@@ -43,10 +49,18 @@ class RenderDataset(Dataset):
                 "Near-clean samples must be an integer below the raw-identity threshold"
             )
         self.preservation_mode = preservation_mode
+        if (
+            self.identity_probability
+            and preservation_mode == "synthetic_identity"
+            and any(r["scale"] != 1 for r in self.rows)
+        ):
+            raise ValueError(
+                "Upscaling requires measured preservation; synthetic identity is invalid"
+            )
         self.near_clean_pairs = {}
         if self.identity_probability and preservation_mode == "measured_near_clean":
-            if temporal or any(r["scale"] != 1 for r in self.rows):
-                raise ValueError("Measured preservation pairs require same-resolution spatial data")
+            if temporal:
+                raise ValueError("Measured preservation pairs require spatial data")
             views = {}
             for row in self.rows:
                 views.setdefault(self.view_key(row), []).append(row)
@@ -156,11 +170,17 @@ class RenderDataset(Dataset):
                     cy, cx = points[int(torch.randint(len(points), ()).item())] // s
                     top = int(np.clip(cy - size // 2, 0, x.shape[1] - size))
                     left = int(np.clip(cx - size // 2, 0, x.shape[2] - size))
+            if self.border_sampling and torch.rand(()) < self.border_sampling:
+                side = int(torch.randint(4, ()).item())
+                if side < 2:
+                    top = 0 if side == 0 else x.shape[1] - size
+                else:
+                    left = 0 if side == 2 else x.shape[2] - size
             x = x[:, top : top + size, left : left + size]
             y = y[:, top * s : (top + size) * s, left * s : (left + size) * s]
         if (
             self.identity_probability
-            and r["scale"] == 1
+            and (r["scale"] == 1 or self.preservation_mode == "measured_near_clean")
             and torch.rand(()) < self.identity_probability
         ):
             if self.preservation_mode == "measured_near_clean":

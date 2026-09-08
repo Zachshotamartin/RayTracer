@@ -9,6 +9,8 @@ from .losses import reconstruction_loss
 
 def model_region_mask(x, model):
     """Mirror the forward policy, including sample bypass; not learned confidence."""
+    if model.kind == "joint":
+        return torch.ones_like(x[:, :1]).repeat_interleave(2, -2).repeat_interleave(2, -1).bool()
     detail = model.kind in ("guided", "refine")
     mask = x[:, 11:12] >= 0.999999
     if model.feature_schema == 2 or detail:

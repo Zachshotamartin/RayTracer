@@ -34,8 +34,8 @@ def prepare_training(cfg, root, output, report, *, validation=None):
             raise ValueError(f"{key} must be a positive integer")
     if not math.isfinite(cfg["max_seconds"]) or cfg["max_seconds"] <= 0:
         raise ValueError("max_seconds must be finite and positive")
-    if cfg["model"].get("temporal") or cfg["model"].get("scale", 1) != 1:
-        raise ValueError("This preparation workflow is for spatial same-resolution training")
+    if cfg["model"].get("temporal"):
+        raise ValueError("This preparation workflow is for spatial training")
     device = device_for(cfg.get("device", "auto"))
     torch.set_num_threads(cfg["cpu_threads"])
     validation = validate(root) if validation is None else validation
@@ -53,8 +53,11 @@ def prepare_training(cfg, root, output, report, *, validation=None):
         fuse_probability=cfg.get("fuse_probability", 0),
         preservation_mode=cfg.get("preservation_mode", "synthetic_identity"),
         near_clean_samples=cfg.get("near_clean_samples", 96),
+        border_sampling=cfg.get("border_sampling", 0),
     )
     heldout = RenderDataset(root, "val", feature_schema=schema)
+    if any(r["scale"] != cfg["model"].get("scale", 1) for r in training.rows + heldout.rows):
+        raise ValueError("Model and dataset scales disagree")
     if cfg.get("validation_budgets"):
         heldout.rows = [r for r in heldout.rows if r["samples"] in cfg["validation_budgets"]]
     if cfg.get("validation_first_noise_only"):
@@ -79,12 +82,31 @@ def prepare_training(cfg, root, output, report, *, validation=None):
     shapes = []
     with torch.inference_mode():
         for dataset, batch_size in ((training, cfg["batch_size"]), (heldout, 1)):
-            x, y = dataset[0]
-            batch = x[None].repeat(batch_size, 1, 1, 1).to(device)
-            prediction = model(batch)
-            if prediction.shape != (batch_size, *y.shape) or not torch.isfinite(prediction).all():
-                raise ValueError("Preflight inference returned invalid output")
-            shapes.append({"input": list(batch.shape), "output": list(prediction.shape)})
+            seen = set()
+            for index, row in enumerate(dataset.rows):
+                size = (
+                    (dataset.crop, dataset.crop)
+                    if dataset.crop
+                    else (row["stats"]["height"], row["stats"]["width"])
+                )
+                if size in seen:
+                    continue
+                seen.add(size)
+                x, y = dataset[index]
+                batch = x[None].repeat(batch_size, 1, 1, 1).to(device)
+                prediction = model(batch)
+                if (
+                    prediction.shape != (batch_size, *y.shape)
+                    or not torch.isfinite(prediction).all()
+                ):
+                    raise ValueError("Preflight inference returned invalid output")
+                shapes.append(
+                    {
+                        "split": dataset.split,
+                        "input": list(batch.shape),
+                        "output": list(prediction.shape),
+                    }
+                )
         synchronize(device)
     result = {
         "state": "prepared-awaiting-approval",

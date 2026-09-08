@@ -38,5 +38,7 @@ void write_png(const std::filesystem::path &path, const frame_snapshot &frame, d
 void write_hdr(const std::filesystem::path &path, const frame_snapshot &frame);
 void write_pfm(const std::filesystem::path &path, const frame_snapshot &frame);
 frame_snapshot read_pfm(const std::filesystem::path &path);
+// Reference baseline: pixel-center bilinear interpolation, no learned reconstruction.
+frame_snapshot upscale_bilinear(const frame_snapshot &frame, int scale);
 void write_image(const std::filesystem::path &path, const frame_snapshot &frame,
                  double exposure = 0);

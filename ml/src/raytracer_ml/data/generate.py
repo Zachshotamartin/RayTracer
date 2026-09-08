@@ -14,6 +14,7 @@ from ..io import digest, identity, read_pfm, save_arrays, write_json, git_revisi
 from ..preprocessing import load_features, validate_features
 from .scenes import configurations
 from .reference_checks import reference_errors, validate_reference_check
+from .diversity import rendering_variants, resolution_options
 
 
 def sampling_seed(*parts):
@@ -68,16 +69,15 @@ def generate(cfg, binary, root, dry_run=False):
         or any(type(n) is not int or n < 1 or n > 100000 for n in budgets)
     ):
         raise ValueError("Budgets must be sorted distinct positive integers")
-    for name in ["width", "noise_realizations", "reference_samples", "depth", "threads"]:
+    for name in ["noise_realizations", "reference_samples", "depth", "threads"]:
         if type(cfg[name]) is not int or cfg[name] < 1:
             raise ValueError(f"Invalid {name}")
     if cfg.get("schema_version") != 1 or cfg.get("scale", 1) not in (1, 2):
         raise ValueError("Unsupported data schema or scale")
     if cfg["reference_samples"] <= max(budgets) or cfg["max_seconds"] <= 0 or cfg["max_gib"] <= 0:
         raise ValueError("References need more samples than inputs and positive resource caps")
-    if cfg["width"] % 16:
-        raise ValueError("Dataset width must be a multiple of 16 for aligned 16:9 pairs")
-    items = list(configurations(cfg))
+    sizes = resolution_options(cfg)
+    items = list(rendering_variants(configurations(cfg), cfg))
     feature_schema = int(cfg.get("feature_schema", 1))
     compact = bool(cfg.get("compact_storage", False))
     if compact and feature_schema != 2:
@@ -93,23 +93,49 @@ def generate(cfg, binary, root, dry_run=False):
         chosen = {}
         for i, item in enumerate(items):
             chosen.setdefault(
-                (item["split"], item.get("family", "room"), item.get("stratum", "room")), i
+                (
+                    item["split"],
+                    item.get("family", "room"),
+                    item.get("stratum", "room"),
+                    item["width"],
+                    item["height"],
+                ),
+                i,
             )
         check_indices = list(chosen.values())
+    check_limit = cfg.get("reference_check_limit")
+    if check_limit is not None:
+        if type(check_limit) is not int or check_limit < 3:
+            raise ValueError("reference_check_limit must be at least 3")
+        if len(check_indices) > check_limit:
+            buckets = {
+                split: [i for i in check_indices if items[i]["split"] == split]
+                for split in ("train", "val", "test")
+            }
+            rng = np.random.default_rng(sampling_seed(cfg["seed"], "reference-check-coverage"))
+            for bucket in buckets.values():
+                rng.shuffle(bucket)
+            check_indices = []
+            while len(check_indices) < check_limit:
+                for bucket in buckets.values():
+                    if bucket and len(check_indices) < check_limit:
+                        check_indices.append(bucket.pop())
     count = len(items) * len(budgets) * cfg["noise_realizations"]
     estimate = {
         "configurations": len(items),
         "examples": count,
         "reference_images": len(items),
         "reference_check_images": len(check_indices),
-        "uncompressed_input_gib": count
-        * cfg["width"]
-        * int(cfg["width"] * 9 / 16)
+        "uncompressed_input_gib": sum(item["width"] * item["height"] for item in items)
+        * len(budgets)
+        * cfg["noise_realizations"]
         * (30 if feature_schema == 2 else 20)
         * 4
         / 2**30,
         "max_seconds": cfg["max_seconds"],
         "max_gib": cfg["max_gib"],
+        "input_resolutions": [list(size) for size in sizes],
+        "output_scale": cfg.get("scale", 1),
     }
     if dry_run:
         return estimate
@@ -189,7 +215,7 @@ def generate(cfg, binary, root, dry_run=False):
             disk_checks += 1
             if disk_checks % 16 != 1:
                 return
-            reserve = 16 * cfg["width"] ** 2 * 4 * 64 * cfg.get("scale", 1) ** 2
+            reserve = 16 * max(w * h for w, h in sizes) * 4 * 64 * cfg.get("scale", 1) ** 2
             if (
                 used + reserve > cfg["max_gib"] * 2**30
                 or shutil.disk_usage(root).free < reserve * 2
@@ -221,7 +247,7 @@ def generate(cfg, binary, root, dry_run=False):
                     target, stats = renderer(
                         binary,
                         item["scene"],
-                        cfg["width"] * cfg.get("scale", 1),
+                        item["width"] * cfg.get("scale", 1),
                         cfg["reference_samples"],
                         ref_seed,
                         work / "target",
@@ -229,6 +255,11 @@ def generate(cfg, binary, root, dry_run=False):
                         deadline - time.monotonic(),
                         feature_schema == 2,
                     )
+                    if target.shape[:2] != (
+                        item["height"] * cfg.get("scale", 1),
+                        item["width"] * cfg.get("scale", 1),
+                    ):
+                        raise ValueError("Renderer reference dimensions differ from native pair")
                     extra = {}
                     if feature_schema == 2:
                         extra["features"] = load_features(work / "target/features", 2)
@@ -266,7 +297,7 @@ def generate(cfg, binary, root, dry_run=False):
                         alternate, stats = renderer(
                             binary,
                             item["scene"],
-                            cfg["width"] * cfg.get("scale", 1),
+                            item["width"] * cfg.get("scale", 1),
                             check_samples,
                             check_seed,
                             work / "check",
@@ -317,7 +348,7 @@ def generate(cfg, binary, root, dry_run=False):
                             raw, stats = renderer(
                                 binary,
                                 item["scene"],
-                                cfg["width"],
+                                item["width"],
                                 samples,
                                 seed,
                                 run_dir,
@@ -325,6 +356,10 @@ def generate(cfg, binary, root, dry_run=False):
                                 deadline - time.monotonic(),
                                 True,
                             )
+                            if raw.shape[:2] != (item["height"], item["width"]):
+                                raise ValueError(
+                                    "Renderer input dimensions differ from native pair"
+                                )
                             features = load_features(run_dir / "features", feature_schema)
                             validate_features(features)
                             if not np.array_equal(features[:3].transpose(1, 2, 0), raw):
@@ -363,6 +398,11 @@ def generate(cfg, binary, root, dry_run=False):
                                 }
                             record_arrays(output, **arrays)
                             record = {
+                                **{
+                                    k: item[k]
+                                    for k in ("parent_configuration", "render_variant")
+                                    if k in item
+                                },
                                 **extra_record,
                                 "schema_version": 1,
                                 "feature_schema": feature_schema,

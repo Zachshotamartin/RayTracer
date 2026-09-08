@@ -38,12 +38,16 @@ class ReconstructionNet(nn.Module):
     ):
         super().__init__()
         if (
-            kind not in ("unet", "conv")
+            kind not in ("unet", "conv", "joint")
             or inputs not in ("all", "rgb", "guides", "no_boundary")
             or scale not in (1, 2)
             or feature_schema not in (1, 2)
         ):
             raise ValueError("Invalid model architecture")
+        if kind == "joint" and (scale != 2 or feature_schema != 2 or temporal):
+            raise ValueError("Joint reconstruction requires spatial schema-2 data at scale 2")
+        if kind == "joint" and output_head not in ("auto", "additive_log"):
+            raise ValueError("Joint reconstruction requires an additive log radiance head")
         if output_head not in ("auto", "additive_log", "bounded_multiplicative"):
             raise ValueError("Invalid output head")
         if not math.isfinite(radiance_scale) or not 0 < radiance_scale <= 64:
@@ -65,7 +69,11 @@ class ReconstructionNet(nn.Module):
             "guides": 12,
         }[inputs]
         self.output_head = (
-            ("bounded_multiplicative" if feature_schema == 2 else "additive_log")
+            (
+                "bounded_multiplicative"
+                if feature_schema == 2 and kind != "joint"
+                else "additive_log"
+            )
             if output_head == "auto"
             else output_head
         )
@@ -74,12 +82,15 @@ class ReconstructionNet(nn.Module):
         self.kind, self.scale, self.inputs = kind, scale, inputs
         channels = self.feature_channels + (4 if temporal else 0)
         self.enc1 = block(channels, width, activation)
-        if kind == "unet":
+        if kind in ("unet", "joint"):
             self.enc2 = block(width, width * 2, activation)
             self.middle = block(width * 2, width * 4, activation)
             self.dec2 = block(width * 6, width * 2, activation)
             self.dec1 = block(width * 3, width, activation)
-        self.head = nn.Conv2d(width, 3, 3, padding=1)
+        # Each of the four output subpixels gets an independent learned correction.
+        # Bilinearly enlarging a three-channel correction cannot represent these details.
+        self.head = nn.Conv2d(width, 12 if kind == "joint" else 3, 3, padding=1)
+        self.subpixels = nn.PixelShuffle(2) if kind == "joint" else None
         self.refinement = block(width + channels, width, activation) if refinement else None
         nn.init.zeros_(self.head.weight)
         nn.init.zeros_(self.head.bias)
@@ -120,7 +131,7 @@ class ReconstructionNet(nn.Module):
                 dim=1,
             )
         a = self.enc1(features)
-        if self.kind == "unet":
+        if self.kind in ("unet", "joint"):
             b = self.enc2(F.avg_pool2d(a, 2, ceil_mode=True))
             c = self.middle(F.avg_pool2d(b, 2, ceil_mode=True))
             d = self.dec2(
@@ -138,6 +149,14 @@ class ReconstructionNet(nn.Module):
         if self.refinement is not None:
             a = self.refinement(torch.cat([a, features], 1))
         correction = self.head(a)
+        if self.kind == "joint":
+            correction = self.subpixels(correction)
+            raw = F.interpolate(raw, scale_factor=2, mode="bilinear", align_corners=False)
+            logged = torch.log1p(raw * self.radiance_scale)
+            ceiling = math.log1p(math.expm1(12) * self.radiance_scale)
+            # Near-clean low-resolution pixels still require spatial reconstruction.
+            # No hard sample/material bypass: qualification measures all transport.
+            return (torch.exp((logged + correction).clamp(0, ceiling)) - 1) / self.radiance_scale
         support = x[:, 11:12] >= 0.999999
         if self.feature_schema == 2:
             support = ((x[:, 10:11] - x[:, 11:12]).abs() < 1e-6) & (x[:, 10:11] > 0)

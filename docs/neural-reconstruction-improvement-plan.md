@@ -1,5 +1,10 @@
 # Neural reconstruction: issue audit and improvement plan
 
+The current implementation is the [joint reconstruction experiment](joint-reconstruction.md):
+a new 2× task, native multi-size data, camera augmentation and strict quality/runtime
+comparisons. The previous full-data denoising run is stopped; its checkpoints remain
+baseline evidence. The issue inventory below remains relevant to final qualification.
+
 Status: **implementation and development experiments in progress; no replacement
 model qualified yet**. See the [current study record](../ml/reports/detail-study.md).
 The [research alignment audit](neural-reconstruction-research-audit.md) identifies

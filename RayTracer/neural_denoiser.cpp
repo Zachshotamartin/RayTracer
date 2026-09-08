@@ -202,7 +202,9 @@ struct neural_denoiser::impl {
             for (const auto *name : {"history_r", "history_g", "history_b", "history_valid"})
                 expected.push_back(name);
         if (!channel_text || nlohmann::json::parse(channel_text.get()) != expected || !domain ||
-            std::string(domain.get()) != "diffuse-pinhole" ||
+            (std::string(domain.get()) != "diffuse-pinhole" &&
+             !(std::string(domain.get()) == "joint-pinhole" && feature_schema == 2 &&
+               output_scale == 2 && !temporal)) ||
             (history && std::string(history.get()) != "0" && std::string(history.get()) != "1"))
             throw std::invalid_argument("Incompatible neural channel/domain metadata");
         if (temporal && output_scale != 1)

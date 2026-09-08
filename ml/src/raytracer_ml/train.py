@@ -152,8 +152,8 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
         raise ValueError("Temporal selection requires autoregressive same-resolution validation")
     preservation = None
     if "preservation_ratio" in selection_config:
-        if cfg["model"].get("temporal") or feature_schema != 2 or cfg["model"].get("scale", 1) != 1:
-            raise ValueError("Preservation selection requires a spatial schema-2 model at scale 1")
+        if cfg["model"].get("temporal") or feature_schema != 2:
+            raise ValueError("Preservation selection requires a spatial schema-2 model")
         preservation = PreservationValidation(root, cfg.get("near_clean_samples", 96))
     health_config = cfg.get("learning_diagnostics")
     if health_config is not None:
@@ -183,6 +183,7 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
         cfg.get("fuse_probability", 0),
         cfg.get("preservation_mode", "synthetic_identity"),
         cfg.get("near_clean_samples", 96),
+        cfg.get("border_sampling", 0),
     )
     heldout = RenderDataset(
         root, "val", temporal=cfg["model"].get("temporal", False), feature_schema=feature_schema
@@ -345,6 +346,7 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
         val_losses = []
         raw_losses = []
         measured_scores = []
+        resolution_scores = {}
         comparison = TemporalComparison() if temporal_gate else None
         with torch.inference_mode():
             for validation_index, (prediction, y, x, frame) in enumerate(
@@ -393,6 +395,13 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
                         measured_score.update(temporal_scores["neural"])
                         baseline_scores[validation_index].update(temporal_scores["atrous"])
                     measured_scores.append(measured_score)
+                    if not unroll:
+                        h, w = x.shape[-2:]
+                        oh, ow = y.shape[-2:]
+                        key = f"{w}x{h}->{ow}x{oh}"
+                        bucket = resolution_scores.setdefault(key, {"measured": [], "baseline": []})
+                        bucket["measured"].append(measured_score)
+                        bucket["baseline"].append(baseline_scores[validation_index])
         value = float(np.mean(val_losses))
         if not math.isfinite(value):
             raise FloatingPointError("Non-finite validation loss")
@@ -404,6 +413,35 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
             baseline.update(near_clean_raw)
         score, eligible = checkpoint_score(value, measured, baseline, cfg.get("selection"))
         constraints = constraint_report(measured, baseline, selection_config)
+        resolution_constraints = {}
+        if cfg.get("selection_by_resolution"):
+            spatial_constraints = {
+                k: v
+                for k, v in selection_config.items()
+                if k
+                not in (
+                    "preservation_ratio",
+                    "min_preservation_views",
+                    "temporal_ratio",
+                    "min_temporal_transitions",
+                )
+            }
+            if not spatial_constraints or not resolution_scores:
+                raise ValueError("Resolution selection requires spatial quality constraints")
+            for key, bucket in resolution_scores.items():
+                resolution_constraints[key] = constraint_report(
+                    aggregate_scores(bucket["measured"]),
+                    aggregate_scores(bucket["baseline"]),
+                    spatial_constraints,
+                )
+            passed = all(
+                c["passed"] for report in resolution_constraints.values() for c in report.values()
+            )
+            constraints["resolution_slices"] = {
+                "passed": passed,
+                "slices": len(resolution_constraints),
+            }
+            eligible = eligible and passed
         snapshot = {
             "selection_policy": "eligible-first-v1",
             "config": cfg,
@@ -416,6 +454,7 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
             "validation_constraints_pass": eligible,
             "validation_structure": measured,
             "validation_constraints": constraints,
+            "validation_resolution_constraints": resolution_constraints,
             "baseline_structure": baseline,
             "manifest_sha256": validation["manifest_sha256"],
             "training_scene_hashes": sorted({r["scene_sha256"] for r in training.rows}),
@@ -449,6 +488,7 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
             "selection_state": selection_state,
             "validation_constraints_pass": eligible,
             "validation_constraints": constraints,
+            "validation_resolution_constraints": resolution_constraints,
             "validation_structure": measured,
             "baseline_structure": baseline,
             "stale": stale,
@@ -468,6 +508,7 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
             "selection_score": score,
             "validation_constraints_pass": eligible,
             "validation_constraints": constraints,
+            "validation_resolution_constraints": resolution_constraints,
             "validation_structure": measured,
             "baseline_structure": baseline,
             "raw_validation_loss": float(np.mean(raw_losses)),
@@ -479,6 +520,14 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
             if selection_config
             else None,
             "learning_rate": learning_rate,
+            "validation_by_resolution": {
+                key: {
+                    "images": len(bucket["measured"]),
+                    "measured": aggregate_scores(bucket["measured"]),
+                    "baseline": aggregate_scores(bucket["baseline"]),
+                }
+                for key, bucket in resolution_scores.items()
+            },
         }
         if health is not None:
             metric["learning_health"] = health.summary(epoch)

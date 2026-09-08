@@ -1,5 +1,10 @@
 # AI-assisted ray tracing
 
+Current direction (2026-09-08): [joint denoising and 2× reconstruction](joint-reconstruction.md)
+with native resolution/aspect variation and high-sample targets. The previous
+same-resolution full-data run was stopped at epoch 33. The design below is the
+original staged proposal; the linked joint experiment supersedes its "upscaling later" phase.
+
 Status: implemented foundation in v3.0.0. A custom spatial model has been trained
 and integrated into the C++ renderer. Dataset, training, evaluation, export and
 benchmark commands are available in the [ML walkthrough](../ml/README.md).

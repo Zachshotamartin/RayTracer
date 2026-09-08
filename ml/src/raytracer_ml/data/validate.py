@@ -1,6 +1,7 @@
 """Validate artifact integrity, renderer pairing, and group leakage before training."""
 
 import json
+from collections import Counter
 from pathlib import Path
 import numpy as np
 from ..io import manifest, safe_path, digest, identity
@@ -16,7 +17,8 @@ def validate(root):
     info = json.loads((root / "dataset.json").read_text())
     if not rows:
         raise ValueError("Empty dataset")
-    ids, groups, configurations, checked_refs = set(), {}, {}, set()
+    ids, groups, configurations, checked_refs = set(), {}, {}, {}
+    parent_splits, coverage = {}, {s: Counter() for s in ("train", "val", "test")}
     scene_splits = {}
     shared_checked = set()
     counts = {"train": 0, "val": 0, "test": 0}
@@ -28,6 +30,13 @@ def validate(root):
             raise ValueError("Invalid schema, duplicate example, or split")
         ids.add(r["id"])
         counts[r["split"]] += 1
+        if "parent_configuration" in r:
+            key = r["parent_configuration"]
+            if key in parent_splits and parent_splits[key] != r["split"]:
+                raise ValueError("Resolution/camera variants leak across splits")
+            parent_splits[key] = r["split"]
+        if r["scale"] != info["config"].get("scale", 1):
+            raise ValueError("Manifest scale differs from dataset configuration")
         for mapping, key in [(groups, r["group"]), (configurations, r["configuration"])]:
             if key in mapping and mapping[key] != r["split"]:
                 raise ValueError("Dataset group/configuration leaks across splits")
@@ -64,16 +73,26 @@ def validate(root):
         ):
             raise ValueError("Invalid baseline/position")
         shape = x.shape[1:]
+        if (r["stats"].get("height"), r["stats"].get("width")) != shape:
+            raise ValueError("Native input dimensions disagree with renderer metadata")
+        target_shape = (shape[0] * r["scale"], shape[1] * r["scale"], 3)
+        if (r["reference_stats"].get("height"), r["reference_stats"].get("width")) != target_shape[
+            :2
+        ]:
+            raise ValueError("Native reference dimensions disagree with renderer metadata")
+        coverage[r["split"]][f"{shape[1]}x{shape[0]}->{target_shape[1]}x{target_shape[0]}"] += 1
         if reference not in checked_refs:
             with np.load(reference, allow_pickle=False) as data:
                 target = data["target"]
                 if (
-                    target.shape != (shape[0] * r["scale"], shape[1] * r["scale"], 3)
+                    target.shape != target_shape
                     or not np.isfinite(target).all()
                     or np.any(target < 0)
                 ):
                     raise ValueError("Invalid reference shape/radiance")
-            checked_refs.add(reference)
+            checked_refs[reference] = target.shape
+        elif checked_refs[reference] != target_shape:
+            raise ValueError("Shared reference is incompatible with input dimensions")
     if any(n == 0 for n in counts.values()):
         raise ValueError("All three splits must contain examples")
     expected = info["estimate"]["examples"]
@@ -84,6 +103,7 @@ def validate(root):
         "groups": len(groups),
         "splits": counts,
         "references": len(checked_refs),
+        "resolution_coverage": {s: dict(c) for s, c in coverage.items()},
         "reference_checks": validate_reference_checks(root, rows, info),
         "manifest_sha256": digest(root / "manifest.jsonl"),
     }

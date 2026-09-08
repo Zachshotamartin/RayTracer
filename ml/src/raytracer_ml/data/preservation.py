@@ -46,8 +46,10 @@ class PreservationValidation:
             raise ValueError("Preservation validation samples must be below the 128-spp bypass")
         self.root = root
         rows = [r for r in manifest(root / "manifest.jsonl") if r["split"] == "val"]
-        if not rows or any(r["scale"] != 1 or r.get("feature_schema", 1) != 2 for r in rows):
-            raise ValueError("Preservation validation requires schema-2 same-resolution val data")
+        if not rows or any(r.get("feature_schema", 1) != 2 for r in rows):
+            raise ValueError("Preservation validation requires schema-2 val data")
+        if len({r["scale"] for r in rows}) != 1:
+            raise ValueError("Preservation validation requires a consistent reconstruction scale")
         self.pairs = [pairs[0] for _, pairs in sorted(measured_pairs(rows, samples).items())]
 
     def measure(self, model, device):
@@ -64,7 +66,14 @@ class PreservationValidation:
                 measured.append(
                     float(np.abs(np.log1p(prediction.astype(np.float64)) - target).mean())
                 )
-                raw.append(float(np.abs(np.log1p(x[:3].astype(np.float64)) - target).mean()))
+                raw_image = torch.from_numpy(x[None, :3])
+                if a["scale"] != 1:
+                    raw_image = torch.nn.functional.interpolate(
+                        raw_image, scale_factor=a["scale"], mode="bilinear", align_corners=False
+                    )
+                raw.append(
+                    float(np.abs(np.log1p(raw_image[0].numpy().astype(np.float64)) - target).mean())
+                )
         return (
             {"preservation_log_mae": float(np.mean(measured)), "preservation_views": len(measured)},
             {"preservation_log_mae": float(np.mean(raw)), "preservation_views": len(raw)},

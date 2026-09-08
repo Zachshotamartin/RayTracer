@@ -4,6 +4,38 @@
 #include <fstream>
 #include <limits>
 #include <memory>
+
+frame_snapshot upscale_bilinear(const frame_snapshot &frame, int scale) {
+    if ((scale != 1 && scale != 2) || frame.width < 1 || frame.height < 1 ||
+        frame.linear.size() != std::size_t(frame.width) * frame.height ||
+        std::uint64_t(frame.width) * frame.height * scale * scale > 16777216)
+        throw std::invalid_argument("Invalid bilinear output dimensions");
+    if (scale == 1)
+        return frame;
+    frame_snapshot out;
+    out.width = frame.width * scale;
+    out.height = frame.height * scale;
+    out.samples = frame.samples;
+    out.camera = frame.camera;
+    out.denoised = frame.denoised;
+    out.linear.resize(std::size_t(out.width) * out.height);
+    for (int y = 0; y < out.height; ++y) {
+        const double sy = std::max(0., (y + .5) / scale - .5);
+        const int y0 = int(sy), y1 = std::min(y0 + 1, frame.height - 1);
+        const double fy = sy - y0;
+        for (int x = 0; x < out.width; ++x) {
+            const double sx = std::max(0., (x + .5) / scale - .5);
+            const int x0 = int(sx), x1 = std::min(x0 + 1, frame.width - 1);
+            const double fx = sx - x0;
+            auto row = [&](int iy) {
+                return frame.linear[std::size_t(iy) * frame.width + x0] * (1 - fx) +
+                       frame.linear[std::size_t(iy) * frame.width + x1] * fx;
+            };
+            out.linear[std::size_t(y) * out.width + x] = row(y0) * (1 - fy) + row(y1) * fy;
+        }
+    }
+    return out;
+}
 #if defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"

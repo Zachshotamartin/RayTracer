@@ -50,6 +50,8 @@ struct options {
     double exposure = 0;
     bool headless = !RT_HAS_SDL, quiet = false, quit_after_render = false;
     bool denoise = false;
+    int output_scale = 1;
+    double upscale_seconds = 0;
     double denoise_seconds = 0, image_write_seconds = 0;
 };
 double real(const std::string &text) {
@@ -179,6 +181,7 @@ void help() {
            "  --no-bvh                    Use linear object traversal\n"
            "  --output PATH               .png, .hdr, or .pfm plus JSON metadata\n"
            "  --denoise                   Edge-aware diffuse surface filtering\n"
+           "  --output-scale N            Bilinear output enlargement (1/2), headless baselines\n"
            "  --caustics N                Trace N caustic photons (default off)\n"
            "  --caustic-radius R          Gather radius in world units (default 0.12)\n"
            "  --glass-shadows MODE        physical (default) or transparent approximation\n"
@@ -212,6 +215,8 @@ std::string report(const options &opts, const frame_snapshot &frame, const rende
         << ",\n  \"shadow_rays\": " << stats.shadow_rays << ",\n  \"exposure\": " << opts.exposure
         << ",\n  \"mesh_path\": " << quote(opts.mesh.generic_string())
         << ",\n  \"denoised\": " << (opts.denoise && !opts.reconstructed ? "true" : "false")
+        << ",\n  \"output_scale\": " << opts.output_scale
+        << ",\n  \"upscale_seconds\": " << opts.upscale_seconds
         << ",\n  \"reconstructed\": " << (opts.reconstructed ? "true" : "false")
         << ",\n  \"model\": " << quote(opts.model.generic_string())
         << ",\n  \"neural_provider_requested\": " << quote(opts.neural_provider)
@@ -261,7 +266,17 @@ std::filesystem::path save(options &opts, const frame_snapshot &frame, const ren
     opts.denoise_seconds =
         opts.denoise && !prediction ? std::chrono::duration<double>(processed - start).count() : 0;
     opts.reconstructed = prediction && prediction->reconstructed;
-    const auto &image = prediction ? *prediction : opts.denoise ? filtered : frame;
+    const auto &processed_frame = prediction ? *prediction : opts.denoise ? filtered : frame;
+    frame_snapshot upscaled;
+    auto resize_start = std::chrono::steady_clock::now();
+    if (opts.output_scale != 1)
+        upscaled = upscale_bilinear(processed_frame, opts.output_scale);
+    opts.upscale_seconds =
+        opts.output_scale != 1
+            ? std::chrono::duration<double>(std::chrono::steady_clock::now() - resize_start).count()
+            : 0;
+    const auto &image = opts.output_scale != 1 ? upscaled : processed_frame;
+    processed = std::chrono::steady_clock::now();
     write_image(output, image, opts.exposure);
     opts.image_write_seconds =
         std::chrono::duration<double>(std::chrono::steady_clock::now() - processed).count();
@@ -347,6 +362,8 @@ int main(int argc, char **argv) {
                 opts.mesh = value();
             else if (arg == "--denoise")
                 opts.denoise = true;
+            else if (arg == "--output-scale")
+                opts.output_scale = integer<int>(value());
             else if (arg == "--caustics")
                 opts.render.caustic_photons = integer<int>(value());
             else if (arg == "--caustic-radius")
@@ -409,6 +426,10 @@ int main(int argc, char **argv) {
             throw std::invalid_argument("Benchmark repeats require 1..100 headless frames");
         if (!opts.feature_directory.empty() && !opts.headless)
             throw std::invalid_argument("Feature export requires --headless");
+        if ((opts.output_scale != 1 && opts.output_scale != 2) ||
+            (opts.output_scale != 1 && (!opts.headless || !opts.model.empty())))
+            throw std::invalid_argument(
+                "Output scale 2 requires headless baseline rendering without a model");
         if (!opts.scene_file.empty() && !opts.mesh.empty())
             throw std::invalid_argument("Choose --scene-file or --mesh");
         if (!opts.raw_output.empty() && opts.raw_output == opts.output)

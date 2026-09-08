@@ -1,8 +1,10 @@
 # Mac full-data training preparation
 
-Status: prepared for review; no full-data fitting has started. The approved action
-so far is preparation, integrity checking and recovery testing. Starting or resuming
-the proposed experiment requires the user's approval. The generation monitor is paused.
+Status (2026-09-08): **stopped at the user's request after 33 completed epochs**.
+The selected best is epoch 31. Latest/best full-state checkpoints were verified
+unchanged after stopping the trainer; automatic continuation is paused. Do not
+resume this run. The next experiment is [joint reconstruction](joint-reconstruction.md).
+The tables below retain the original run preparation and checkpoint contract.
 
 All 57,344 examples passed the file/schema/split audit on 2026-09-07. The dataset has
 4,096 reference images and 96 legacy scalar-only independent reference checks; the
@@ -22,7 +24,7 @@ preparation packet under `RayTracer/preparations/full-mac-guided-s42-v1`.
 | Recipe | [`full-mac-guided.yaml`](../ml/configs/train/detail/full-mac-guided.yaml) |
 | Optimizer | AdamW, initial learning rate 0.0003, weight decay 0.0001, gradient clip 1 |
 | Schedule | 50 total epochs; cosine schedule remains identical across pauses |
-| Initial approval stage | Two completed epochs, then stop for review |
+| Review policy during the run | Review epochs 1/2 without pausing; later superseded by the explicit user stop |
 | Work per epoch | 5,376 optimizer steps at batch 8, random paired 96×96 crops |
 | Validation | 2,560 complete images at 1/4/8/16/64 spp, first input noise realization |
 | Preservation check | All 512 validation views, independently combined 32+64 spp inputs |

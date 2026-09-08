@@ -34,6 +34,15 @@ def fuse_measurements(a, b):
 def draw_transform(config, *, square=True):
     if not config:
         return {"flip_x": False, "flip_y": False, "turns": 0, "gain": torch.ones(3)}
+    if set(config) - {
+        "flip_x",
+        "flip_y",
+        "rotate90",
+        "exposure_stops",
+        "lighting_color_stops",
+        "rgb_filters",
+    }:
+        raise ValueError("Unknown image augmentation; camera zoom/roll belong in the data recipe")
     for key in ("flip_x", "flip_y"):
         if not 0 <= config.get(key, 0.5) <= 1:
             raise ValueError("Flip probabilities must be in [0,1]")
@@ -42,6 +51,23 @@ def draw_transform(config, *, square=True):
     if not 0 <= exposure <= 4 or not 0 <= color <= 1:
         raise ValueError("Augmentation exposure/color range is too large")
     gain = 2 ** ((torch.rand(()) * 2 - 1) * exposure + (torch.rand(3) * 2 - 1) * color)
+    filters = config.get("rgb_filters", [[1, 1, 1]])
+    if (
+        not isinstance(filters, list)
+        or not filters
+        or any(
+            not isinstance(f, list)
+            or len(f) != 3
+            or any(
+                not isinstance(v, (int, float)) or not np.isfinite(v) or not 0.25 <= v <= 4
+                for v in f
+            )
+            for f in filters
+        )
+    ):
+        raise ValueError("RGB filters must be finite diagonal gains within 0.25..4")
+    if "rgb_filters" in config:
+        gain *= torch.tensor(filters[int(torch.randint(len(filters), ()).item())], dtype=gain.dtype)
     return {
         "flip_x": bool(torch.rand(()) < config.get("flip_x", 0.5)),
         "flip_y": bool(torch.rand(()) < config.get("flip_y", 0.5)),

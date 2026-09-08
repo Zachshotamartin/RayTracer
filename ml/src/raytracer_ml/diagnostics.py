@@ -12,6 +12,8 @@ from .preprocessing import model_schema
 
 def reconstruction_region(features, model_config):
     """Input-defined pixels eligible for the custom model, not a confidence estimate."""
+    if model_config.get("kind") == "joint":
+        return np.ones((features.shape[1] * 2, features.shape[2] * 2), dtype=bool)
     schema = model_schema(model_config)
     detail = model_config.get("kind") in ("guided", "refine")
     support = features[11] >= 0.999999

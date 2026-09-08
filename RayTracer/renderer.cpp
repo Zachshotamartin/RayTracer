@@ -12,6 +12,10 @@ int render_settings::height(double aspect) const {
     if (!std::isfinite(aspect) || aspect <= 0)
         throw std::invalid_argument("Aspect ratio must be positive and finite");
     double h = width / aspect;
+    // An explicit rational aspect (e.g. 160/120) must not lose a row to
+    // floating-point roundoff. Preserve truncation for genuinely fractional sizes.
+    if (std::abs(h - std::round(h)) < 1e-9)
+        h = std::round(h);
     if (h > 16384)
         throw std::invalid_argument("Image height exceeds 16384");
     return std::max(1, static_cast<int>(h));

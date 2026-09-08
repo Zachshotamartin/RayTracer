@@ -23,13 +23,33 @@ def json_stream(text):
 
 def benchmark(root, binary, model, output, cfg):
     root, binary, output = Path(root), Path(binary).resolve(), Path(output)
+    model = Path(model)
+    metadata = json.loads(model.with_suffix(".json").read_text())
+    if metadata["sha256"] != digest(model):
+        raise ValueError("Model export metadata checksum mismatch")
+    scale = metadata["model"].get("scale", 1)
+    methods = (
+        ["raw", "atrous", "neural"]
+        if scale == 1
+        else ["raw", "atrous", "raw_upscale", "atrous_upscale", "neural"]
+    )
+    threshold = cfg.get("quality", {})
+    if "psnr" not in threshold or "ssim" not in threshold:
+        raise ValueError("Set validation-selected PSNR and SSIM thresholds")
     records = manifest(root / "manifest.jsonl")
     config_ids = sorted(
         {r["configuration"] for r in records if r["split"] == cfg.get("split", "test")}
     )
     limit = cfg.get("max_configurations", 0)
     if limit:
-        config_ids = config_ids[:limit]
+        config_ids = (
+            [
+                config_ids[i]
+                for i in np.linspace(0, len(config_ids) - 1, min(limit, len(config_ids)), dtype=int)
+            ]
+            if config_ids
+            else []
+        )
     results = []
     if not config_ids:
         raise ValueError("No benchmark configurations")
@@ -37,12 +57,15 @@ def benchmark(root, binary, model, output, cfg):
         temp = Path(temporary)
         for ident in config_ids:
             record = next(r for r in records if r["configuration"] == ident)
+            if record["scale"] != scale:
+                raise ValueError("Benchmark model and dataset scales disagree")
             with np.load(safe_path(root, record["reference"])) as data:
                 target = data["target"]
             write_json(temp / "scene.json", record["scene"])
             for samples in cfg["budgets"]:
-                for method in ["raw", "atrous", "neural"]:
-                    # All methods produce the reference resolution in the primary scale-1 study.
+                for method in methods:
+                    low_resolution = method in ("neural", "raw_upscale", "atrous_upscale")
+                    width = target.shape[1] // scale if low_resolution else target.shape[1]
                     command = [
                         str(binary),
                         "--headless",
@@ -50,7 +73,7 @@ def benchmark(root, binary, model, output, cfg):
                         "--scene-file",
                         str(temp / "scene.json"),
                         "--width",
-                        str(target.shape[1]),
+                        str(width),
                         "--samples",
                         str(samples),
                         "--seed",
@@ -64,8 +87,10 @@ def benchmark(root, binary, model, output, cfg):
                         "--benchmark-repeats",
                         str(cfg.get("repeats", 3) + 1),
                     ]
-                    if method == "atrous":
+                    if method in ("atrous", "atrous_upscale"):
                         command += ["--denoise"]
+                    if method.endswith("_upscale"):
+                        command += ["--output-scale", str(scale)]
                     if method == "neural":
                         command += [
                             "--model",
@@ -88,7 +113,7 @@ def benchmark(root, binary, model, output, cfg):
                     prediction = read_pfm(temp / "image.pfm")
                     if prediction.shape != target.shape:
                         raise ValueError(
-                            "Benchmark requires a scale-1 model; evaluate super resolution separately"
+                            "Benchmark output differs from the native reference resolution"
                         )
                     metrics = image_metrics(prediction, target)
                     warm = [s["pipeline_seconds"] for s in stats[1:]]
@@ -97,6 +122,9 @@ def benchmark(root, binary, model, output, cfg):
                         "cohort": record["cohort"],
                         "method": method,
                         "samples": samples,
+                        "input_width": width,
+                        "output_width": target.shape[1],
+                        "output_height": target.shape[0],
                         "quality": metrics,
                         "cold_frame_seconds": stats[0]["pipeline_seconds"]
                         + stats[0]["model_load_seconds"],
@@ -112,13 +140,10 @@ def benchmark(root, binary, model, output, cfg):
                     )
     output.mkdir(parents=True, exist_ok=True)
     (output / "per_image.jsonl").write_text("".join(json.dumps(r) + "\n" for r in results))
-    threshold = cfg.get("quality", {})
-    if "psnr" not in threshold or "ssim" not in threshold:
-        raise ValueError("Set validation-selected PSNR and SSIM thresholds")
     matched = []
     for ident in config_ids:
         item = {"configuration": ident}
-        for method in ["raw", "atrous", "neural"]:
+        for method in methods:
             passing = [
                 r
                 for r in results
@@ -129,14 +154,41 @@ def benchmark(root, binary, model, output, cfg):
             ]
             item[method] = min((r["warm_median_seconds"] for r in passing), default=None)
         matched.append(item)
+    acceleration = []
+    for item in matched:
+        competitors = [item[m] for m in methods if m != "neural" and item[m] is not None]
+        baseline = min(competitors) if competitors else None
+        neural = item["neural"]
+        acceleration.append(
+            {
+                "configuration": item["configuration"],
+                "fastest_passing_baseline_seconds": baseline,
+                "neural_seconds": neural,
+                "speedup": baseline / neural
+                if baseline is not None and neural is not None
+                else None,
+                "demonstrated_win": baseline is not None
+                and neural is not None
+                and neural < baseline,
+            }
+        )
     summary = {
         "config": cfg,
         "renderer_sha256": digest(binary),
         "model_sha256": digest(model),
         "configurations": len(config_ids),
         "matched_quality": matched,
-        "timing_scope": "same-process repeated frames: BVH, tracing, aligned features, inference, image write; excludes display and one-time JSON scene loading. Cold adds model load. Process total is reported separately.",
-        "failures": {m: sum(r[m] is None for r in matched) for m in ["raw", "atrous", "neural"]},
+        "scale": scale,
+        "matched_quality_acceleration": acceleration,
+        "method_labels": {
+            "raw": "native-resolution raw",
+            "atrous": "native-resolution a-trous",
+            "raw_upscale": "low-resolution raw + bilinear",
+            "atrous_upscale": "low-resolution a-trous + bilinear",
+            "neural": "learned reconstruction",
+        },
+        "timing_scope": "same-process repeated frames at identical output dimensions: BVH, tracing, aligned features, denoising/upscaling or inference, image write; excludes display and one-time JSON scene loading. Cold adds model load. Process total is reported separately.",
+        "failures": {m: sum(r[m] is None for r in matched) for m in methods},
     }
     write_json(output / "summary.json", summary)
     # A compact, dependency-free HTML report is easy to open beside the viewer.

@@ -1,0 +1,11 @@
+# Development gate; keep sealed test images out of tuning and model selection.
+split: val
+budgets: [1, 4, 16, 64]
+threads: 6
+provider: cpu
+repeats: 3
+timeout_seconds: 300
+max_configurations: 12
+quality:
+  psnr: 30
+  ssim: 0.95

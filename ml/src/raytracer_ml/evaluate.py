@@ -173,6 +173,9 @@ def evaluate(
                 "cohort": r["cohort"],
                 "group": r["group"],
                 "stratum": r.get("stratum", "room"),
+                "resolution": f"{x.shape[2]}x{x.shape[1]}->{target.shape[1]}x{target.shape[0]}",
+                "aspect_ratio": x.shape[2] / x.shape[1],
+                "render_variant": r.get("render_variant"),
                 "metrics": metrics,
                 "first_call_seconds": cold,
                 "temporal_preprocess_seconds": temporal_seconds,
@@ -195,6 +198,23 @@ def evaluate(
     temp = output / "per_image.jsonl"
     temp.write_text("".join(json.dumps(r) + "\n" for r in results))
     summary = {
+        "objective": "Approach the native high-sample reference at the requested output resolution; acceleration requires the separate native end-to-end benchmark.",
+        "method_labels": {
+            "raw": "raw + bilinear upscale" if model.scale == 2 else "raw",
+            "atrous": "a-trous + bilinear upscale" if model.scale == 2 else "a-trous",
+            "neural": "joint denoise + 2x reconstruction"
+            if model.kind == "joint"
+            else "neural reconstruction",
+            **(
+                {
+                    "oidn": "pretrained OIDN + bilinear upscale"
+                    if model.scale == 2
+                    else "pretrained OIDN"
+                }
+                if oidn
+                else {}
+            ),
+        },
         "temporal_metric_schema": 1,
         "temporal_metric_policy": "Confidence-weighted changes minus reprojected reference changes; identical geometry for all methods. Cuts/unmatched frames are unmeasured, not zero error.",
         "region_metric_schema": 2,
@@ -287,6 +307,39 @@ def evaluate(
             for name in method_names
         }
         for stratum in sorted({r["stratum"] for r in results})
+    }
+    summary["resolutions"] = {
+        resolution: {
+            name: {
+                key: grouped_summary(
+                    [r for r in results if r["resolution"] == resolution], name, key
+                )
+                for key in keys
+            }
+            for name in method_names
+        }
+        for resolution in sorted({r["resolution"] for r in results})
+    }
+    summary["against_atrous"] = {
+        "mean_psnr_gain_db": float(
+            np.mean(
+                [r["metrics"]["neural"]["psnr"] - r["metrics"]["atrous"]["psnr"] for r in results]
+            )
+        ),
+        "fraction_lower_hdr_mse": float(
+            np.mean(
+                [
+                    r["metrics"]["neural"]["linear_mse"] < r["metrics"]["atrous"]["linear_mse"]
+                    for r in results
+                ]
+            )
+        ),
+        "fraction_higher_ssim": float(
+            np.mean(
+                [r["metrics"]["neural"]["ssim"] > r["metrics"]["atrous"]["ssim"] for r in results]
+            )
+        ),
+        "proves_rendering_speedup": False,
     }
     summary["worst_cases"] = {}
     lookup = {r["id"]: r for r in rows}

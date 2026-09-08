@@ -1,5 +1,9 @@
 # Learned ray reconstruction
 
+The current development task is [joint denoising and 2× reconstruction](../docs/joint-reconstruction.md).
+Use its new data/training recipes and equal-output-resolution benchmark. The old
+full-data denoising run is stopped; the results below describe the released pilot.
+
 This package trains our own model to reconstruct linear HDR images from noisy
 path-traced measurements. It includes data generation, integrity checks, grouped
 splits, training and resume, evaluation against raw/a-trous/optional OIDN, ONNX
