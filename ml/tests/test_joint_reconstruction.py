@@ -93,6 +93,7 @@ def train_config():
         loss=dict(gradient=0.25, gradient_scales=[1, 2, 4], energy=0.02),
         selection=dict(psnr_gain=0.1, hdr_ratio=1, preservation_ratio=1),
         selection_by_resolution=True,
+        selection_by_budget=True,
         learning_diagnostics=dict(stall_after_epochs=2),
     )
 
@@ -208,6 +209,12 @@ def test_joint_training_resume_and_resolution_gates(joint_data, tmp_path):
     assert all(len(r["validation_by_resolution"]) == 2 for r in rows)
     assert all(r["learning_health"]["bypass_pixels"] == 0 for r in rows)
     assert all("resolution_slices" in r["validation_constraints"] for r in rows)
+    assert all("budget_slices" in r["validation_constraints"] for r in rows)
+    assert all(set(r["validation_by_slice"]["budget"]) == {"1", "4"} for r in rows)
+    assert a["validation_budget_constraints"] == b["validation_budget_constraints"]
+    assert all(
+        set(r["validation_by_slice"]) == {"budget", "family", "stratum", "transport"} for r in rows
+    )
     checks = constraint_report(
         dict(psnr=29, ssim=0.94, edge=0.1),
         dict(psnr=28, ssim=0.93, edge=0.2),
@@ -225,11 +232,35 @@ def test_joint_export_native_parity_and_equal_size_benchmark(joint_data, tmp_pat
         model.head.weight.normal_(0, 0.005)
     checkpoint = tmp_path / "functional-only.pt"
     torch.save(
-        dict(config=dict(model=cfg), model=model.state_dict(), manifest_sha256="functional-only"),
+        dict(
+            config=dict(model=cfg),
+            model=model.state_dict(),
+            manifest_sha256=digest(joint_data[0] / "manifest.jsonl"),
+        ),
         checkpoint,
     )
     exported = tmp_path / "functional-only.onnx"
     export_model(checkpoint, exported)
+    meta_path = exported.with_suffix(".json")
+    metadata = json.loads(meta_path.read_text())
+    write_json(meta_path, {**metadata, "manifest_sha256": "different-data"})
+    with pytest.raises(ValueError, match="register an external evaluation"):
+        benchmark(
+            joint_data[0],
+            joint_data[1],
+            exported,
+            tmp_path / "wrong-data",
+            dict(budgets=[1], repeats=1, quality=dict(psnr=30, ssim=0.95)),
+        )
+    write_json(meta_path, metadata)
+    with pytest.raises(ValueError, match="Invalid benchmark"):
+        benchmark(
+            joint_data[0],
+            joint_data[1],
+            exported,
+            tmp_path / "no-repeats",
+            dict(budgets=[1], repeats=0, quality=dict(psnr=30, ssim=0.95)),
+        )
     binary = os.environ.get("RAYTRACER_NEURAL_BINARY")
     if not binary:
         return
@@ -288,3 +319,35 @@ def test_joint_export_native_parity_and_equal_size_benchmark(joint_data, tmp_pat
     assert set(summary["failures"]) == {"raw", "atrous", "raw_upscale", "atrous_upscale", "neural"}
     assert not summary["matched_quality_acceleration"][0]["demonstrated_win"]
     assert summary["model_sha256"] == digest(exported)
+    assert summary["manifest_sha256"] == digest(joint_data[0] / "manifest.jsonl")
+    assert summary["evaluation_scope"] == "original-dataset"
+
+
+def test_gallery_selection_spans_configurations_and_labels_native_pixels(tmp_path):
+    from PIL import Image
+    from raytracer_ml.comparisons import comparison_ids, write_comparison
+
+    rows = [
+        dict(id=f"g{g:03d}-n{n}-s{s}", configuration=f"g{g:03d}", samples=s)
+        for g in range(30)
+        for n in (0, 1)
+        for s in (1, 4, 16)
+    ]
+    selected = comparison_ids(rows)
+    assert len(selected) == 12
+    assert "g000-n0-s4" in selected and "g029-n0-s4" in selected
+    assert all(name.endswith("-n0-s4") for name in selected)
+    row = dict(id="portrait", split="val", samples=4, reference_samples=2048, scale=2)
+    target = np.zeros((57, 31, 3), np.float32)
+    path = tmp_path / "comparison.png"
+    methods = {name: target for name in ("raw", "atrous", "neural", "oidn")}
+    write_comparison(
+        path, row, methods, target, {name: dict(psnr=31, ssim=0.97) for name in methods}
+    )
+    with Image.open(path) as image:
+        assert image.size == (245 * 5, 57 + 122)
+        pixels = np.asarray(image)
+        # The native 31x57 image is preserved, not stretched to the label width.
+        left = (245 - 31) // 2
+        assert (pixels[110:167, left : left + 31] == 0).all()
+        assert (pixels[10:100] != np.array([24, 27, 33])).any()

@@ -1,6 +1,7 @@
 """Native end-to-end repeated-frame benchmark with predeclared quality thresholds."""
 
 import json
+import math
 from html import escape
 import subprocess
 import tempfile
@@ -9,6 +10,8 @@ from pathlib import Path
 import numpy as np
 from .io import manifest, safe_path, read_pfm, write_json, digest
 from .metrics import image_metrics
+from .data.validate import validate
+from .evaluation_contract import authorize_digests
 
 
 def json_stream(text):
@@ -36,6 +39,26 @@ def benchmark(root, binary, model, output, cfg):
     threshold = cfg.get("quality", {})
     if "psnr" not in threshold or "ssim" not in threshold:
         raise ValueError("Set validation-selected PSNR and SSIM thresholds")
+    if (
+        not all(
+            isinstance(threshold[k], (int, float)) and math.isfinite(threshold[k])
+            for k in ("psnr", "ssim")
+        )
+        or threshold["psnr"] < 0
+        or not 0 <= threshold["ssim"] <= 1
+        or type(cfg.get("repeats", 3)) is not int
+        or cfg.get("repeats", 3) < 1
+        or not cfg.get("budgets")
+        or any(type(n) is not int or n < 1 for n in cfg["budgets"])
+    ):
+        raise ValueError("Invalid benchmark thresholds, sample budgets or warm repeats")
+    validation = validate(root)
+    evaluation_scope = authorize_digests(
+        metadata["manifest_sha256"],
+        metadata["checkpoint_sha256"],
+        validation,
+        cfg.get("registration"),
+    )
     records = manifest(root / "manifest.jsonl")
     config_ids = sorted(
         {r["configuration"] for r in records if r["split"] == cfg.get("split", "test")}
@@ -176,6 +199,9 @@ def benchmark(root, binary, model, output, cfg):
         "config": cfg,
         "renderer_sha256": digest(binary),
         "model_sha256": digest(model),
+        "checkpoint_sha256": metadata["checkpoint_sha256"],
+        "manifest_sha256": validation["manifest_sha256"],
+        "evaluation_scope": evaluation_scope,
         "configurations": len(config_ids),
         "matched_quality": matched,
         "scale": scale,

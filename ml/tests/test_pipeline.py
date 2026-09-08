@@ -286,6 +286,11 @@ def test_evaluation_summarizes_hdr_partition(trained, tmp_path):
         root, output / "best.pt", tmp_path / "regions", split="val", device_name="cpu", repeats=1
     )
     assert result["region_metric_schema"] == 2
+    gallery = json.loads((tmp_path / "regions/comparisons/index.json").read_text())
+    assert gallery["images"] and "Metadata only" in gallery["selection"]
+    assert all(
+        item["methods"] == ["raw", "atrous", "neural", "reference"] for item in gallery["images"]
+    )
     for name in ("raw", "atrous", "neural"):
         distributions = result["distributions"][name]
         total = sum(

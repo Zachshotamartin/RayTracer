@@ -93,11 +93,15 @@ training crop/batch shape. Never resume the old scale-1 model into this experime
 
 Validation uses complete native frames, without random augmentation. Each epoch
 records PSNR, SSIM, edge error, whole-frame HDR error, preservation, learning health
-and breakdowns by resolution. Eligibility requires global **and per-resolution**
+and breakdowns by resolution, sample budget, scene family, detail stratum and
+transport category. Eligibility requires global, **per-resolution and per-budget**
 PSNR ≥30 dB, SSIM ≥0.95, ≥0.1 dB gain over a-trous+bilinear, no SSIM/edge/HDR regression,
 and no near-clean preservation regression relative to bilinearly enlarged measured
 inputs. These are predeclared development gates, not universal perceptual guarantees.
 One failed gate keeps a model ineligible while ordinary early stopping remains active.
+Budget gates prevent improvement on cleaner 64-spp inputs from hiding a failure on
+1-spp inputs. Family, detail and transport slices are diagnostic reports; a good
+overall score is not a guarantee that every scene or intersection of slices passes.
 
 Native benchmarking compares five paths at the **same final dimensions**:
 
@@ -114,6 +118,17 @@ reported. A speedup is measured only where both the neural method and a baseline
 reach the declared PSNR/SSIM threshold; failure to reach it is not an infinite win.
 Optional pretrained OIDN remains an additional quality comparison in `rtml evaluate`;
 the native timing report does not claim to benchmark OIDN.
+Native benchmarks validate dataset checksums and bind their report to the training
+manifest and source checkpoint. An external cohort requires the same registered
+checkpoint/cohort contract used by offline evaluation (set `registration` in the
+benchmark YAML). Zero warm repeats and invalid quality thresholds are rejected.
+
+Evaluation comparison PNGs contain method names, sample counts, PSNR/SSIM, native
+output dimensions and the independent reference budget. Up to 12 configurations
+are spread through their IDs, choosing an input near 4 spp by metadata alone.
+This avoids showing only the first scene's many noise/sample variants. Optional
+OIDN appears in the panels when evaluated. `comparisons/index.json` records the
+selection policy and the error-image display scale.
 
 ## Reproduce
 
@@ -132,6 +147,9 @@ time cap is 30 minutes per invocation and disk cap is 12 GiB. Dataset manifests 
 checksums record native dimensions and camera variants. Checkpoint history belongs
 to a fresh run directory. The training run is a separate explicit launch after the
 preflight is reviewed; unit-test optimizer steps are not a new portfolio experiment.
+The user has authorized starting the new pilot after the completed dataset and
+device checks pass. Review epochs one and two while training continues; do not
+pause a healthy run merely to inspect metrics or because eligibility is still false.
 
 After a trained candidate exists:
 
@@ -159,3 +177,25 @@ memory strategy; native-size and scene diversity still require independent testi
 Passing functional checks establishes that the intended task can now be trained and
 measured. It does not yet establish that the new model beats a-trous, OIDN or native
 path tracing, reconstructs unseen subpixel geometry faithfully, or is temporally stable.
+
+## Project review and remaining evidence
+
+| Concern | Implemented control | Evidence still required |
+| --- | --- | --- |
+| Wrong learning task | Native high-resolution targets and a learned subpixel output head | Held-out reconstruction quality |
+| Small model or insufficient data | 508,172-parameter pilot, diverse native views, larger collection recipe | Train/validation curves and a measured capacity/data scaling study |
+| Lost edges, thin structures, textures | Geometry features, edge/border crops, skip connections, multi-offset gradient loss | Detail metrics and labeled comparisons, including failures |
+| Noisy or biased supervision | Independent seeds, 2,048-spp references, retained 8,192-spp checks | Regional agreement on sampled targets; no blanket convergence claim |
+| Glass, metal, highlights | Real non-diffuse scenes, whole-frame learning, HDR/energy checks and transport reports | Adequate visible transport coverage and error measurements |
+| Augmentation corrupts labels | Aligned scale-aware crops/rotations; radiance and variance gains; camera transforms before tracing | Exact transform tests pass; learning benefit needs ablation |
+| Misleading aggregate quality | Global, resolution and budget gates, plus family/detail/transport reports | Inspect worst cases and tradeoffs; do not select on sealed test |
+| Interrupted or stale training | Frozen code/config/data, atomic latest/best/full epoch states, exact resume tests | Verify live checkpoint receipts at early epochs and invocation boundaries |
+| Misleading speedups | Five native paths at equal output size, validated provenance and finite matched-quality thresholds | Trained-model cold/warm end-to-end timings on this Mac |
+| Unclear images | Embedded labels and metadata-selected comparisons | View generated candidate panels at native size before claiming improvement |
+| Larger images and motion | Dynamic shape/export checks; spatial model explicitly scoped | 1080p/1440p quality, peak memory, latency and motion-flicker experiments |
+
+The pilot is an integration and learning experiment. Its 64 training views are not
+evidence that the final data volume is sufficient. Expand only after the pilot shows
+useful learning and the error analysis identifies what additional data or model
+capacity is needed. Runtime success, learned quality and project completion are
+separate measurements; unresolved experimental questions are not labeled fixed.

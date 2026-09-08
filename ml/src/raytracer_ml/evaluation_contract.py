@@ -37,15 +37,20 @@ def register(checkpoint, training_root, evaluation_root, output):
 
 
 def authorize(state, checkpoint, evaluation, registration=None):
-    if state["manifest_sha256"] == evaluation["manifest_sha256"]:
+    return authorize_digests(state["manifest_sha256"], digest(checkpoint), evaluation, registration)
+
+
+def authorize_digests(training_manifest, checkpoint_sha256, evaluation, registration=None):
+    """Apply the same provenance contract to PyTorch and exported native models."""
+    if training_manifest == evaluation["manifest_sha256"]:
         return "original-dataset"
     if registration is None:
         raise ValueError("Checkpoint dataset differs; register an external evaluation first")
     record = json.loads(Path(registration).read_text())
     required = {
         "schema_version": 1,
-        "checkpoint_sha256": digest(checkpoint),
-        "training_manifest_sha256": state["manifest_sha256"],
+        "checkpoint_sha256": checkpoint_sha256,
+        "training_manifest_sha256": training_manifest,
         "evaluation_manifest_sha256": evaluation["manifest_sha256"],
         "overlapping_geometry": 0,
         "cohort": "external-unseen-geometry",

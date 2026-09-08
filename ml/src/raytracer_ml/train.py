@@ -347,6 +347,7 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
         raw_losses = []
         measured_scores = []
         resolution_scores = {}
+        slice_scores = {name: {} for name in ("budget", "family", "stratum", "transport")}
         comparison = TemporalComparison() if temporal_gate else None
         with torch.inference_mode():
             for validation_index, (prediction, y, x, frame) in enumerate(
@@ -402,6 +403,21 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
                         bucket = resolution_scores.setdefault(key, {"measured": [], "baseline": []})
                         bucket["measured"].append(measured_score)
                         bucket["baseline"].append(baseline_scores[validation_index])
+                        row = heldout.rows[validation_index]
+                        labels = {
+                            "budget": str(row["samples"]),
+                            "family": row.get("family", "unspecified"),
+                            "stratum": row.get("stratum", "unspecified"),
+                            "transport": (row.get("render_variant") or {}).get(
+                                "transport", "unspecified"
+                            ),
+                        }
+                        for name, label in labels.items():
+                            bucket = slice_scores[name].setdefault(
+                                label, {"measured": [], "baseline": []}
+                            )
+                            bucket["measured"].append(measured_score)
+                            bucket["baseline"].append(baseline_scores[validation_index])
         value = float(np.mean(val_losses))
         if not math.isfinite(value):
             raise FloatingPointError("Non-finite validation loss")
@@ -414,7 +430,8 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
         score, eligible = checkpoint_score(value, measured, baseline, cfg.get("selection"))
         constraints = constraint_report(measured, baseline, selection_config)
         resolution_constraints = {}
-        if cfg.get("selection_by_resolution"):
+        budget_constraints = {}
+        if cfg.get("selection_by_resolution") or cfg.get("selection_by_budget"):
             spatial_constraints = {
                 k: v
                 for k, v in selection_config.items()
@@ -428,20 +445,23 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
             }
             if not spatial_constraints or not resolution_scores:
                 raise ValueError("Resolution selection requires spatial quality constraints")
-            for key, bucket in resolution_scores.items():
-                resolution_constraints[key] = constraint_report(
-                    aggregate_scores(bucket["measured"]),
-                    aggregate_scores(bucket["baseline"]),
-                    spatial_constraints,
-                )
-            passed = all(
-                c["passed"] for report in resolution_constraints.values() for c in report.values()
-            )
-            constraints["resolution_slices"] = {
-                "passed": passed,
-                "slices": len(resolution_constraints),
-            }
-            eligible = eligible and passed
+            for name, buckets, reports in (
+                ("resolution", resolution_scores, resolution_constraints),
+                ("budget", slice_scores["budget"], budget_constraints),
+            ):
+                if not cfg.get(f"selection_by_{name}"):
+                    continue
+                if not buckets:
+                    raise ValueError(f"No {name} slices available for checkpoint selection")
+                for key, bucket in buckets.items():
+                    reports[key] = constraint_report(
+                        aggregate_scores(bucket["measured"]),
+                        aggregate_scores(bucket["baseline"]),
+                        spatial_constraints,
+                    )
+                passed = all(c["passed"] for report in reports.values() for c in report.values())
+                constraints[f"{name}_slices"] = {"passed": passed, "slices": len(reports)}
+                eligible = eligible and passed
         snapshot = {
             "selection_policy": "eligible-first-v1",
             "config": cfg,
@@ -455,6 +475,7 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
             "validation_structure": measured,
             "validation_constraints": constraints,
             "validation_resolution_constraints": resolution_constraints,
+            "validation_budget_constraints": budget_constraints,
             "baseline_structure": baseline,
             "manifest_sha256": validation["manifest_sha256"],
             "training_scene_hashes": sorted({r["scene_sha256"] for r in training.rows}),
@@ -489,6 +510,7 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
             "validation_constraints_pass": eligible,
             "validation_constraints": constraints,
             "validation_resolution_constraints": resolution_constraints,
+            "validation_budget_constraints": budget_constraints,
             "validation_structure": measured,
             "baseline_structure": baseline,
             "stale": stale,
@@ -509,6 +531,7 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
             "validation_constraints_pass": eligible,
             "validation_constraints": constraints,
             "validation_resolution_constraints": resolution_constraints,
+            "validation_budget_constraints": budget_constraints,
             "validation_structure": measured,
             "baseline_structure": baseline,
             "raw_validation_loss": float(np.mean(raw_losses)),
@@ -527,6 +550,17 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
                     "baseline": aggregate_scores(bucket["baseline"]),
                 }
                 for key, bucket in resolution_scores.items()
+            },
+            "validation_by_slice": {
+                name: {
+                    key: {
+                        "images": len(bucket["measured"]),
+                        "measured": aggregate_scores(bucket["measured"]),
+                        "baseline": aggregate_scores(bucket["baseline"]),
+                    }
+                    for key, bucket in buckets.items()
+                }
+                for name, buckets in slice_scores.items()
             },
         }
         if health is not None:

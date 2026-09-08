@@ -13,6 +13,7 @@ from .diagnostics import detail_metrics, grouped_summary, reconstruction_region_
 from .evaluation_contract import authorize
 from .data.arrays import load_example
 from .temporal_metrics import TemporalComparison
+from .comparisons import comparison_ids, write_comparison
 
 
 def evaluate(
@@ -35,6 +36,12 @@ def evaluate(
     model = build_model(state["config"]["model"]).to(device).eval()
     model.load_state_dict(state["model"])
     rows = [r for r in manifest(root / "manifest.jsonl") if r["split"] == split]
+    if not rows or type(repeats) is not int or repeats < 1:
+        raise ValueError("Evaluation requires nonempty rows and at least one warm repeat")
+    if any(r["scale"] != model.scale for r in rows):
+        raise ValueError("Evaluation model and dataset scales disagree")
+    gallery_ids = comparison_ids(rows)
+    gallery = []
     method_names = ["raw", "atrous", "neural"] + (["oidn"] if oidn else [])
     histories = {}
     temporal_comparison = TemporalComparison()
@@ -173,6 +180,7 @@ def evaluate(
                 "cohort": r["cohort"],
                 "group": r["group"],
                 "stratum": r.get("stratum", "room"),
+                "family": r.get("family", "unspecified"),
                 "resolution": f"{x.shape[2]}x{x.shape[1]}->{target.shape[1]}x{target.shape[0]}",
                 "aspect_ratio": x.shape[2] / x.shape[1],
                 "render_variant": r.get("render_variant"),
@@ -189,12 +197,28 @@ def evaluate(
             }
             results.append(result)
             save_arrays(output / "predictions" / f"{r['id']}.npz", prediction=y)
-            if index < 12:
-                write_png(
-                    output / "comparisons" / f"{r['id']}.png",
-                    np.concatenate([raw, atrous, y, target], axis=1),
+            if r["id"] in gallery_ids:
+                comparison_path = output / "comparisons" / f"{r['id']}.png"
+                write_comparison(comparison_path, r, methods, target, metrics)
+                gallery.append(
+                    {
+                        "id": r["id"],
+                        "image": str(comparison_path.relative_to(output)),
+                        "methods": list(methods) + ["reference"],
+                        "reference_samples": r["reference_samples"],
+                        "samples": r["samples"],
+                        "final_dimensions": [target.shape[1], target.shape[0]],
+                    }
                 )
                 write_png(output / "errors" / f"{r['id']}.png", np.abs(y - target) * 4)
+    write_json(
+        output / "comparisons" / "index.json",
+        {
+            "selection": "Up to 12 configurations spread through sorted IDs; one input nearest 4 spp, preferring first noise stream. Metadata only, not model quality.",
+            "error_images": "Absolute linear HDR reconstruction error multiplied by 4, then common ACES/sRGB display; quantitative errors remain in per_image.jsonl.",
+            "images": gallery,
+        },
+    )
     temp = output / "per_image.jsonl"
     temp.write_text("".join(json.dumps(r) + "\n" for r in results))
     summary = {

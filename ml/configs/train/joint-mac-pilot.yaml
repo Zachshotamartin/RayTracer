@@ -24,6 +24,7 @@ checkpoint_history: true
 validation_budgets: [1, 4, 16, 64]
 validation_first_noise_only: true
 selection_by_resolution: true
+selection_by_budget: true
 selection:
   psnr_gain: 0.1
   psnr_min: 30
