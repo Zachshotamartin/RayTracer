@@ -151,6 +151,21 @@ The user has authorized starting the new pilot after the completed dataset and
 device checks pass. Review epochs one and two while training continues; do not
 pause a healthy run merely to inspect metrics or because eligibility is still false.
 
+Start a fresh run, or resume its complete latest state after a clean invocation
+boundary with no other trainer active:
+
+```sh
+ml/.venv/bin/rtml train --config ml/configs/train/joint-mac-pilot.yaml --data "$joint_root/datasets/joint-variety-pilot-v2" --output "$joint_root/runs/joint-mac-pilot-s42-v1"
+ml/.venv/bin/rtml checkpoints --output "$joint_root/runs/joint-mac-pilot-s42-v1"
+ml/.venv/bin/rtml train --config ml/configs/train/joint-mac-pilot.yaml --data "$joint_root/datasets/joint-variety-pilot-v2" --output "$joint_root/runs/joint-mac-pilot-s42-v1" --resume
+```
+
+These are alternative launch actions, not concurrent commands. For the actual
+2026-09-08 run, the SSD preparation launcher uses frozen training source `a9d8255`;
+its manifest, configuration and source checksums are checked before every launch.
+The [initial run receipt](../ml/reports/joint-mac-pilot-start.md) records the data
+audit and the first two checkpoint reviews.
+
 After a trained candidate exists:
 
 ```sh
