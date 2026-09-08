@@ -74,7 +74,11 @@ noise, guide or radiance semantics. Enlarging an old reference also cannot creat
 a valid high-resolution training target. We retain all old data as baseline evidence;
 the joint collection gets its own path and immutable generation fingerprint.
 
-The pilot uses 512-spp references and retains 12 independent 2,048-spp check images,
+The first 512-spp collection exposed a noisy training reference (28.67 dB /
+0.9342 SSIM against its independent check). It is retained as a superseded
+collection; the training preparation uses the new `joint-variety-pilot-v2` dataset.
+
+The pilot uses 2,048-spp references and retains 12 independent 8,192-spp check images,
 balanced across splits. These allow regional noise/convergence inspection but do
 not establish that every reference is converged. Reference-check error in edges,
 dark regions and highlights must be assessed before making a quality claim.
@@ -118,9 +122,9 @@ repository root, with the SSD attached:
 
 ```sh
 joint_root="/Volumes/Zach's SSD/RayTracer"
-ml/.venv/bin/rtml generate --config ml/configs/data/joint-variety-pilot.yaml --renderer build-detail/raytracer --output "$joint_root/datasets/joint-variety-pilot-v1" --dry-run
-ml/.venv/bin/rtml generate --config ml/configs/data/joint-variety-pilot.yaml --renderer build-detail/raytracer --output "$joint_root/datasets/joint-variety-pilot-v1"
-ml/.venv/bin/rtml prepare-training --config ml/configs/train/joint-mac-pilot.yaml --data "$joint_root/datasets/joint-variety-pilot-v1" --output "$joint_root/runs/joint-mac-pilot-s42-v1" --report "$joint_root/preparations/joint-mac-pilot-s42-v1/preflight.json"
+ml/.venv/bin/rtml generate --config ml/configs/data/joint-variety-pilot.yaml --renderer build-detail/raytracer --output "$joint_root/datasets/joint-variety-pilot-v2" --dry-run
+ml/.venv/bin/rtml generate --config ml/configs/data/joint-variety-pilot.yaml --renderer build-detail/raytracer --output "$joint_root/datasets/joint-variety-pilot-v2"
+ml/.venv/bin/rtml prepare-training --config ml/configs/train/joint-mac-pilot.yaml --data "$joint_root/datasets/joint-variety-pilot-v2" --output "$joint_root/runs/joint-mac-pilot-s42-v1" --report "$joint_root/preparations/joint-mac-pilot-s42-v1/preflight.json"
 ```
 
 Generation is resumable with the identical code, configuration and renderer. Its
@@ -132,9 +136,9 @@ preflight is reviewed; unit-test optimizer steps are not a new portfolio experim
 After a trained candidate exists:
 
 ```sh
-ml/.venv/bin/rtml evaluate --data "$joint_root/datasets/joint-variety-pilot-v1" --checkpoint "$joint_root/runs/joint-mac-pilot-s42-v1/best.pt" --output "$joint_root/evaluations/joint-mac-pilot-val" --split val --device mps
+ml/.venv/bin/rtml evaluate --data "$joint_root/datasets/joint-variety-pilot-v2" --checkpoint "$joint_root/runs/joint-mac-pilot-s42-v1/best.pt" --output "$joint_root/evaluations/joint-mac-pilot-val" --split val --device mps
 ml/.venv/bin/rtml export --checkpoint "$joint_root/runs/joint-mac-pilot-s42-v1/best.pt" --output "$joint_root/exports/joint-mac-pilot.onnx"
-ml/.venv/bin/rtml benchmark --data "$joint_root/datasets/joint-variety-pilot-v1" --renderer build-detail/raytracer --model "$joint_root/exports/joint-mac-pilot.onnx" --output "$joint_root/benchmarks/joint-mac-pilot-val" --config ml/configs/evaluate/joint-pilot.yaml
+ml/.venv/bin/rtml benchmark --data "$joint_root/datasets/joint-variety-pilot-v2" --renderer build-detail/raytracer --model "$joint_root/exports/joint-mac-pilot.onnx" --output "$joint_root/benchmarks/joint-mac-pilot-val" --config ml/configs/evaluate/joint-pilot.yaml
 ```
 
 Export parity includes odd, portrait, square and landscape dimensions. The U-Net

@@ -15,8 +15,8 @@ camera_augmentation:
   transport_probability: 0.3
 budgets: [1, 4, 16, 32, 64]
 noise_realizations: 2
-reference_samples: 512
-reference_check_samples: 2048
+reference_samples: 2048
+reference_check_samples: 8192
 reference_check_strategy: stratified
 reference_check_limit: 12
 scale: 2
