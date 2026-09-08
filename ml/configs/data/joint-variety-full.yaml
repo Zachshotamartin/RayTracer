@@ -23,6 +23,8 @@ scale: 2
 depth: 16
 threads: 6
 max_seconds: 7200
-max_gib: 160
+# Dry-run input estimate is 247 GiB before compression, plus references/guides.
+# Bound the entire collection without depending on a particular compression ratio.
+max_gib: 360
 require_clean_source: true
 compact_storage: true

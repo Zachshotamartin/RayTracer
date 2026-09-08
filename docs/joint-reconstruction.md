@@ -50,7 +50,9 @@ sealed test. Sample budgets are 1/4/16/32/64, with two independent input streams
 These small frames bound the initial experiment. The separate
 [`joint-variety-full.yaml`](../ml/configs/data/joint-variety-full.yaml) expansion
 recipe includes native inputs through 384×216, square, portrait and wide frames,
-2,048-spp targets and 57,344 examples. It is not launched automatically. Larger
+2,048-spp targets and 57,344 examples. The user authorized the full experiment
+after reviewing the pilot; [the full Mac run](joint-full-training.md) generates
+the larger collection before beginning its 50-epoch schedule. Larger
 1080p/1440p output evaluations and additional unseen geometry remain qualification
 work; small-patch success is not proof of performance at those sizes.
 

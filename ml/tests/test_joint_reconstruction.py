@@ -351,3 +351,34 @@ def test_gallery_selection_spans_configurations_and_labels_native_pixels(tmp_pat
         left = (245 - 31) // 2
         assert (pixels[110:167, left : left + 31] == 0).all()
         assert (pixels[10:100] != np.array([24, 27, 33])).any()
+
+
+def test_experiment_runs_real_pair_validation_and_checkpointed_training(
+    joint_data, tmp_path, monkeypatch
+):
+    from raytracer_ml import experiment
+
+    prep = tmp_path / "preparation"
+    prep.mkdir()
+    data_cfg, train_cfg = prep / "data.json", prep / "train.json"
+    write_json(data_cfg, data_config())
+    write_json(train_cfg, train_config())
+    plan = dict(
+        source_commit="integration-fixture",
+        data_config=str(data_cfg),
+        train_config=str(train_cfg),
+        renderer=str(joint_data[1]),
+        data=str(joint_data[0]),
+        output=str(tmp_path / "run"),
+        preparation=str(prep),
+        min_free_gib=0,
+        authorization="Tiny CPU integration fixture",
+    )
+    write_json(prep / "plan.json", plan)
+    monkeypatch.setattr(experiment, "verify_plan", lambda p: None)
+    result = experiment.run_experiment(prep / "plan.json")
+    assert result["phase"] == "completed" and result["summary"]["epochs_complete"] == 2
+    assert (tmp_path / "run/latest.pt").is_file() and (tmp_path / "run/best_resume.pt").is_file()
+    report = json.loads((prep / "preflight.json").read_text())
+    assert report["optimizer_updates"] == 0 and report["state"] == "validated-user-authorized"
+    assert json.loads((prep / "reference-agreement.json").read_text())["images"] == 2

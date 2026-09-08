@@ -15,6 +15,10 @@ def main():
         "status", help="Read dataset and training progress from artifact receipts"
     )
     p.add_argument("--artifacts", required=True)
+    p = commands.add_parser(
+        "run-experiment", help="Run a pinned, user-authorized data-to-training plan"
+    )
+    p.add_argument("--plan", required=True)
     p = commands.add_parser("generate")
     p.add_argument("--config", required=True)
     p.add_argument("--renderer", required=True)
@@ -82,6 +86,10 @@ def main():
             from .status import status
 
             result = status(args.artifacts)
+        elif args.command == "run-experiment":
+            from .experiment import run_experiment
+
+            result = run_experiment(args.plan)
         elif args.command == "export-oidn-data":
             from .oidn_dataset import export_dataset
 
