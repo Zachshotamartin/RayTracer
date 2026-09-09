@@ -41,7 +41,11 @@ def write_comparison(path, row, methods, target, metrics):
     draw.text((12, 10), f"{row['id']} | {row['split']} | final {w} x {h}", font=font, fill="white")
     draw.text(
         (12, 33),
-        "Native output pixels; common ACES/sRGB display at exposure 0",
+        (
+            "Synthetic reduced input; retained reference pixels"
+            if row.get("reuse", {}).get("factor") == 2
+            else "Native output pixels; common ACES/sRGB display at exposure 0"
+        ),
         font=small,
         fill=(195, 201, 212),
     )

@@ -1,6 +1,10 @@
 # Learned ray reconstruction
 
 The current development task is [joint denoising and 2× reconstruction](../docs/joint-reconstruction.md).
+
+The full run now [reuses existing renders](../docs/joint-reuse-training.md) with
+aligned crops, rotations and color/exposure augmentation. The full regeneration
+job was stopped; preparing the replacement dataset traces no new rays.
 Use its new data/training recipes and equal-output-resolution benchmark. The old
 full-data denoising run is stopped; the results below describe the released pilot.
 

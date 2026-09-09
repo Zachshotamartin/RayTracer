@@ -36,7 +36,12 @@ def verify_plan(plan):
     for name, checksum in plan["source_files_sha256"].items():
         if digest(package / name) != checksum:
             raise ValueError("Pinned source checksum changed")
-    for key in ("data_config", "train_config", "renderer"):
+    keys = (
+        ("train_config",)
+        if plan.get("data_mode") == "existing"
+        else ("data_config", "train_config", "renderer")
+    )
+    for key in keys:
         if digest(plan[key]) != plan[f"{key}_sha256"]:
             raise ValueError(f"Pinned {key} checksum changed")
 
@@ -59,6 +64,28 @@ def verify_checkpoint(output):
 def audit_references(root, output):
     """Measure retained train/validation targets; sealed test is excluded from tuning."""
     root = Path(root)
+    info_path = root / "dataset.json"
+    info = json.loads(info_path.read_text()) if info_path.exists() else {}
+    if info.get("reuse"):
+        reports = []
+        for source in info["reuse"]["sources"]:
+            path = root / "sources" / source["namespace"]
+            report = audit_references(
+                path, output.parent / f"reference-agreement-{source['namespace']}.json"
+            )
+            reports.append({"source": source["namespace"], **report})
+        result = {
+            "scope": "Retained original train/validation reference checks; no new renders",
+            "images": sum(r["images"] for r in reports),
+            "sources": reports,
+            "below_pilot_agreement_floor": [
+                f"{r['source']}/{name}"
+                for r in reports
+                for name in r["below_pilot_agreement_floor"]
+            ],
+        }
+        write_json(output, result)
+        return result
     checks = []
     for path in sorted((root / "reference_checks").glob("*.json")):
         record = json.loads(path.read_text())
@@ -137,47 +164,74 @@ def run_experiment(plan_path):
         try:
             if not guard():
                 return {"phase": "user-stopped"}
-            data_cfg, train_cfg = config(plan["data_config"]), config(plan["train_config"])
-            expected = generate(data_cfg, plan["renderer"], root, dry_run=True)
-            write_json(prep / "estimate.json", expected)
+            train_cfg = config(plan["train_config"])
             data_complete = prep / "data-complete.json"
-            if not data_complete.exists():
-                for invocation in range(1, plan.get("max_generation_invocations", 200) + 1):
-                    if not guard():
-                        return {"phase": "user-stopped"}
-                    before = saved_examples(root)
-                    record(
-                        "generating",
-                        invocation=invocation,
-                        examples_before=before,
-                        expected_examples=expected["examples"],
+            if plan.get("data_mode") == "existing":
+                if any(key in plan for key in ("renderer", "data_config")):
+                    raise ValueError(
+                        "Existing-data plans cannot contain renderer or generation config"
                     )
-                    start = time.monotonic()
-                    try:
-                        generated = generate(data_cfg, plan["renderer"], root)
-                    except (TimeoutError, subprocess.TimeoutExpired):
-                        count = saved_examples(root)
-                        if (
-                            time.monotonic() - start < data_cfg["max_seconds"] - 2
-                            or count <= before
-                        ):
-                            raise RuntimeError(
-                                "Unexpected timeout or no completed-example progress in the generation budget"
-                            )
+                data_info = json.loads((root / "dataset.json").read_text())
+                if not data_info.get("reuse"):
+                    raise ValueError(
+                        "Existing-data plan requires a provenance-checked reuse dataset"
+                    )
+                if (
+                    digest(root / "manifest.jsonl") != plan["manifest_sha256"]
+                    or digest(root / "dataset.json") != plan["dataset_sha256"]
+                ):
+                    raise ValueError("Pinned existing dataset changed")
+                expected = data_info["estimate"]
+                write_json(
+                    data_complete,
+                    {
+                        "completed": expected["examples"],
+                        "manifest_sha256": plan["manifest_sha256"],
+                        "new_rays": 0,
+                    },
+                )
+            else:
+                data_cfg = config(plan["data_config"])
+                expected = generate(data_cfg, plan["renderer"], root, dry_run=True)
+                write_json(prep / "estimate.json", expected)
+                data_complete = prep / "data-complete.json"
+                if not data_complete.exists():
+                    for invocation in range(1, plan.get("max_generation_invocations", 200) + 1):
+                        if not guard():
+                            return {"phase": "user-stopped"}
+                        before = saved_examples(root)
                         record(
-                            "generation-time-cap",
+                            "generating",
                             invocation=invocation,
-                            examples_complete=count,
+                            examples_before=before,
                             expected_examples=expected["examples"],
                         )
-                        audit_references(root, prep / "reference-agreement.json")
-                        continue
-                    if generated["completed"] != expected["examples"]:
-                        raise RuntimeError("Generation ended with incomplete data")
-                    write_json(data_complete, generated)
-                    break
-                else:
-                    raise RuntimeError("Generation invocation limit reached")
+                        start = time.monotonic()
+                        try:
+                            generated = generate(data_cfg, plan["renderer"], root)
+                        except (TimeoutError, subprocess.TimeoutExpired):
+                            count = saved_examples(root)
+                            if (
+                                time.monotonic() - start < data_cfg["max_seconds"] - 2
+                                or count <= before
+                            ):
+                                raise RuntimeError(
+                                    "Unexpected timeout or no completed-example progress in the generation budget"
+                                )
+                            record(
+                                "generation-time-cap",
+                                invocation=invocation,
+                                examples_complete=count,
+                                expected_examples=expected["examples"],
+                            )
+                            audit_references(root, prep / "reference-agreement.json")
+                            continue
+                        if generated["completed"] != expected["examples"]:
+                            raise RuntimeError("Generation ended with incomplete data")
+                        write_json(data_complete, generated)
+                        break
+                    else:
+                        raise RuntimeError("Generation invocation limit reached")
             generated = json.loads(data_complete.read_text())
             if digest(root / "manifest.jsonl") != generated["manifest_sha256"]:
                 raise ValueError("Completed dataset manifest changed")

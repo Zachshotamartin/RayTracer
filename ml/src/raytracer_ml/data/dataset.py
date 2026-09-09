@@ -1,8 +1,8 @@
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from ..io import manifest, safe_path
-from .arrays import load_example
+from ..io import manifest
+from .arrays import load_example, load_reference
 
 
 class RenderDataset(Dataset):
@@ -108,7 +108,7 @@ class RenderDataset(Dataset):
 
     def __getitem__(self, index):
         r = self.rows[index]
-        data = load_example(self.root, r)
+        data = load_example(self.root, r, baseline=False)
         x = data["features"].copy()
         if x.shape[0] < self.channels:
             raise ValueError("Dataset lacks required feature channels")
@@ -126,10 +126,11 @@ class RenderDataset(Dataset):
             ]
             if choices:
                 other = choices[int(torch.randint(len(choices), ()).item())]
-                alternate = load_example(self.root, other)["features"][: self.channels]
+                alternate = load_example(self.root, other, baseline=False)["features"][
+                    : self.channels
+                ]
                 x = fuse_measurements(x, alternate)
-        with np.load(safe_path(self.root, r["reference"]), allow_pickle=False) as data:
-            y = data["target"].transpose(2, 0, 1).copy()
+        y = load_reference(self.root, r, target_only=True)["target"].transpose(2, 0, 1).copy()
         if self.temporal:
             from ..temporal import reproject, append_history
 
@@ -189,8 +190,8 @@ class RenderDataset(Dataset):
                 pairs = self.near_clean_pairs[self.view_key(r)]
                 a, b = pairs[int(torch.randint(len(pairs), ()).item())]
                 x = fuse_measurements(
-                    load_example(self.root, a)["features"][: self.channels],
-                    load_example(self.root, b)["features"][: self.channels],
+                    load_example(self.root, a, baseline=False)["features"][: self.channels],
+                    load_example(self.root, b, baseline=False)["features"][: self.channels],
                 )
                 if self.crop:
                     x = x[:, top : top + size, left : left + size]

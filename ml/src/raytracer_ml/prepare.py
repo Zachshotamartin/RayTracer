@@ -18,7 +18,7 @@ from .losses import validate_loss_config
 from .models import build_model
 from .preprocessing import model_schema
 from .selection import validate_selection_config
-from .train import device_for, synchronize
+from .train import device_for, synchronize, spatial_collator
 
 
 def prepare_training(cfg, root, output, report, *, validation=None):
@@ -37,6 +37,7 @@ def prepare_training(cfg, root, output, report, *, validation=None):
     if cfg["model"].get("temporal"):
         raise ValueError("This preparation workflow is for spatial training")
     device = device_for(cfg.get("device", "auto"))
+    collator = spatial_collator(cfg)
     torch.set_num_threads(cfg["cpu_threads"])
     validation = validate(root) if validation is None else validation
     if digest(root / "manifest.jsonl") != validation["manifest_sha256"]:
@@ -108,6 +109,23 @@ def prepare_training(cfg, root, output, report, *, validation=None):
                     }
                 )
         synchronize(device)
+        if collator is not None:
+            from .augment import AlignedCropCollator
+
+            for shape in cfg["crop_shapes"]:
+                batch, targets = AlignedCropCollator(
+                    [shape], cfg["crop"], cfg["model"].get("scale", 1)
+                )([training[0] for _ in range(cfg["batch_size"])])
+                prediction = model(batch.to(device))
+                if prediction.shape != targets.shape or not torch.isfinite(prediction).all():
+                    raise ValueError("Variable crop preflight failed")
+                shapes.append(
+                    {
+                        "split": "train-variable-crop",
+                        "input": list(batch.shape),
+                        "output": list(prediction.shape),
+                    }
+                )
     result = {
         "state": "prepared-awaiting-approval",
         "optimizer_updates": 0,

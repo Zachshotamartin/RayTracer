@@ -1,5 +1,10 @@
 # Full joint reconstruction experiment on the Mac
 
+**Stopped and superseded:** the user stopped this regeneration experiment on
+2026-09-09 UTC. Do not restart its plan. The active approach is
+[training from existing renders](joint-reuse-training.md), including crops and
+augmentations. The workload and commands below are historical provenance.
+
 The user authorized the larger run on 2026-09-08 after the 30-epoch pilot finished.
 This experiment tests the same joint denoising/2× reconstruction architecture with
 substantially more data and context. It is a fresh run with a new data contract;

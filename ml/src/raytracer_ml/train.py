@@ -50,6 +50,16 @@ def device_for(name):
     return torch.device(name)
 
 
+def spatial_collator(cfg):
+    if not cfg.get("crop_shapes"):
+        return None
+    from .augment import AlignedCropCollator
+
+    if cfg.get("autoregressive_unroll") or not cfg.get("crop"):
+        raise ValueError("Variable crops require cropped spatial training")
+    return AlignedCropCollator(cfg["crop_shapes"], cfg["crop"], cfg["model"].get("scale", 1))
+
+
 def synchronize(device):
     if str(device) == "mps":
         torch.mps.synchronize()
@@ -212,7 +222,7 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
         shuffle=True,
         generator=generator,
         num_workers=0,
-        collate_fn=collate_sequences if unroll else None,
+        collate_fn=collate_sequences if unroll else spatial_collator(cfg),
     )
     val_loader = DataLoader(
         heldout, batch_size=1, num_workers=0, collate_fn=collate_sequences if unroll else None
@@ -347,7 +357,10 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
         raw_losses = []
         measured_scores = []
         resolution_scores = {}
-        slice_scores = {name: {} for name in ("budget", "family", "stratum", "transport")}
+        slice_scores = {
+            name: {}
+            for name in ("budget", "family", "stratum", "transport", "domain", "domain_budget")
+        }
         comparison = TemporalComparison() if temporal_gate else None
         with torch.inference_mode():
             for validation_index, (prediction, y, x, frame) in enumerate(
@@ -406,6 +419,8 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
                         row = heldout.rows[validation_index]
                         labels = {
                             "budget": str(row["samples"]),
+                            "domain": row.get("cohort", "unspecified"),
+                            "domain_budget": f"{row.get('cohort', 'unspecified')}:{row['samples']}",
                             "family": row.get("family", "unspecified"),
                             "stratum": row.get("stratum", "unspecified"),
                             "transport": (row.get("render_variant") or {}).get(
@@ -431,7 +446,11 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
         constraints = constraint_report(measured, baseline, selection_config)
         resolution_constraints = {}
         budget_constraints = {}
-        if cfg.get("selection_by_resolution") or cfg.get("selection_by_budget"):
+        domain_constraints, domain_budget_constraints = {}, {}
+        if any(
+            cfg.get(f"selection_by_{name}")
+            for name in ("resolution", "budget", "domain", "domain_budget")
+        ):
             spatial_constraints = {
                 k: v
                 for k, v in selection_config.items()
@@ -448,6 +467,8 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
             for name, buckets, reports in (
                 ("resolution", resolution_scores, resolution_constraints),
                 ("budget", slice_scores["budget"], budget_constraints),
+                ("domain", slice_scores["domain"], domain_constraints),
+                ("domain_budget", slice_scores["domain_budget"], domain_budget_constraints),
             ):
                 if not cfg.get(f"selection_by_{name}"):
                     continue
@@ -462,6 +483,17 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
                 passed = all(c["passed"] for report in reports.values() for c in report.values())
                 constraints[f"{name}_slices"] = {"passed": passed, "slices": len(reports)}
                 eligible = eligible and passed
+            for name, reports in (
+                ("domain", domain_constraints),
+                ("domain_budget", domain_budget_constraints),
+            ):
+                if reports:
+                    constraints[f"{name}_reports"] = {
+                        "passed": all(
+                            c["passed"] for report in reports.values() for c in report.values()
+                        ),
+                        "reports": reports,
+                    }
         snapshot = {
             "selection_policy": "eligible-first-v1",
             "config": cfg,

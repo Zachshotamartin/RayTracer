@@ -103,3 +103,43 @@ def apply_transform(x, target, transform, base_channels=17):
 def undo_prediction(prediction, transform):
     gain = transform["gain"].to(device=prediction.device, dtype=prediction.dtype)[:, None, None]
     return spatial_transform(prediction / gain, transform, inverse=True)
+
+
+class AlignedCropCollator:
+    """One shared shape per batch; new square/landscape/portrait crops each draw.
+
+    Retain native pixels instead of resizing references into blurred labels. The
+    global torch RNG is already captured by full-state training checkpoints.
+    """
+
+    def __init__(self, shapes, maximum, scale):
+        if (
+            not isinstance(shapes, list)
+            or not shapes
+            or any(
+                not isinstance(shape, list)
+                or len(shape) != 2
+                or any(type(v) is not int or not 16 <= v <= maximum for v in shape)
+                for shape in shapes
+            )
+        ):
+            raise ValueError("Crop shapes must be [height,width] pairs within the base crop")
+        self.shapes, self.scale = shapes, scale
+
+    def __call__(self, batch):
+        h, w = self.shapes[int(torch.randint(len(self.shapes), ()).item())]
+        inputs, targets = [], []
+        for x, y in batch:
+            if y.shape[-2:] != (x.shape[-2] * self.scale, x.shape[-1] * self.scale):
+                raise ValueError("Unaligned training pair")
+            top = int(torch.randint(x.shape[-2] - h + 1, ()).item())
+            left = int(torch.randint(x.shape[-1] - w + 1, ()).item())
+            inputs.append(x[..., top : top + h, left : left + w])
+            targets.append(
+                y[
+                    ...,
+                    top * self.scale : (top + h) * self.scale,
+                    left * self.scale : (left + w) * self.scale,
+                ]
+            )
+        return torch.stack(inputs), torch.stack(targets)

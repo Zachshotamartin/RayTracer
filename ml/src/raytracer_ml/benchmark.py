@@ -26,6 +26,10 @@ def json_stream(text):
 
 def benchmark(root, binary, model, output, cfg):
     root, binary, output = Path(root), Path(binary).resolve(), Path(output)
+    if json.loads((root / "dataset.json").read_text()).get("reuse"):
+        raise ValueError(
+            "Reuse data includes synthetic input/crop measurements; native rendering benchmarks require original native pairs"
+        )
     model = Path(model)
     metadata = json.loads(model.with_suffix(".json").read_text())
     if metadata["sha256"] != digest(model):

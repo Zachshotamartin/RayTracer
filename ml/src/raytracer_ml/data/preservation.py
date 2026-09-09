@@ -2,9 +2,9 @@
 
 import numpy as np
 import torch
-from .arrays import load_example
+from .arrays import load_example, load_reference
 from ..augment import fuse_measurements
-from ..io import manifest, safe_path
+from ..io import manifest
 
 
 def view_key(row):
@@ -57,12 +57,16 @@ class PreservationValidation:
         with torch.inference_mode():
             for a, b in self.pairs:
                 x = fuse_measurements(
-                    load_example(self.root, a)["features"], load_example(self.root, b)["features"]
+                    load_example(self.root, a, baseline=False)["features"],
+                    load_example(self.root, b, baseline=False)["features"],
                 )
                 # Only independent input measurements enter the network. No target injection.
                 prediction = model(torch.from_numpy(x[None]).to(device))[0].cpu().numpy()
-                with np.load(safe_path(self.root, a["reference"]), allow_pickle=False) as ref:
-                    target = np.log1p(ref["target"].astype(np.float64).transpose(2, 0, 1))
+                target = np.log1p(
+                    load_reference(self.root, a, target_only=True)["target"]
+                    .astype(np.float64)
+                    .transpose(2, 0, 1)
+                )
                 measured.append(
                     float(np.abs(np.log1p(prediction.astype(np.float64)) - target).mean())
                 )

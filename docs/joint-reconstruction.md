@@ -47,12 +47,13 @@ sealed test. Sample budgets are 1/4/16/32/64, with two independent input streams
 | 112×48 | 224×96 |
 | 96×64 | 192×128 |
 
-These small frames bound the initial experiment. The separate
+These small frames bound the initial experiment. The historical
 [`joint-variety-full.yaml`](../ml/configs/data/joint-variety-full.yaml) expansion
 recipe includes native inputs through 384×216, square, portrait and wide frames,
-2,048-spp targets and 57,344 examples. The user authorized the full experiment
-after reviewing the pilot; [the full Mac run](joint-full-training.md) generates
-the larger collection before beginning its 50-epoch schedule. Larger
+2,048-spp targets and 57,344 examples. That generation job was stopped. The
+[current full-data approach](joint-reuse-training.md) reuses the existing 57,344
+examples, completed pilot pairs and saved new pairs with crops and augmentations;
+it does not wait for a new rendered collection. Larger
 1080p/1440p output evaluations and additional unseen geometry remain qualification
 work; small-patch success is not proof of performance at those sizes.
 
@@ -73,8 +74,10 @@ Camera roll provides arbitrary-angle variation without interpolating those guide
 Do not apply arbitrary Gaussian blur, sharpening, JPEG, gamma changes or stretched
 resize to these physical buffers as if they were ordinary photographs. That changes
 noise, guide or radiance semantics. Enlarging an old reference also cannot create
-a valid high-resolution training target. We retain all old data as baseline evidence;
-the joint collection gets its own path and immutable generation fingerprint.
+a valid high-resolution training target. However, reducing the old **noisy input**
+while retaining its original high-quality reference creates useful synthetic
+2× training pairs. This is the current reuse approach, with domain labels,
+feature-aware resampling, split preservation and unchanged source arrays.
 
 The first 512-spp collection exposed a noisy training reference (28.67 dB /
 0.9342 SSIM against its independent check). It is retained as a superseded

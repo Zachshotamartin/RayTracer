@@ -74,6 +74,29 @@ def test_pipeline_reaches_training_only_after_preflight(pipeline):
         experiment.run_experiment(path)
 
 
+def test_existing_data_pipeline_never_calls_generator(pipeline, monkeypatch):
+    path, prep, data, calls, _ = pipeline
+    data.mkdir()
+    (data / "manifest.jsonl").write_text("fixture\n")
+    write_json(data / "dataset.json", {"reuse": {"sources": []}, "estimate": {"examples": 2}})
+    plan = json.loads(path.read_text())
+    plan.pop("renderer")
+    plan.pop("data_config")
+    plan.update(
+        data_mode="existing",
+        manifest_sha256=digest(data / "manifest.jsonl"),
+        dataset_sha256=digest(data / "dataset.json"),
+    )
+    write_json(path, plan)
+    monkeypatch.setattr(
+        experiment, "generate", lambda *a, **k: pytest.fail("No renderer/generator may be called")
+    )
+    result = experiment.run_experiment(path)
+    assert result["phase"] == "completed"
+    assert calls["generation"] == 0
+    assert json.loads((prep / "data-complete.json").read_text())["new_rays"] == 0
+
+
 def test_clean_training_time_cap_resumes_without_pausing_for_review(pipeline, monkeypatch):
     path, prep, _, calls, state = pipeline
 

@@ -24,6 +24,11 @@ def main():
     p.add_argument("--renderer", required=True)
     p.add_argument("--output", required=True)
     p.add_argument("--dry-run", action="store_true")
+    p = commands.add_parser(
+        "reuse-data", help="Reuse existing rendered arrays without tracing rays"
+    )
+    p.add_argument("--source", action="append", required=True)
+    p.add_argument("--output", required=True)
     p = commands.add_parser("validate-data")
     p.add_argument("--data", required=True)
     p = commands.add_parser(
@@ -103,6 +108,10 @@ def main():
             from .data.generate import generate
 
             result = generate(config(args.config), args.renderer, args.output, args.dry_run)
+        elif args.command == "reuse-data":
+            from .data.reuse import build_reuse
+
+            result = build_reuse(args.source, args.output)
         elif args.command == "validate-data":
             from .data.validate import validate
 

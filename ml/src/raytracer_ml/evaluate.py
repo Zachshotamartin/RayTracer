@@ -4,14 +4,14 @@ import time
 from pathlib import Path
 import numpy as np
 import torch
-from .io import manifest, safe_path, write_json, write_png, save_arrays, digest
+from .io import manifest, write_json, write_png, save_arrays, digest
 from .metrics import image_metrics
 from .models import build_model
 from .train import load_checkpoint, device_for, synchronize
 from .data.validate import validate
 from .diagnostics import detail_metrics, grouped_summary, reconstruction_region_metrics
 from .evaluation_contract import authorize
-from .data.arrays import load_example
+from .data.arrays import load_example, load_reference
 from .temporal_metrics import TemporalComparison
 from .comparisons import comparison_ids, write_comparison
 
@@ -59,10 +59,10 @@ def evaluate(
             x = x[:base_channels]
             atrous = data["atrous"].copy()
             position = data["position"].copy()
-            with np.load(safe_path(root, r["reference"])) as data:
-                target = data["target"].copy()
-                reference_features = data["features"].copy() if "features" in data else None
-                annotations = data["annotations"].copy() if "annotations" in data else None
+            reference = load_reference(root, r)
+            target = reference["target"].copy()
+            reference_features = reference["features"].copy() if "features" in reference else None
+            annotations = reference["annotations"].copy() if "annotations" in reference else None
             temporal_start = time.perf_counter()
             model_input = x
             history_fraction = 0.0
@@ -193,6 +193,8 @@ def evaluate(
                 "inference_median_seconds": float(np.median(timings)),
                 "inference_p95_seconds": float(np.percentile(timings, 95)),
                 "render_seconds": r["stats"]["render_seconds"],
+                "input_origin": r.get("cohort", "unspecified"),
+                "reuse": r.get("reuse"),
                 "bvh_seconds": r["stats"]["bvh_build_seconds"],
             }
             results.append(result)
@@ -376,8 +378,7 @@ def evaluate(
         summary["worst_cases"][key] = [r["id"] for r in worst]
         for case in worst:
             row = lookup[case["id"]]
-            with np.load(safe_path(root, row["reference"])) as data:
-                reference = data["target"]
+            reference = load_reference(root, row)["target"]
             with np.load(output / "predictions" / f"{row['id']}.npz") as data:
                 prediction = data["prediction"]
             write_png(

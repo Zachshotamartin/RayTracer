@@ -83,3 +83,10 @@ regenerated from the checked-in configuration. The compressed manifest includes
 original temporary paths for provenance; those paths are not required to use it.
 There is no project-wide license declaration in this repository. Project asset
 licensing should not be inferred from the separately licensed dependencies.
+# Current reuse collection
+
+The current full-data experiment uses `joint-reuse-v1`, a 59,992-example
+composition of saved HDR renders. See the [reuse data card and training contract](../../docs/joint-reuse-training.md)
+for source counts, inherited splits, synthetic area-reduction semantics,
+aligned augmentation, native validation, storage and limitations. Its builder
+traces zero new rays. The historical dataset evidence below remains unchanged.

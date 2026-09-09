@@ -18,6 +18,10 @@ Rendered by this project. Full settings and timing: [studio.json](docs/renders/s
 
 ## Learned reconstruction results
 
+The current full-data training approach [reuses existing renders](docs/joint-reuse-training.md)
+with aligned crops and augmentations. The regeneration job was stopped; the
+replacement retains the saved high-quality references and requires no new renders.
+
 **Current development:** [joint denoising and 2× reconstruction](docs/joint-reconstruction.md)
 uses native multi-resolution pairs, camera zoom/roll, aligned augmentation and a
 learned subpixel head. The previous large same-resolution run was stopped at epoch
