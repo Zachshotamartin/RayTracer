@@ -44,6 +44,11 @@ def verify_plan(plan):
     for key in keys:
         if digest(plan[key]) != plan[f"{key}_sha256"]:
             raise ValueError(f"Pinned {key} checksum changed")
+    if "extension_seed" in plan:
+        if plan.get("data_mode") != "existing":
+            raise ValueError("Schedule extensions require an existing-data plan")
+        if digest(plan["extension_seed"]) != plan["extension_seed_sha256"]:
+            raise ValueError("Pinned extension seed checksum changed")
 
 
 def saved_examples(root):
@@ -255,10 +260,24 @@ def run_experiment(plan_path):
             resume = (output / "latest.pt").is_file()
             if resume and (not previous or previous["phase"] != "training-time-cap"):
                 raise ValueError("Existing training output was not a clean time-cap continuation")
+            extension_seed = plan.get("extension_seed") if not resume else None
+            if extension_seed:
+                seed = load_checkpoint(extension_seed)
+                require_resume_state(seed)
+                extension = seed.get("schedule_extension", {})
+                if (
+                    extension.get("mode") != "explicit-cosine-extension-v1"
+                    or seed["config"] != train_cfg
+                    or seed["manifest_sha256"] != generated["manifest_sha256"]
+                    or seed["epoch"] + 1 != extension.get("parent_epochs_completed")
+                ):
+                    raise ValueError("Extension seed does not match the prepared continuation")
             for invocation in range(1, plan.get("max_training_invocations", 200) + 1):
                 if not guard():
                     return {"phase": "user-stopped"}
                 before = verify_checkpoint(output)["epoch"] + 1 if resume else 0
+                if extension_seed:
+                    before = seed["epoch"] + 1
                 record(
                     "training",
                     invocation=invocation,
@@ -266,7 +285,11 @@ def run_experiment(plan_path):
                     target_epochs=train_cfg["epochs"],
                     resume=resume,
                 )
-                result = train(train_cfg, root, output, resume=resume)
+                if extension_seed:
+                    result = train(train_cfg, root, output, resume_from=extension_seed)
+                    extension_seed = None
+                else:
+                    result = train(train_cfg, root, output, resume=resume)
                 state = verify_checkpoint(output)
                 completed = state["epoch"] + 1
                 if result["reason"] == "time-cap":

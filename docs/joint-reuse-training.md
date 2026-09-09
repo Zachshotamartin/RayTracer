@@ -93,6 +93,54 @@ decay and patience ten. Best/latest/full epoch checkpoints retain exact optimize
 scheduler and RNG resume state. Clean time limits continue automatically; epoch
 one and two reviews do not pause healthy training.
 
+## Extension to 100 total epochs
+
+An additional 50 epochs is authorized **after the current run completes epoch 50**.
+The active source and 50-epoch configuration remain pinned. If patience ten stops
+the parent early, report its results before considering an extension; the extension
+command refuses incomplete, paused or early-stopped parents.
+
+The original cosine schedule reaches zero at epoch 50. Changing `epochs` in its
+configuration is not an exact resume and fails the normal contract check. Use the
+explicit `extend-training` preparation with
+[`joint-mac-reuse-100.yaml`](../ml/configs/train/joint-mac-reuse-100.yaml). It changes
+only the total epoch limit and initial learning rate: a new 50-epoch cosine starts
+at 0.00003, one tenth of the parent's initial rate. This rate is a conservative
+continuation setting, not a measured optimum or a guarantee of improvement.
+
+After the parent controller has finished, prepare a seed in a separate directory:
+
+```sh
+rtml extend-training \
+  --parent-run "$ssd/runs/joint-mac-reuse-s42-v1" \
+  --config ml/configs/train/joint-mac-reuse-100.yaml \
+  --output "$ssd/preparations/joint-mac-reuse-s42-extension-seed"
+```
+
+This command performs **zero optimizer updates** and reads no rendered arrays.
+It locks the parent against training, verifies its full completion and immutable
+epoch receipt, compares the entire latest state to that archive, and writes a new
+`seed.pt` plus `extension.json`. It preserves model weights, Adam moments and step
+counts, random state, validation selection, elapsed training time and the patience
+counter. The changed schedule/configuration receives a new contract and explicit
+parent provenance. Parent checkpoint bytes are never overwritten.
+
+The subsequent, separate training run uses the seed with `train --resume-from`,
+or a new pinned existing-data controller plan containing `extension_seed` and
+`extension_seed_sha256`. That controller performs its normal preflight, loads the
+seed once, and uses the new run's latest checkpoint for subsequent clean time-cap
+resumes. Global epoch numbering continues at 51 and ends at 100; validation rules,
+data splits and sealed test are unchanged. No renderer is involved.
+
+The extension keeps the parent's selected best until a new checkpoint improves
+selection. An older `best_resume.pt` retains its **original** configuration and
+contract; it must be resumed with that configuration. Use the extension's
+`latest.pt` to continue its extended schedule. Best/latest and new epoch archives
+remain portable, and the recorded lineage identifies the parent and schedule
+change. Tests cover preserved optimizer/RNG state, exact interrupted continuation,
+the learning-rate trajectory, retained older best states and rejected unsafe
+extensions, using tiny CPU fixtures rather than new ray-traced images.
+
 SSD source snapshots use named local branches `codex/snapshot-<revision>`, pinned
 to their recorded commits. Do not advance those branches during an experiment.
 Their commits are also retained in the published development branch. A CI test

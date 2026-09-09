@@ -158,3 +158,96 @@ def test_rejects_unsafe_resume_and_concurrent_writers(synthetic_training, tmp_pa
     with pytest.raises(ValueError, match="checksum mismatch"):
         train(cfg, root, out, resume=True)
     assert digest(out / "latest.pt") == before
+
+
+def test_schedule_extension_preserves_state_and_resumes_exactly(synthetic_training, tmp_path):
+    from raytracer_ml.schedule_extension import prepare_extension
+
+    root, cfg, _ = synthetic_training
+    parent = tmp_path / "parent"
+    train(cfg, root, parent)
+    original = load_checkpoint(parent / "latest.pt")
+    before = {str(p.relative_to(parent)): digest(p) for p in parent.rglob("*.pt")}
+    extended_cfg = {**cfg, "epochs": 6, "learning_rate": 0.0001}
+    receipt = prepare_extension(parent, extended_cfg, tmp_path / "seed")
+    seed = load_checkpoint(receipt["checkpoint"])
+    for key in ("model", "rng", "epoch", "step", "stale", "selection_state"):
+        assert_state_equal(seed[key], original[key])
+    assert_state_equal(seed["optimizer"]["state"], original["optimizer"]["state"])
+    assert original["optimizer"]["param_groups"][0]["lr"] == 0
+    assert seed["optimizer"]["param_groups"][0]["lr"] == 0.0001
+    assert seed["scheduler"]["T_max"] == 3 and seed["scheduler"]["last_epoch"] == 0
+    assert seed["contract"] != original["contract"]
+    whole, paused = tmp_path / "whole-extension", tmp_path / "paused-extension"
+    train(extended_cfg, root, whole, resume_from=receipt["checkpoint"])
+    train(extended_cfg, root, paused, resume_from=receipt["checkpoint"], max_new_epochs=1)
+    train(extended_cfg, root, paused, resume=True)
+    a, b = (load_checkpoint(p / "latest.pt") for p in (whole, paused))
+    assert_training_equal(a, b)
+    assert a["epoch"] == 5 and a["step"] == 12
+    assert a["schedule_extension"] == seed["schedule_extension"]
+    metrics = [json.loads(s) for s in (whole / "metrics.jsonl").read_text().splitlines()]
+    assert [m["epoch"] for m in metrics] == [3, 4, 5]
+    assert [m["learning_rate"] for m in metrics] == pytest.approx([0.0001, 0.000075, 0.000025])
+    assert a["optimizer"]["param_groups"][0]["lr"] == 0
+    assert before == {str(p.relative_to(parent)): digest(p) for p in parent.rglob("*.pt")}
+
+
+def test_extension_retains_earlier_best_with_original_contract(
+    synthetic_training, tmp_path, monkeypatch
+):
+    from raytracer_ml.schedule_extension import prepare_extension
+
+    root, cfg, module = synthetic_training
+    scores = iter((0.01, 0.02, 0.03, 0.04, 0.05, 0.06))
+    monkeypatch.setattr(module, "checkpoint_score", lambda *a: (next(scores), True))
+    parent = tmp_path / "parent"
+    train(cfg, root, parent)
+    parent_best = load_checkpoint(parent / "best_resume.pt")
+    assert parent_best["epoch"] == 0
+    extended_cfg = {**cfg, "epochs": 6, "learning_rate": 0.0001}
+    receipt = prepare_extension(parent, extended_cfg, tmp_path / "seed")
+    out = tmp_path / "extended"
+    train(extended_cfg, root, out, resume_from=receipt["checkpoint"])
+    best = load_checkpoint(out / "best_resume.pt")
+    assert_state_equal(best, parent_best)
+    latest = load_checkpoint(out / "latest.pt")
+    assert latest["contract"] != best["contract"]
+    assert latest["stale"] == 5  # Extension cannot reset early-stopping patience.
+    with pytest.raises(ValueError, match="differs"):
+        train(
+            extended_cfg, root, tmp_path / "wrong-best-resume", resume_from=out / "best_resume.pt"
+        )
+
+
+def test_extension_rejects_incomplete_changed_or_locked_parent(synthetic_training, tmp_path):
+    from filelock import Timeout
+    from raytracer_ml.schedule_extension import prepare_extension
+
+    root, cfg, _ = synthetic_training
+    parent = tmp_path / "parent"
+    extended_cfg = {**cfg, "epochs": 6, "learning_rate": 0.0001}
+    seed = tmp_path / "seed"
+    train(cfg, root, parent, max_new_epochs=1)
+    with pytest.raises(ValueError, match="full schedule"):
+        prepare_extension(parent, extended_cfg, seed)
+    train(cfg, root, parent, resume=True)
+    for changes, message in [
+        ({"seed": 8}, "only epochs"),
+        ({"epochs": 3}, "must exceed"),
+        ({"learning_rate": 0}, "learning rate"),
+        ({"learning_rate": float("nan")}, "learning rate"),
+        ({"learning_rate": cfg["learning_rate"]}, "learning rate"),
+        ({"patience": 20}, "only epochs"),
+    ]:
+        with pytest.raises(ValueError, match=message):
+            prepare_extension(parent, {**extended_cfg, **changes}, seed)
+    with FileLock(parent / ".training.lock"):
+        with pytest.raises(Timeout):
+            prepare_extension(parent, extended_cfg, seed)
+    assert not seed.exists()
+    archive = parent / "checkpoints/epoch-000003.pt"
+    archive.write_bytes(archive.read_bytes() + b"corrupt")
+    with pytest.raises(ValueError, match="receipt disagree"):
+        prepare_extension(parent, extended_cfg, seed)
+    assert not seed.exists()

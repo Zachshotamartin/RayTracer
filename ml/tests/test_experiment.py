@@ -185,3 +185,46 @@ def test_controller_does_not_retry_failed_integrity_preflight(pipeline, monkeypa
         experiment.run_experiment(path)
     assert calls["train_resume"] == []
     assert json.loads((prep / "state.json").read_text())["phase"] == "failed"
+
+
+def test_extension_seed_used_once_then_time_cap_resumes_latest(pipeline, monkeypatch):
+    from raytracer_ml.training_checkpoints import RESUME_FIELDS
+
+    path, prep, data, calls, state = pipeline
+    data.mkdir()
+    (data / "manifest.jsonl").write_text("fixture\n")
+    write_json(data / "dataset.json", {"reuse": {"sources": []}, "estimate": {"examples": 2}})
+    plan = json.loads(path.read_text())
+    plan.pop("renderer")
+    plan.pop("data_config")
+    write_json(plan["train_config"], {"epochs": 3})
+    plan.update(
+        data_mode="existing",
+        manifest_sha256=digest(data / "manifest.jsonl"),
+        dataset_sha256=digest(data / "dataset.json"),
+        extension_seed=str(prep / "seed.pt"),
+        extension_seed_sha256="fixture",
+    )
+    write_json(path, plan)
+    seed = dict.fromkeys(RESUME_FIELDS)
+    seed.update(
+        epoch=0,
+        config={"epochs": 3},
+        manifest_sha256=plan["manifest_sha256"],
+        schedule_extension={"mode": "explicit-cosine-extension-v1", "parent_epochs_completed": 1},
+    )
+    monkeypatch.setattr(experiment, "load_checkpoint", lambda p: seed)
+    invocations = []
+
+    def train(cfg, root, output, **kwargs):
+        invocations.append(kwargs)
+        state["epoch"] = len(invocations)
+        return {
+            "reason": "time-cap" if len(invocations) == 1 else "epochs-complete",
+            "epochs_complete": state["epoch"] + 1,
+        }
+
+    monkeypatch.setattr(experiment, "train", train)
+    assert experiment.run_experiment(path)["phase"] == "completed"
+    assert invocations == [{"resume_from": plan["extension_seed"]}, {"resume": True}]
+    assert calls["generation"] == 0

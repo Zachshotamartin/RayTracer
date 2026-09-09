@@ -243,6 +243,7 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
     total_seconds = 0.0
     step = 0
     best_resume_state = None
+    schedule_extension = state.get("schedule_extension") if state else None
     if state is not None:
         if state["contract"] != contract:
             raise ValueError("Resume configuration or dataset differs from checkpoint")
@@ -551,6 +552,8 @@ def _train(cfg, root, output, resume, max_new_epochs, resume_from):
             "training_scene_hashes": sorted({r["scene_sha256"] for r in training.rows}),
             "best_resume_state": best_resume_state,
         }
+        if schedule_extension is not None:
+            state["schedule_extension"] = schedule_extension
         commit_training_checkpoint(output, state, save_checkpoint, load_checkpoint)
         best_resume_state = state.get("best_resume_state")
         publish_selection(selection_state, output, save_checkpoint, updated_epoch=epoch)

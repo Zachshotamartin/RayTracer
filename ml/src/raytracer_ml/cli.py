@@ -46,6 +46,12 @@ def main():
     p.add_argument("--resume", action="store_true")
     p.add_argument("--resume-from", help="Continue a full checkpoint into a NEW output directory")
     p.add_argument("--max-new-epochs", type=int)
+    p = commands.add_parser(
+        "extend-training", help="Prepare a recorded schedule extension without training"
+    )
+    p.add_argument("--parent-run", required=True)
+    p.add_argument("--config", required=True)
+    p.add_argument("--output", required=True, help="New seed artifact directory, not the next run")
     p = commands.add_parser("checkpoints", help="List full-state restart points and SHA-256 hashes")
     p.add_argument("--output", required=True)
     p = commands.add_parser("pause-training", help="Request a safe pause after the current epoch")
@@ -127,6 +133,10 @@ def main():
                 args.max_new_epochs,
                 args.resume_from,
             )
+        elif args.command == "extend-training":
+            from .schedule_extension import prepare_extension
+
+            result = prepare_extension(args.parent_run, config(args.config), args.output)
         elif args.command == "checkpoints":
             from .train import load_checkpoint
             from .training_checkpoints import list_checkpoints

@@ -94,10 +94,12 @@ def commit_training_checkpoint(output, state, save, load):
     best = state.get("best_resume_state")
     if best is not None:
         require_resume_state(best)
+        from .schedule_extension import parent_best_compatible
+
         if (
             not selected
             or best["epoch"] != selected["epoch"]
-            or best["contract"] != state["contract"]
+            or (best["contract"] != state["contract"] and not parent_best_compatible(state, best))
         ):
             raise ValueError("Best resume state disagrees with checkpoint selection")
     latest = output / "latest.pt"
