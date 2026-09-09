@@ -93,6 +93,12 @@ decay and patience ten. Best/latest/full epoch checkpoints retain exact optimize
 scheduler and RNG resume state. Clean time limits continue automatically; epoch
 one and two reviews do not pause healthy training.
 
+SSD source snapshots use named local branches `codex/snapshot-<revision>`, pinned
+to their recorded commits. Do not advance those branches during an experiment.
+Their commits are also retained in the published development branch. A CI test
+or documentation correction on the development branch does not require changing
+the source of an already running experiment.
+
 The new source/manifest/augmentation contract requires a fresh training run.
 It must not resume the old denoising-only optimizer or the completed pilot's
 optimizer as though their data and schedules were unchanged.

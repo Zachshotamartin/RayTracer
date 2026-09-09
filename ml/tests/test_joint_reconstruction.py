@@ -213,8 +213,21 @@ def test_joint_training_resume_and_resolution_gates(joint_data, tmp_path):
     assert all(set(r["validation_by_slice"]["budget"]) == {"1", "4"} for r in rows)
     assert a["validation_budget_constraints"] == b["validation_budget_constraints"]
     assert all(
-        set(r["validation_by_slice"]) == {"budget", "family", "stratum", "transport"} for r in rows
+        set(r["validation_by_slice"])
+        == {"budget", "family", "stratum", "transport", "domain", "domain_budget"}
+        for r in rows
     )
+    for row in rows:
+        slices = row["validation_by_slice"]
+        assert set(slices["domain"]) == {"val"}
+        assert set(slices["domain_budget"]) == {"val:1", "val:4"}
+        # Every metric grouping must account for the same validation images;
+        # the extra domain reports cannot be empty placeholders or double-count.
+        images = sum(bucket["images"] for bucket in row["validation_by_resolution"].values())
+        assert all(
+            sum(bucket["images"] for bucket in groups.values()) == images
+            for groups in slices.values()
+        )
     checks = constraint_report(
         dict(psnr=29, ssim=0.94, edge=0.1),
         dict(psnr=28, ssim=0.93, edge=0.2),
