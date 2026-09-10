@@ -2,11 +2,13 @@
 
 The current development task is [joint denoising and 2× reconstruction](../docs/joint-reconstruction.md).
 
-The full run now [reuses existing renders](../docs/joint-reuse-training.md) with
-aligned crops, rotations and color/exposure augmentation. The full regeneration
-job was stopped; preparing the replacement dataset traces no new rays.
-Use its new data/training recipes and equal-output-resolution benchmark. The old
-full-data denoising run is stopped; the results below describe the released pilot.
+The completed joint run [reused existing renders](../docs/joint-reuse-training.md)
+with aligned crops, rotations and color/exposure augmentation. It stopped at
+**69 epochs**, retaining **epoch 59** as best. See the
+**[latest comparison gallery and training charts](reports/joint-reconstruction-results.md)**.
+The current model improves on a-trous in native validation averages but remains
+below full quality requirements; acceleration is unproven. The images below
+this introduction describe the older released diffuse pilot.
 
 This package trains our own model to reconstruct linear HDR images from noisy
 path-traced measurements. It includes data generation, integrity checks, grouped
@@ -22,7 +24,7 @@ and [experiment ledger](reports/experiments.md) for measured results and limits.
 
 The [next model improvement plan](../docs/neural-reconstruction-improvement-plan.md)
 maps the edge/detail, material, temporal, upscaling and performance concerns to
-specific experiments and acceptance gates. Those changes are planned, not trained.
+specific experiments and acceptance gates. The linked reports distinguish completed studies from remaining experiments.
 
 | Raw path tracing · 4 samples/pixel | A-trous denoising · 4 samples/pixel |
 | :---: | :---: |

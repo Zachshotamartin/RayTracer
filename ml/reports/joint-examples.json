@@ -1,0 +1,119 @@
+[
+  {
+    "scene": "courtyard-1spp",
+    "selection": "First manifest validation row per selected scene family and sample budget, before inference",
+    "epoch": 59,
+    "checkpoint_sha256": "750510e58d6ea0b61db7c967a42b20d52d9a5e79f4996faaa12376536c60b384",
+    "metrics": {
+      "noisy": {
+        "linear_mse": 0.40478258425607216,
+        "log_mae": 0.05457713082432747,
+        "display_mse": 0.014631521576675762,
+        "psnr": 18.347105079148164,
+        "ssim": 0.5911793566518604
+      },
+      "atrous": {
+        "linear_mse": 0.38734727509376743,
+        "log_mae": 0.04311279579997063,
+        "display_mse": 0.01101188798569357,
+        "psnr": 19.581382149542065,
+        "ssim": 0.7670583957371951
+      },
+      "epoch59": {
+        "linear_mse": 0.38120188431820595,
+        "log_mae": 0.03590290993452072,
+        "display_mse": 0.007718216719919618,
+        "psnr": 21.124830310323347,
+        "ssim": 0.7675897109840765
+      }
+    },
+    "row": {
+      "id": "s1-g0033-v000-r96x64-n0-s1",
+      "family": "courtyard",
+      "samples": 1,
+      "reference_samples": 2048,
+      "split": "val",
+      "scale": 2,
+      "reference_sha256": "1b1a3d09d977857a8a40626681d2a409d425fe964834fff46d8353ac707c52bf"
+    },
+    "display": "Common ACES/sRGB, exposure 0; nearest-neighbor magnification"
+  },
+  {
+    "scene": "corridor-4spp",
+    "selection": "First manifest validation row per selected scene family and sample budget, before inference",
+    "epoch": 59,
+    "checkpoint_sha256": "750510e58d6ea0b61db7c967a42b20d52d9a5e79f4996faaa12376536c60b384",
+    "metrics": {
+      "noisy": {
+        "linear_mse": 0.0963259770034141,
+        "log_mae": 0.03584657981991768,
+        "display_mse": 0.008122175480008027,
+        "psnr": 20.903276317905885,
+        "ssim": 0.6880374659388525
+      },
+      "atrous": {
+        "linear_mse": 0.09420672862223667,
+        "log_mae": 0.030078381299972534,
+        "display_mse": 0.006560480855728207,
+        "psnr": 21.83064327493871,
+        "ssim": 0.8053129651256611
+      },
+      "epoch59": {
+        "linear_mse": 0.056914831732175764,
+        "log_mae": 0.02179131656885147,
+        "display_mse": 0.003733548176571085,
+        "psnr": 24.27878240295552,
+        "ssim": 0.8621771153822925
+      }
+    },
+    "row": {
+      "id": "s1-g0034-v000-r64x64-n0-s4",
+      "family": "corridor",
+      "samples": 4,
+      "reference_samples": 2048,
+      "split": "val",
+      "scale": 2,
+      "reference_sha256": "e0e8ba7a4c5e2607f20a25862df3d0efc61f116b770c665b4747f765e9b62db1"
+    },
+    "display": "Common ACES/sRGB, exposure 0; nearest-neighbor magnification"
+  },
+  {
+    "scene": "shelves-16spp",
+    "selection": "First manifest validation row per selected scene family and sample budget, before inference",
+    "epoch": 59,
+    "checkpoint_sha256": "750510e58d6ea0b61db7c967a42b20d52d9a5e79f4996faaa12376536c60b384",
+    "metrics": {
+      "noisy": {
+        "linear_mse": 0.021095915771026135,
+        "log_mae": 0.016792574897408485,
+        "display_mse": 0.002630828845554416,
+        "psnr": 25.799074049926386,
+        "ssim": 0.8534317625123968
+      },
+      "atrous": {
+        "linear_mse": 0.021059529242469326,
+        "log_mae": 0.01578974537551403,
+        "display_mse": 0.0025692284816658836,
+        "psnr": 25.90197272178034,
+        "ssim": 0.8957273883449913
+      },
+      "epoch59": {
+        "linear_mse": 0.01171760782191033,
+        "log_mae": 0.010852104984223843,
+        "display_mse": 0.0014039740756916854,
+        "psnr": 28.52640911357206,
+        "ssim": 0.9372538694647128
+      }
+    },
+    "row": {
+      "id": "s1-g0036-v000-r64x64-n0-s16",
+      "family": "shelves",
+      "samples": 16,
+      "reference_samples": 2048,
+      "split": "val",
+      "scale": 2,
+      "reference_sha256": "6dac0acc6ce8a6c71d1e0a4108fb5bb019a877211a12166618a1e08a41132f01"
+    },
+    "display": "Common ACES/sRGB, exposure 0; nearest-neighbor magnification"
+  }
+]

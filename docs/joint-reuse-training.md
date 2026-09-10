@@ -1,5 +1,9 @@
 # Train joint reconstruction from existing renders
 
+**Completed study:** the initial 50 epochs finished, and the extension toward 100
+stopped at epoch 69 under patience ten. Epoch 59 is the selected best; full quality
+requirements remain unmet. See the [comparison gallery and charts](../ml/reports/joint-reconstruction-results.md).
+
 The full regeneration job was stopped at the user's request on 2026-09-09 UTC.
 The replacement uses the saved HDR arrays, geometry buffers, reference images
 and independent noise streams. No new ray-traced images are needed to build it.
