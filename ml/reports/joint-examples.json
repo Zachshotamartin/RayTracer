@@ -65,6 +65,37 @@
       "split": "val",
       "scale": 2,
       "reference_sha256": "1b1a3d09d977857a8a40626681d2a409d425fe964834fff46d8353ac707c52bf"
+    },
+    "full_render_processing": {
+      "purpose": "Reference-fed visual diagnostics only; excluded from reconstruction metrics and training charts",
+      "input": "Existing 2048-spp full-resolution reference RGB and its own 27-channel measured feature buffers",
+      "reference_sha256": "1b1a3d09d977857a8a40626681d2a409d425fe964834fff46d8353ac707c52bf",
+      "ai": {
+        "checkpoint_epoch": 59,
+        "input_size": [
+          192,
+          128
+        ],
+        "output_size": [
+          384,
+          256
+        ],
+        "grid_display": "Area-reduced to reference dimensions before common nearest-neighbor display magnification",
+        "training_distribution": "2048-spp input is outside the training sample-budget range"
+      },
+      "atrous": {
+        "iterations": 3,
+        "input_size": [
+          192,
+          128
+        ],
+        "output_size": [
+          192,
+          128
+        ],
+        "guides": "Full-resolution reference center albedo, normal, depth and validity"
+      },
+      "quality_scores_reported": false
     }
   },
   {
@@ -133,6 +164,37 @@
       "split": "val",
       "scale": 2,
       "reference_sha256": "e0e8ba7a4c5e2607f20a25862df3d0efc61f116b770c665b4747f765e9b62db1"
+    },
+    "full_render_processing": {
+      "purpose": "Reference-fed visual diagnostics only; excluded from reconstruction metrics and training charts",
+      "input": "Existing 2048-spp full-resolution reference RGB and its own 27-channel measured feature buffers",
+      "reference_sha256": "e0e8ba7a4c5e2607f20a25862df3d0efc61f116b770c665b4747f765e9b62db1",
+      "ai": {
+        "checkpoint_epoch": 59,
+        "input_size": [
+          128,
+          128
+        ],
+        "output_size": [
+          256,
+          256
+        ],
+        "grid_display": "Area-reduced to reference dimensions before common nearest-neighbor display magnification",
+        "training_distribution": "2048-spp input is outside the training sample-budget range"
+      },
+      "atrous": {
+        "iterations": 3,
+        "input_size": [
+          128,
+          128
+        ],
+        "output_size": [
+          128,
+          128
+        ],
+        "guides": "Full-resolution reference center albedo, normal, depth and validity"
+      },
+      "quality_scores_reported": false
     }
   },
   {
@@ -201,6 +263,37 @@
       "split": "val",
       "scale": 2,
       "reference_sha256": "6dac0acc6ce8a6c71d1e0a4108fb5bb019a877211a12166618a1e08a41132f01"
+    },
+    "full_render_processing": {
+      "purpose": "Reference-fed visual diagnostics only; excluded from reconstruction metrics and training charts",
+      "input": "Existing 2048-spp full-resolution reference RGB and its own 27-channel measured feature buffers",
+      "reference_sha256": "6dac0acc6ce8a6c71d1e0a4108fb5bb019a877211a12166618a1e08a41132f01",
+      "ai": {
+        "checkpoint_epoch": 59,
+        "input_size": [
+          128,
+          128
+        ],
+        "output_size": [
+          256,
+          256
+        ],
+        "grid_display": "Area-reduced to reference dimensions before common nearest-neighbor display magnification",
+        "training_distribution": "2048-spp input is outside the training sample-budget range"
+      },
+      "atrous": {
+        "iterations": 3,
+        "input_size": [
+          128,
+          128
+        ],
+        "output_size": [
+          128,
+          128
+        ],
+        "guides": "Full-resolution reference center albedo, normal, depth and validity"
+      },
+      "quality_scores_reported": false
     }
   }
 ]

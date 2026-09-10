@@ -21,11 +21,12 @@ The current model has not replaced the bundled pilot export.
 
 ## Example images
 
-Every grid contains six images. The top row shows noisy input with bilinear 2×
+Every grid contains eight images. The top row shows noisy input with bilinear 2×
 enlargement, a-trous denoising with bilinear 2× enlargement, and an independent
-**2,048-spp reference** at the target resolution. The bottom row shows epoch-59
+**2,048-spp reference** at the target resolution. The middle row shows epoch-59
 learned reconstruction, that same prediction followed by a-trous denoising, and
-a-trous denoising followed by the same AI model. All panels use the
+a-trous denoising followed by the same AI model. The bottom row adds full-render
+processing with AI and a-trous, described below. All panels use the
 same ACES-fit/sRGB transform at exposure zero, with nearest-neighbor magnification
 for inspection. The model performs actual 2× reconstruction; display magnification
 does not add detail. Spp means samples per pixel.
@@ -100,6 +101,30 @@ methods. Pre-denoising also reduces both metrics compared with AI alone. These
 three comparisons do not qualify either combination as a new default or establish
 a timing advantage. The training charts retain the full original validation
 sample-budget range and measure AI alone; they are unchanged by this gallery update.
+
+## Full-render processing diagnostics
+
+The final two panels start from the existing **2,048-spp reference itself**, using
+its own full-resolution measured feature buffers. They show what additional
+processing does to an already high-sample render; they are excluded from all
+reconstruction scores and training charts. No new rays or training were required.
+
+**Full render → AI** uses the unchanged epoch-59 model and produces another 2×
+upscale: 384 × 256 for courtyard and 256 × 256 for corridor and shelves. The grid
+area-reduces that output to the reference dimensions before common display
+magnification. The full-size outputs below preserve the actual AI output pixels.
+A 2,048-spp input is outside this model's training sample-budget range, so these
+panels do not establish quality at that resolution or a rendering speedup.
+
+**Full render → a-trous** applies three filter iterations at the original reference
+resolution with its own center albedo, normal, depth and validity guides. It can
+smooth remaining noise and also soften fine detail.
+
+| Scene | Full render → AI, original output size | Full render → a-trous |
+| --- | --- | --- |
+| Courtyard | [PNG](figures/joint-epoch59-courtyard-64spp-full-render-ai.png) | [PNG](figures/joint-epoch59-courtyard-64spp-full-render-atrous.png) |
+| Corridor | [PNG](figures/joint-epoch59-corridor-64spp-full-render-ai.png) | [PNG](figures/joint-epoch59-corridor-64spp-full-render-atrous.png) |
+| Shelves | [PNG](figures/joint-epoch59-shelves-64spp-full-render-ai.png) | [PNG](figures/joint-epoch59-shelves-64spp-full-render-atrous.png) |
 
 ## Training and remaining quality gaps
 
