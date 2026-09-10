@@ -37,6 +37,8 @@ The denoiser here is a-trous, not OIDN or DLSS.
 
 ### Courtyard · 64 spp · 480 × 320 → 960 × 640
 
+[![Courtyard — full render at 2,048 samples per pixel](figures/joint-epoch59-courtyard-hd-reference.png)](figures/joint-epoch59-courtyard-hd-reference.png)
+
 <details>
 <summary>Courtyard — view all 10 comparisons</summary>
 
@@ -89,6 +91,8 @@ could not reveal this distinction reliably.
 
 ### Corridor · 64 spp · 480 × 480 → 960 × 960
 
+[![Corridor — full render at 2,048 samples per pixel](figures/joint-epoch59-corridor-hd-reference.png)](figures/joint-epoch59-corridor-hd-reference.png)
+
 <details>
 <summary>Corridor — view all 10 comparisons</summary>
 
@@ -139,6 +143,8 @@ reflections and the bright patch beneath the sphere still differ from the full
 render. The score averages the whole image, including its large flat regions.
 
 ### Shelves · 64 spp · 480 × 480 → 960 × 960
+
+[![Shelves — full render at 2,048 samples per pixel](figures/joint-epoch59-shelves-hd-reference.png)](figures/joint-epoch59-shelves-hd-reference.png)
 
 <details>
 <summary>Shelves — view all 10 comparisons</summary>

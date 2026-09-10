@@ -29,6 +29,8 @@ and an end-to-end rendering speed advantage is not established.
 2,048 spp. Full-render AI variants: 1,920 × 1,920. Each image below is a separate
 PNG; click it to open its native resolution. All use the same exposure.*
 
+[![Corridor — full render at 2,048 samples per pixel](ml/reports/figures/joint-epoch59-corridor-hd-reference.png)](ml/reports/figures/joint-epoch59-corridor-hd-reference.png)
+
 <details>
 <summary>Corridor — view all 10 comparisons</summary>
 
