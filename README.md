@@ -25,22 +25,49 @@ validation averages 29.82 dB PSNR / 0.9173 SSIM, compared with 25.98 dB / 0.8768
 for a-trous plus bilinear 2× enlargement. Full quality requirements remain unmet,
 and an end-to-end rendering speed advantage is not established.
 
-[![Full corridor path-traced render at 960 by 960 pixels and 2048 samples per pixel](ml/reports/figures/joint-epoch59-corridor-hd-reference.png)](ml/reports/figures/joint-epoch59-corridor-hd-reference.png)
+*Corridor · 480 × 480 at 64 spp → 960 × 960. Full render: 960 × 960 at
+2,048 spp. Full-render AI variants: 1,920 × 1,920. Each image below is a separate
+PNG; click it to open its native resolution. All use the same exposure.*
 
-<details>
-<summary>Compare all ten rendering and AI pipelines</summary>
+**1. 64-spp input + bilinear 2×**
 
-[![Epoch-59 comparison: noisy input, a-trous denoiser, high-sample reference, AI reconstruction, AI followed by denoising, denoising followed by AI, and full-render processing](ml/reports/figures/joint-epoch59-corridor-hd.png)](ml/reports/figures/joint-epoch59-corridor-hd.png)
+[![Corridor: 64-spp input + bilinear 2×](ml/reports/figures/joint-epoch59-corridor-hd-noisy.png)](ml/reports/figures/joint-epoch59-corridor-hd-noisy.png)
 
-</details>
+**2. A-trous + bilinear 2×**
 
+[![Corridor: A-trous + bilinear 2×](ml/reports/figures/joint-epoch59-corridor-hd-atrous.png)](ml/reports/figures/joint-epoch59-corridor-hd-atrous.png)
 
-*Corridor gallery render · 64 samples/pixel at 480 × 480 → 960 × 960.
-Reference: an actual 960 × 960 render at 2,048 samples/pixel. Common exposure.
-The AI improves noise and structure while retaining some blur and reflection errors.
-Expand the comparison above: its five rows show baselines, reference versus AI, both low-sample processing orders,
-and the four full-render diagnostics: full-render → AI, full-render → a-trous,
-full-render → a-trous → AI, and full-render → AI → a-trous diagnostics. Click the image to inspect the full-size version.*
+**3. Full render · 2,048 spp**
+
+[![Corridor: Full render · 2,048 spp](ml/reports/figures/joint-epoch59-corridor-hd-reference.png)](ml/reports/figures/joint-epoch59-corridor-hd-reference.png)
+
+**4. AI reconstruction · epoch 59**
+
+[![Corridor: AI reconstruction · epoch 59](ml/reports/figures/joint-epoch59-corridor-hd-epoch59.png)](ml/reports/figures/joint-epoch59-corridor-hd-epoch59.png)
+
+**5. AI → a-trous**
+
+[![Corridor: AI → a-trous](ml/reports/figures/joint-epoch59-corridor-hd-ai-atrous.png)](ml/reports/figures/joint-epoch59-corridor-hd-ai-atrous.png)
+
+**6. A-trous → AI**
+
+[![Corridor: A-trous → AI](ml/reports/figures/joint-epoch59-corridor-hd-atrous-ai.png)](ml/reports/figures/joint-epoch59-corridor-hd-atrous-ai.png)
+
+**7. Full render → AI**
+
+[![Corridor: Full render → AI](ml/reports/figures/joint-epoch59-corridor-hd-full-render-ai.png)](ml/reports/figures/joint-epoch59-corridor-hd-full-render-ai.png)
+
+**8. Full render → a-trous**
+
+[![Corridor: Full render → a-trous](ml/reports/figures/joint-epoch59-corridor-hd-full-render-atrous.png)](ml/reports/figures/joint-epoch59-corridor-hd-full-render-atrous.png)
+
+**9. Full render → a-trous → AI**
+
+[![Corridor: Full render → a-trous → AI](ml/reports/figures/joint-epoch59-corridor-hd-full-render-atrous-ai.png)](ml/reports/figures/joint-epoch59-corridor-hd-full-render-atrous-ai.png)
+
+**10. Full render → AI → a-trous**
+
+[![Corridor: Full render → AI → a-trous](ml/reports/figures/joint-epoch59-corridor-hd-full-render-ai-atrous.png)](ml/reports/figures/joint-epoch59-corridor-hd-full-render-ai-atrous.png)
 
 ![Training loss, native image quality and HDR error through 69 epochs](ml/reports/figures/joint-training-history.png)
 

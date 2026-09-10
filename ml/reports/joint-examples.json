@@ -160,7 +160,7 @@
         "ssim": 0.9516428017196227
       }
     },
-    "display": "Common ACES/sRGB exposure zero. Reference-resolution PNGs are native pixels; 1920-pixel AI diagnostics are area-reduced only in the grid.",
+    "display": "Common ACES/sRGB exposure zero. Every method is a separate native-resolution PNG; full-render AI diagnostics retain their 1920-pixel width.",
     "full_render_processing": {
       "reference_fed": true,
       "quality_scores_reported": false,
@@ -336,7 +336,7 @@
         "ssim": 0.9589090974924325
       }
     },
-    "display": "Common ACES/sRGB exposure zero. Reference-resolution PNGs are native pixels; 1920-pixel AI diagnostics are area-reduced only in the grid.",
+    "display": "Common ACES/sRGB exposure zero. Every method is a separate native-resolution PNG; full-render AI diagnostics retain their 1920-pixel width.",
     "full_render_processing": {
       "reference_fed": true,
       "quality_scores_reported": false,
@@ -512,7 +512,7 @@
         "ssim": 0.9750159515399585
       }
     },
-    "display": "Common ACES/sRGB exposure zero. Reference-resolution PNGs are native pixels; 1920-pixel AI diagnostics are area-reduced only in the grid.",
+    "display": "Common ACES/sRGB exposure zero. Every method is a separate native-resolution PNG; full-render AI diagnostics retain their 1920-pixel width.",
     "full_render_processing": {
       "reference_fed": true,
       "quality_scores_reported": false,

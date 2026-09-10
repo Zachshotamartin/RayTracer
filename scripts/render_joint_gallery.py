@@ -12,9 +12,8 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from PIL import Image, ImageDraw, ImageFont
 from raytracer_ml.data.resample import atrous
-from raytracer_ml.io import digest, display, read_pfm, write_png
+from raytracer_ml.io import digest, read_pfm, write_png
 from raytracer_ml.metrics import image_metrics
 from raytracer_ml.models import build_model
 from raytracer_ml.preprocessing import load_features, validate_features
@@ -196,7 +195,7 @@ def main():
             "renderer_sha256": digest(args.binary),
             "render_stats": stats,
             "metrics": metrics,
-            "display": "Common ACES/sRGB exposure zero. Reference-resolution PNGs are native pixels; 1920-pixel AI diagnostics are area-reduced only in the grid.",
+            "display": "Common ACES/sRGB exposure zero. Every method is a separate native-resolution PNG; full-render AI diagnostics retain their 1920-pixel width.",
             "full_render_processing": {
                 "reference_fed": True,
                 "quality_scores_reported": False,
@@ -209,64 +208,6 @@ def main():
             "evaluation_scope": "Three new higher-resolution illustrations, excluded from historical epoch metrics; no timing or generalization qualification",
         }
         (folder / "report.json").write_text(json.dumps(record, indent=2) + "\n")
-        order = [
-            "noisy",
-            "atrous",
-            "reference",
-            "epoch59",
-            "ai_atrous",
-            "atrous_ai",
-            "full_render_ai",
-            "full_render_atrous",
-            "full_render_atrous_ai",
-            "full_render_ai_atrous",
-        ]
-        labels = [
-            "64-spp input + bilinear 2x",
-            "A-trous + bilinear 2x",
-            "Full path-traced render | 2048 spp",
-            "AI reconstruction | epoch 59",
-            "AI then A-trous",
-            "A-trous then AI",
-            "Full render then AI",
-            "Full render then A-trous",
-            "Full render > A-trous > AI",
-            "Full render > AI > A-trous",
-        ]
-        pw, ph = 992, height + 112
-        canvas = Image.new("RGB", (pw * 2 + 24, ph * 5 + 132), (23, 26, 32))
-        draw = ImageDraw.Draw(canvas)
-        title, small = ImageFont.load_default(size=38), ImageFont.load_default(size=28)
-        draw.text(
-            (16, 10),
-            f"{family.title()} | Real 960-pixel renders | Epoch 59",
-            font=title,
-            fill="white",
-        )
-        draw.text(
-            (16, 58),
-            f"Input 480 x {x.shape[1]} at 64 spp | Reference 960 x {height} at 2048 spp",
-            font=small,
-            fill="#c4cbd5",
-        )
-        for i, (name, label) in enumerate(zip(order, labels)):
-            left, top = 12 + (i % 2) * pw, 110 + (i // 2) * ph
-            draw.text((left + 12, top), label, font=title, fill="white")
-            if name in metrics:
-                detail = f"PSNR {metrics[name]['psnr']:.2f} dB | SSIM {metrics[name]['ssim']:.4f}"
-            elif name == "reference":
-                detail = f"960 x {height} native pixels | independent render"
-            elif name == "full_render_atrous":
-                detail = "Full-render diagnostic | native resolution | 3 passes"
-            else:
-                detail = f"1920 x {height * 2} output | fitted for comparison"
-            draw.text((left + 12, top + 46), detail, font=small, fill="#c4cbd5")
-            value = values[name]
-            if value.shape[:2] != (height, width):
-                value = fit(value, (height, width))
-            pixels = Image.fromarray(np.rint(display(value) * 255).astype("uint8"))
-            canvas.paste(pixels, (left + 16, top + 88))
-        canvas.save(figures / f"{prefix}.png")
         print(f"{family}: gallery complete", flush=True)
 
     reports = [

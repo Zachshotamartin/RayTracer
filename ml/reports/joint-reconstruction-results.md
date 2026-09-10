@@ -22,22 +22,11 @@ The current model has not replaced the bundled pilot export.
 
 ## Example images
 
-Each gallery uses **two columns with larger labels** so its ten images remain
-readable at GitHub's document width. Click a gallery to open the full-size PNG.
-Rows show, from left to right:
-
-1. Noisy input + bilinear 2×; a-trous + bilinear 2×.
-2. Independent 2,048-spp reference; epoch-59 AI reconstruction.
-3. AI → a-trous; a-trous → AI, starting from the 64-spp input.
-4. Full render → AI; full render → a-trous.
-5. Full render → a-trous → AI; full render → AI → a-trous.
-
-All panels use the same ACES-fit/sRGB transform at exposure zero and
-native 960-pixel-wide panels. The AI performs actual 2× reconstruction from
-480-pixel-wide inputs. The comparison grid has 2,008 pixels of width and can be
-opened at full size; individual PNGs below preserve the actual output dimensions. Full-render AI outputs
-are fitted to the reference dimensions for comparison as described below.
-Spp means samples per pixel.
+Each scene has **ten separate, individually labeled images** below. Click any
+image to inspect its native-resolution PNG. All use ACES-fit/sRGB at exposure zero.
+The reference and low-sample reconstructions are 960 pixels wide; full-render AI
+variants are 1,920 pixels wide. GitHub fits each image to the document width without
+changing the linked original. Spp means samples per pixel.
 
 The gallery now uses **fresh 480-pixel-wide, 64-spp inputs** and independent
 **960-pixel-wide, 2,048-spp references**. These replace the earlier enlarged
@@ -48,9 +37,45 @@ The denoiser here is a-trous, not OIDN or DLSS.
 
 ### Courtyard · 64 spp · 480 × 320 → 960 × 640
 
-[![Actual full-resolution courtyard render at 2048 spp](figures/joint-epoch59-courtyard-hd-reference.png)](figures/joint-epoch59-courtyard-hd-reference.png)
+**1. 64-spp input + bilinear 2×**
 
-[![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for courtyard at 64 spp](figures/joint-epoch59-courtyard-hd.png)](figures/joint-epoch59-courtyard-hd.png)
+[![Courtyard: 64-spp input + bilinear 2×](figures/joint-epoch59-courtyard-hd-noisy.png)](figures/joint-epoch59-courtyard-hd-noisy.png)
+
+**2. A-trous + bilinear 2×**
+
+[![Courtyard: A-trous + bilinear 2×](figures/joint-epoch59-courtyard-hd-atrous.png)](figures/joint-epoch59-courtyard-hd-atrous.png)
+
+**3. Full render · 2,048 spp**
+
+[![Courtyard: Full render · 2,048 spp](figures/joint-epoch59-courtyard-hd-reference.png)](figures/joint-epoch59-courtyard-hd-reference.png)
+
+**4. AI reconstruction · epoch 59**
+
+[![Courtyard: AI reconstruction · epoch 59](figures/joint-epoch59-courtyard-hd-epoch59.png)](figures/joint-epoch59-courtyard-hd-epoch59.png)
+
+**5. AI → a-trous**
+
+[![Courtyard: AI → a-trous](figures/joint-epoch59-courtyard-hd-ai-atrous.png)](figures/joint-epoch59-courtyard-hd-ai-atrous.png)
+
+**6. A-trous → AI**
+
+[![Courtyard: A-trous → AI](figures/joint-epoch59-courtyard-hd-atrous-ai.png)](figures/joint-epoch59-courtyard-hd-atrous-ai.png)
+
+**7. Full render → AI**
+
+[![Courtyard: Full render → AI](figures/joint-epoch59-courtyard-hd-full-render-ai.png)](figures/joint-epoch59-courtyard-hd-full-render-ai.png)
+
+**8. Full render → a-trous**
+
+[![Courtyard: Full render → a-trous](figures/joint-epoch59-courtyard-hd-full-render-atrous.png)](figures/joint-epoch59-courtyard-hd-full-render-atrous.png)
+
+**9. Full render → a-trous → AI**
+
+[![Courtyard: Full render → a-trous → AI](figures/joint-epoch59-courtyard-hd-full-render-atrous-ai.png)](figures/joint-epoch59-courtyard-hd-full-render-atrous-ai.png)
+
+**10. Full render → AI → a-trous**
+
+[![Courtyard: Full render → AI → a-trous](figures/joint-epoch59-courtyard-hd-full-render-ai-atrous.png)](figures/joint-epoch59-courtyard-hd-full-render-ai-atrous.png)
 
 At this resolution, the AI cleans the floor and recovers column boundaries, but
 glass and reflected light retain mottled artifacts. The actual high-sample render
@@ -59,9 +84,45 @@ could not reveal this distinction reliably.
 
 ### Corridor · 64 spp · 480 × 480 → 960 × 960
 
-[![Actual full-resolution corridor render at 2048 spp](figures/joint-epoch59-corridor-hd-reference.png)](figures/joint-epoch59-corridor-hd-reference.png)
+**1. 64-spp input + bilinear 2×**
 
-[![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for corridor at 64 spp](figures/joint-epoch59-corridor-hd.png)](figures/joint-epoch59-corridor-hd.png)
+[![Corridor: 64-spp input + bilinear 2×](figures/joint-epoch59-corridor-hd-noisy.png)](figures/joint-epoch59-corridor-hd-noisy.png)
+
+**2. A-trous + bilinear 2×**
+
+[![Corridor: A-trous + bilinear 2×](figures/joint-epoch59-corridor-hd-atrous.png)](figures/joint-epoch59-corridor-hd-atrous.png)
+
+**3. Full render · 2,048 spp**
+
+[![Corridor: Full render · 2,048 spp](figures/joint-epoch59-corridor-hd-reference.png)](figures/joint-epoch59-corridor-hd-reference.png)
+
+**4. AI reconstruction · epoch 59**
+
+[![Corridor: AI reconstruction · epoch 59](figures/joint-epoch59-corridor-hd-epoch59.png)](figures/joint-epoch59-corridor-hd-epoch59.png)
+
+**5. AI → a-trous**
+
+[![Corridor: AI → a-trous](figures/joint-epoch59-corridor-hd-ai-atrous.png)](figures/joint-epoch59-corridor-hd-ai-atrous.png)
+
+**6. A-trous → AI**
+
+[![Corridor: A-trous → AI](figures/joint-epoch59-corridor-hd-atrous-ai.png)](figures/joint-epoch59-corridor-hd-atrous-ai.png)
+
+**7. Full render → AI**
+
+[![Corridor: Full render → AI](figures/joint-epoch59-corridor-hd-full-render-ai.png)](figures/joint-epoch59-corridor-hd-full-render-ai.png)
+
+**8. Full render → a-trous**
+
+[![Corridor: Full render → a-trous](figures/joint-epoch59-corridor-hd-full-render-atrous.png)](figures/joint-epoch59-corridor-hd-full-render-atrous.png)
+
+**9. Full render → a-trous → AI**
+
+[![Corridor: Full render → a-trous → AI](figures/joint-epoch59-corridor-hd-full-render-atrous-ai.png)](figures/joint-epoch59-corridor-hd-full-render-atrous-ai.png)
+
+**10. Full render → AI → a-trous**
+
+[![Corridor: Full render → AI → a-trous](figures/joint-epoch59-corridor-hd-full-render-ai-atrous.png)](figures/joint-epoch59-corridor-hd-full-render-ai-atrous.png)
 
 The AI retains the corridor's column structure and reduces noise, while glass
 reflections and the bright patch beneath the sphere still differ from the full
@@ -69,9 +130,45 @@ render. The score averages the whole image, including its large flat regions.
 
 ### Shelves · 64 spp · 480 × 480 → 960 × 960
 
-[![Actual full-resolution shelves render at 2048 spp](figures/joint-epoch59-shelves-hd-reference.png)](figures/joint-epoch59-shelves-hd-reference.png)
+**1. 64-spp input + bilinear 2×**
 
-[![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for shelves at 64 spp](figures/joint-epoch59-shelves-hd.png)](figures/joint-epoch59-shelves-hd.png)
+[![Shelves: 64-spp input + bilinear 2×](figures/joint-epoch59-shelves-hd-noisy.png)](figures/joint-epoch59-shelves-hd-noisy.png)
+
+**2. A-trous + bilinear 2×**
+
+[![Shelves: A-trous + bilinear 2×](figures/joint-epoch59-shelves-hd-atrous.png)](figures/joint-epoch59-shelves-hd-atrous.png)
+
+**3. Full render · 2,048 spp**
+
+[![Shelves: Full render · 2,048 spp](figures/joint-epoch59-shelves-hd-reference.png)](figures/joint-epoch59-shelves-hd-reference.png)
+
+**4. AI reconstruction · epoch 59**
+
+[![Shelves: AI reconstruction · epoch 59](figures/joint-epoch59-shelves-hd-epoch59.png)](figures/joint-epoch59-shelves-hd-epoch59.png)
+
+**5. AI → a-trous**
+
+[![Shelves: AI → a-trous](figures/joint-epoch59-shelves-hd-ai-atrous.png)](figures/joint-epoch59-shelves-hd-ai-atrous.png)
+
+**6. A-trous → AI**
+
+[![Shelves: A-trous → AI](figures/joint-epoch59-shelves-hd-atrous-ai.png)](figures/joint-epoch59-shelves-hd-atrous-ai.png)
+
+**7. Full render → AI**
+
+[![Shelves: Full render → AI](figures/joint-epoch59-shelves-hd-full-render-ai.png)](figures/joint-epoch59-shelves-hd-full-render-ai.png)
+
+**8. Full render → a-trous**
+
+[![Shelves: Full render → a-trous](figures/joint-epoch59-shelves-hd-full-render-atrous.png)](figures/joint-epoch59-shelves-hd-full-render-atrous.png)
+
+**9. Full render → a-trous → AI**
+
+[![Shelves: Full render → a-trous → AI](figures/joint-epoch59-shelves-hd-full-render-atrous-ai.png)](figures/joint-epoch59-shelves-hd-full-render-atrous-ai.png)
+
+**10. Full render → AI → a-trous**
+
+[![Shelves: Full render → AI → a-trous](figures/joint-epoch59-shelves-hd-full-render-ai-atrous.png)](figures/joint-epoch59-shelves-hd-full-render-ai-atrous.png)
 
 Scores are PSNR / SSIM; higher is better.
 
@@ -84,8 +181,7 @@ Scores are PSNR / SSIM; higher is better.
 ### Individual images at native output size
 
 The base reference and low-sample reconstructions are 960 pixels wide. Full-render
-AI variants are 1,920 pixels wide. These links open the original PNGs without the
-comparison grid's fitting step.
+AI variants are 1,920 pixels wide. These links open the original PNGs at their native dimensions.
 
 | Scene | Raw + 2× | A-trous + 2× | AI | AI → a-trous | A-trous → AI |
 | --- | --- | --- | --- | --- | --- |
@@ -135,7 +231,7 @@ these processing steps required no further rendering or training.
 
 **Full render → AI** uses the unchanged epoch-59 model and produces another 2×
 upscale: 1,920 × 1,280 for courtyard and 1,920 × 1,920 for corridor and shelves.
-The grid area-reduces that output to the reference dimensions for comparison. The full-size outputs below preserve the actual AI output pixels.
+Each separate PNG preserves the actual AI output pixels; it is not downsampled to the reference dimensions.
 A 2,048-spp input is outside this model's training sample-budget range, so these
 panels do not establish quality at that resolution or a rendering speedup.
 
@@ -152,11 +248,10 @@ unlike the noisy inputs used for training.
 **Full render → AI → a-trous** first runs the same AI model on the full render,
 then filters its linear HDR prediction with three iterations at the AI's actual
 output resolution. Guides are nearest-neighbor 2× replications of the full render's
-center albedo, normal, depth and validity. Filtering happens before display reduction;
+center albedo, normal, depth and validity. Filtering happens at the actual AI output resolution;
 replicated guides cannot provide new subpixel geometry or calibrated AI-error variance.
 
-Both sequences produce the same output dimensions as full render → AI and use the
-same area reduction for the gallery. Full-size PNGs are linked below. They remain
+Both sequences produce the same output dimensions as full render → AI and are saved individually at their native output sizes. Full-size PNGs are linked below. They remain
 reference-fed diagnostics, with no reconstruction scores or timing claims.
 
 | Scene | Full render → AI | Full render → a-trous | Full render → a-trous → AI | Full render → AI → a-trous |
