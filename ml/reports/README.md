@@ -4,7 +4,7 @@
 
 The **[epoch-59 gallery and training charts](joint-reconstruction-results.md)**
 show three native validation scenes at 1, 4 and 16 samples/pixel, with noisy input,
-a-trous, AI, AI followed by a-trous, and 2,048-spp reference panels. The run stopped at epoch 69; epoch 59
+a-trous, AI, both AI/denoising orders, and 2,048-spp reference panels. The run stopped at epoch 69; epoch 59
 is the selected best. Full quality qualification and rendering speedup remain open.
 
 ![Epoch-59 native quality by input sample count](figures/joint-native-quality.png)

@@ -21,10 +21,11 @@ The current model has not replaced the bundled pilot export.
 
 ## Example images
 
-Every grid contains five images. The top row shows noisy input with bilinear 2×
+Every grid contains six images. The top row shows noisy input with bilinear 2×
 enlargement, a-trous denoising with bilinear 2× enlargement, and an independent
 **2,048-spp reference** at the target resolution. The bottom row shows epoch-59
-learned reconstruction and that same prediction followed by a-trous denoising. All panels use the
+learned reconstruction, that same prediction followed by a-trous denoising, and
+a-trous denoising followed by the same AI model. All panels use the
 same ACES-fit/sRGB transform at exposure zero, with nearest-neighbor magnification
 for inspection. The model performs actual 2× reconstruction; display magnification
 does not add detail. Spp means samples per pixel.
@@ -36,7 +37,7 @@ a controlled sample-count sweep. The denoiser here is a-trous, not OIDN or DLSS.
 
 ### Courtyard · 1 spp · 96 × 64 → 192 × 128
 
-![Noisy, a-trous, reference, epoch-59 AI and AI-plus-denoising comparison for courtyard at 1 spp](figures/joint-epoch59-courtyard-1spp.png)
+![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for courtyard at 1 spp](figures/joint-epoch59-courtyard-1spp.png)
 
 The AI reduces noise, but the glass object and reflections remain inaccurate.
 AI-only SSIM is almost tied with the denoiser. Post-denoising improves PSNR and
@@ -44,23 +45,25 @@ SSIM here, although the glass object still differs substantially from the refere
 
 ### Corridor · 4 spp · 64 × 64 → 128 × 128
 
-![Noisy, a-trous, reference, epoch-59 AI and AI-plus-denoising comparison for corridor at 4 spp](figures/joint-epoch59-corridor-4spp.png)
+![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for corridor at 4 spp](figures/joint-epoch59-corridor-4spp.png)
 
 The AI improves the columns and lighting; thin structures, reflections and sharp
 edges remain softer than the reference. Post-denoising worsens both PSNR and SSIM.
 
 ### Shelves · 16 spp · 64 × 64 → 128 × 128
 
-![Noisy, a-trous, reference, epoch-59 AI and AI-plus-denoising comparison for shelves at 16 spp](figures/joint-epoch59-shelves-16spp.png)
+![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for shelves at 16 spp](figures/joint-epoch59-shelves-16spp.png)
 
 The AI produces cleaner surfaces and more distinct objects, with residual blur on
 small shelf details. Post-denoising worsens both PSNR and SSIM.
 
-| Example | A-trous PSNR / SSIM | AI PSNR / SSIM | AI + a-trous PSNR / SSIM |
-| --- | ---: | ---: | ---: |
-| Courtyard, 1 spp | 19.58 dB / 0.7671 | 21.12 dB / 0.7676 | 21.60 dB / 0.8182 |
-| Corridor, 4 spp | 21.83 dB / 0.8053 | 24.28 dB / 0.8622 | 23.48 dB / 0.8409 |
-| Shelves, 16 spp | 25.90 dB / 0.8957 | 28.53 dB / 0.9373 | 27.93 dB / 0.9233 |
+Scores are PSNR / SSIM; higher is better.
+
+| Example | A-trous | AI | AI → a-trous | A-trous → AI |
+| --- | ---: | ---: | ---: | ---: |
+| Courtyard, 1 spp | 19.58 dB / 0.7671 | 21.12 dB / 0.7676 | 21.60 dB / 0.8182 | 21.32 dB / 0.8210 |
+| Corridor, 4 spp | 21.83 dB / 0.8053 | 24.28 dB / 0.8622 | 23.48 dB / 0.8409 | 24.27 dB / 0.8679 |
+| Shelves, 16 spp | 25.90 dB / 0.8957 | 28.53 dB / 0.9373 | 27.93 dB / 0.9233 | 28.20 dB / 0.9294 |
 
 ### Post-denoising procedure
 
@@ -77,6 +80,24 @@ their scores. Post-denoising helps the courtyard but hurts the other two example
 it is an illustration, not a new default inference mode. The training charts below
 still measure **AI alone**, and no broader quality or latency claim is made for this
 post-processing experiment.
+
+### Pre-denoising procedure
+
+The sixth panel feeds the saved input-resolution a-trous result to the unchanged
+epoch-59 model, replacing only RGB channels 0–2. All geometry/material guides and
+original sampling statistics stay unchanged. The AI then reconstructs at 2×
+resolution. Neither filter nor model receives reference pixels or reference guides.
+
+The model was trained on noisy RGB inputs, not these pre-denoised inputs. This is
+an inference-only experiment with a changed input distribution; the retained
+sampling statistics describe the original samples, not the filter's residual error.
+It is not a separately trained denoise-then-upscale model.
+
+On these examples, pre-denoising improves courtyard PSNR/SSIM over AI alone,
+improves corridor SSIM with essentially unchanged PSNR, and worsens shelves
+PSNR/SSIM. Neither ordering is consistently best. The original selection and
+training charts still measure AI alone; these three comparisons do not qualify
+either combination as a new default or establish a timing advantage.
 
 ## Training and remaining quality gaps
 

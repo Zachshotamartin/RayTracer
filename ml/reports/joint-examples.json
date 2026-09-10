@@ -32,6 +32,13 @@
         "display_mse": 0.006912282797226144,
         "psnr": 21.60378502189694,
         "ssim": 0.818200420888726
+      },
+      "atrous_ai": {
+        "linear_mse": 0.3820529235976977,
+        "log_mae": 0.03612314164638519,
+        "display_mse": 0.007383680852354042,
+        "psnr": 21.31727083252049,
+        "ssim": 0.8209604613876061
       }
     },
     "row": {
@@ -51,6 +58,13 @@
       "guides": "Nearest-neighbor 2x of noisy input center albedo, normal, depth and validity",
       "reference_used_by_filter": false,
       "settings_tuned_on_examples": false
+    },
+    "pre_denoising": {
+      "algorithm": "Saved input-resolution a-trous baseline",
+      "replacement": "Only RGB channels 0:3; original guides and sampling statistics retained",
+      "checkpoint": "Unchanged epoch 59",
+      "trained_on_denoised_inputs": false,
+      "reference_used_by_pipeline": false
     }
   },
   {
@@ -86,6 +100,13 @@
         "display_mse": 0.00448372347934686,
         "psnr": 23.4836117910491,
         "ssim": 0.8409428262859165
+      },
+      "atrous_ai": {
+        "linear_mse": 0.056148529269612536,
+        "log_mae": 0.022584855556488037,
+        "display_mse": 0.0037386788606254763,
+        "psnr": 24.272818376133806,
+        "ssim": 0.8678865125648537
       }
     },
     "row": {
@@ -105,6 +126,13 @@
       "guides": "Nearest-neighbor 2x of noisy input center albedo, normal, depth and validity",
       "reference_used_by_filter": false,
       "settings_tuned_on_examples": false
+    },
+    "pre_denoising": {
+      "algorithm": "Saved input-resolution a-trous baseline",
+      "replacement": "Only RGB channels 0:3; original guides and sampling statistics retained",
+      "checkpoint": "Unchanged epoch 59",
+      "trained_on_denoised_inputs": false,
+      "reference_used_by_pipeline": false
     }
   },
   {
@@ -140,6 +168,13 @@
         "display_mse": 0.0016115487203845038,
         "psnr": 27.92756560350652,
         "ssim": 0.9232963376192559
+      },
+      "atrous_ai": {
+        "linear_mse": 0.011781235040410282,
+        "log_mae": 0.011618309654295444,
+        "display_mse": 0.0015128718480542224,
+        "psnr": 28.201978585201463,
+        "ssim": 0.929422855089108
       }
     },
     "row": {
@@ -159,6 +194,13 @@
       "guides": "Nearest-neighbor 2x of noisy input center albedo, normal, depth and validity",
       "reference_used_by_filter": false,
       "settings_tuned_on_examples": false
+    },
+    "pre_denoising": {
+      "algorithm": "Saved input-resolution a-trous baseline",
+      "replacement": "Only RGB channels 0:3; original guides and sampling statistics retained",
+      "checkpoint": "Unchanged epoch 59",
+      "trained_on_denoised_inputs": false,
+      "reference_used_by_pipeline": false
     }
   }
 ]
