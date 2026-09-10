@@ -1,8 +1,25 @@
 # Experiment ledger
 
-All models below were trained from scratch on this renderer's paired samples.
+Models were trained on this renderer's paired samples. Continuation runs below
+resume their named parent rather than training from scratch.
 Configurations, artifact contracts, summary metrics and limitations are retained.
 The test results were not used to retrain or select a replacement pilot model.
+
+## Completed joint reconstruction and preceding runs
+
+| Run | Purpose | Result / decision |
+| --- | --- | --- |
+| `full-mac-guided-s42-v1` | Large same-resolution guided baseline | Stopped at user request after 33 complete epochs; best 31. Superseded by joint 2× training. |
+| `joint-mac-pilot-s42-v1` | Native multi-resolution joint 2× pilot | Completed 30 epochs; best 30. Native validation 27.16 dB / 0.8424 SSIM; ineligible. |
+| `joint-mac-full-s42-v1` | Proposed full native collection | Generation stopped at user request; no training run. Its 728 completed pairs were retained for reuse. |
+| `joint-mac-reuse-s42-v1` | Joint model trained on 59,992 existing examples | Completed 50 epochs; best 50. Continued from the verified epoch-46 checkpoint after an interruption. No new renders. |
+| `joint-mac-reuse-s42-100-v1` | Lower-LR continuation from epoch 50 toward 100 total | Early stopping at global epoch 69; selected best 59. Best native validation 29.82 dB / 0.9173 SSIM vs a-trous 25.98 / 0.8768. Full qualification unmet; acceleration unproven. |
+
+The **[current gallery, charts and exact metrics](joint-reconstruction-results.md)**
+cover the completed joint study. Its sealed test remains unused; no replacement
+viewer model has been promoted. Training and scheduled monitoring are stopped.
+
+## Original pilot and smoke studies (historical)
 
 | Run | Purpose | Result / decision |
 | --- | --- | --- |

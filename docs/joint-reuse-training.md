@@ -97,12 +97,15 @@ decay and patience ten. Best/latest/full epoch checkpoints retain exact optimize
 scheduler and RNG resume state. Clean time limits continue automatically; epoch
 one and two reviews do not pause healthy training.
 
-## Extension to 100 total epochs
+## Completed extension toward 100 total epochs
 
-An additional 50 epochs is authorized **after the current run completes epoch 50**.
-The active source and 50-epoch configuration remain pinned. If patience ten stops
-the parent early, report its results before considering an extension; the extension
-command refuses incomplete, paused or early-stopped parents.
+The parent completed 50 epochs. The authorized extension targeted 100 total epochs
+and stopped normally at epoch 69 after ten epochs without selection improvement.
+Epoch 59 is the selected best; full quality requirements remain unmet. Training and
+scheduled monitoring are stopped. The source and configurations remain pinned for
+reproducibility. The procedure below records how that extension was prepared; it
+is not a pending launch instruction. The extension command refuses incomplete,
+paused or early-stopped parents.
 
 The original cosine schedule reaches zero at epoch 50. Changing `epochs` in its
 configuration is not an exact resume and fails the normal contract check. Use the
@@ -112,7 +115,8 @@ only the total epoch limit and initial learning rate: a new 50-epoch cosine star
 at 0.00003, one tenth of the parent's initial rate. This rate is a conservative
 continuation setting, not a measured optimum or a guarantee of improvement.
 
-After the parent controller has finished, prepare a seed in a separate directory:
+The completed study used the following seed-preparation command after the parent
+finished. Reproducing it requires a new destination directory:
 
 ```sh
 rtml extend-training \
@@ -133,7 +137,8 @@ The subsequent, separate training run uses the seed with `train --resume-from`,
 or a new pinned existing-data controller plan containing `extension_seed` and
 `extension_seed_sha256`. That controller performs its normal preflight, loads the
 seed once, and uses the new run's latest checkpoint for subsequent clean time-cap
-resumes. Global epoch numbering continues at 51 and ends at 100; validation rules,
+resumes. Global epoch numbering starts at 51 with a maximum of 100 and can stop
+earlier under the retained patience rule; this run ended at 69. Validation rules,
 data splits and sealed test are unchanged. No renderer is involved.
 
 The extension keeps the parent's selected best until a new checkpoint improves

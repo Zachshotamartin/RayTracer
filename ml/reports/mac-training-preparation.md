@@ -1,17 +1,20 @@
 # Mac training readiness, 2026-09-07
 
-Historical preparation record. Update 2026-09-08: that run completed 33 epochs and
-was stopped at the user's request; epoch 31 is its selected best. The next task is
-[joint denoising and upscaling](../../docs/joint-reconstruction.md).
+**Historical preparation record, dated 2026-09-07.** The run subsequently completed
+33 epochs and was stopped at the user's request on 2026-09-08; epoch 31 was its
+selected best. The later joint 2× study stopped at epoch 69 with epoch 59 selected.
+See the [current results](joint-reconstruction-results.md). No approval is pending
+for this old preparation.
 
-The full dataset passed its file/schema/split audit. Apple MPS inference passed at
-the proposed batch shape, with zero optimizer updates. The first full-data run is
-prepared and awaiting approval; no full-data checkpoint exists yet.
+At preparation time, the full dataset had passed its file/schema/split audit and
+Apple MPS inference had passed at the proposed batch shape with zero optimizer
+updates. Training had not started at that point. Those observations describe the
+preflight, not the current checkpoint inventory.
 
-The [run plan](../../docs/mac-training-run.md) proposes the established 9,003-parameter
-guided baseline for an initial two-epoch stage of a fixed 50-epoch schedule. It uses
-43,008 training examples, 2,560 validation images and 512 measured preservation
-pairs each epoch, with all test layouts excluded from model selection.
+The historical [run plan](../../docs/mac-training-run.md) proposed the established
+9,003-parameter guided baseline for an initial two-epoch stage of a fixed 50-epoch
+schedule: 43,008 training examples, 2,560 validation images and 512 measured
+preservation pairs per epoch, with test layouts excluded from model selection.
 
 ## Verified readiness
 

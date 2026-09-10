@@ -1,12 +1,13 @@
 # Detail reconstruction study
 
-2026-09-08: the large scale-1 run is stopped at the user's request, with epoch 33
-latest and epoch 31 best checkpoints preserved. The [joint reconstruction experiment](../../docs/joint-reconstruction.md)
-now defines the native multi-resolution data, trainable 2× output and comparison gates.
+**Historical development study.** The scale-1 run ended at the user's request on
+2026-09-08 with epoch 33 latest and epoch 31 best. The subsequent joint 2× study
+completed 69 epochs, retaining epoch 59 as best. See the
+[current results and gallery](joint-reconstruction-results.md) for that completed study.
 
-Status: implementation and development experiments in progress. The bundled
-`diffuse-pilot-v1.onnx` and its measured limitations remain the released baseline.
-Passing implementation tests does not establish better image quality or acceleration.
+The experiments below describe the earlier detail-model investigation. The bundled
+`diffuse-pilot-v1.onnx` remains the released baseline; the joint model has not passed
+full quality qualification or demonstrated an end-to-end speed advantage.
 The [research alignment audit](../../docs/neural-reconstruction-research-audit.md)
 maps original papers and pinned OIDN training code to the current implementation,
 including limitations in the training recipe and the initial comparisons.
@@ -26,7 +27,7 @@ ongoing training; it does not infer model quality from checkpoint presence.
 | --- | --- | --- | --- | --- |
 | Original `pilot-v1` | 32 / 128 | 2,304 | 512 spp | Historical benchmark |
 | `detail-pilot-v2` | 16 / 64 | 896 | 1,024 spp; 12 independent 4,096-spp checks | Generated and integrity-validated |
-| `detail-full-v3` | 1,024 / 4,096 | 57,344 | 2,048 spp; 96 independent 8,192-spp scalar checks | Generated and integrity-validated; full-data fitting awaits approval |
+| `detail-full-v3` | 1,024 / 4,096 | 57,344 | 2,048 spp; 96 independent 8,192-spp scalar checks | Generated and integrity-validated; Used by the stopped scale-1 run and reused by the completed joint study |
 | `detail-sequence-v2` | 16 / 512 | 2,048 | 1,024 spp; independent 4,096-spp checks | Generated and integrity-validated |
 | `detail-pilot-512` | 16 / 64 | 896 | 2,048 spp; independent 8,192-spp checks | Generation complete; 512×288 resolution cohort |
 
@@ -35,7 +36,7 @@ The full collection passed its file/schema/split audit on 2026-09-07, with manif
 Its older frozen generator retained 96 scalar comparison receipts, not the independent
 check images. Integrity success therefore does not establish regional reference
 convergence. The [Mac run preparation](../../docs/mac-training-run.md) retains this
-limitation and defines an initial two-epoch approval stage with full-state checkpoints.
+limitation and records the original two-epoch approval stage with full-state checkpoints.
 
 The new pilot has 8/4/4 training/validation/test layouts. Its manifest SHA-256 is
 `e782c0dccf9ab0c47169e8bf2ffc8f6e5b3c0f038e2f49c916e58ee42e236894`.

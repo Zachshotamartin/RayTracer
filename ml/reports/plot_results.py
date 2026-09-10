@@ -32,7 +32,6 @@ plt.rcParams.update(
 
 
 def save(figure, name):
-    figure.savefig(FIGURES / f"{name}.png", dpi=150, facecolor="white")
     figure.savefig(FIGURES / f"{name}.svg", facecolor="white", metadata={"Date": None})
     svg = FIGURES / f"{name}.svg"
     svg.write_text("\n".join(line.rstrip() for line in svg.read_text().splitlines()) + "\n")
