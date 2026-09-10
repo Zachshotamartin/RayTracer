@@ -21,15 +21,21 @@ The current model has not replaced the bundled pilot export.
 
 ## Example images
 
-Every grid contains ten images. The top row shows noisy input with bilinear 2×
-enlargement, a-trous denoising with bilinear 2× enlargement, and an independent
-**2,048-spp reference** at the target resolution. The second row shows epoch-59
-learned reconstruction, that same prediction followed by a-trous denoising, and
-a-trous denoising followed by the same AI model. The lower two rows add full-render
-processing with AI, a-trous, and both sequential orders, described below. All panels use the
-same ACES-fit/sRGB transform at exposure zero, with nearest-neighbor magnification
-for inspection. The model performs actual 2× reconstruction; display magnification
-does not add detail. Spp means samples per pixel.
+Each gallery uses **two columns with larger labels** so its ten images remain
+readable at GitHub's document width. Click a gallery to open the full-size PNG.
+Rows show, from left to right:
+
+1. Noisy input + bilinear 2×; a-trous + bilinear 2×.
+2. Independent 2,048-spp reference; epoch-59 AI reconstruction.
+3. AI → a-trous; a-trous → AI, starting from the 64-spp input.
+4. Full render → AI; full render → a-trous.
+5. Full render → a-trous → AI; full render → AI → a-trous.
+
+All panels use the same ACES-fit/sRGB transform at exposure zero and
+nearest-neighbor magnification for inspection. The AI performs actual 2×
+reconstruction; display enlargement does not add detail. Full-render AI outputs
+are fitted to the reference dimensions for comparison as described below.
+Spp means samples per pixel.
 
 The gallery uses existing **64-spp inputs** for the same three scene configurations
 and independent references selected for the original gallery. The original scenes
@@ -40,7 +46,7 @@ The denoiser here is a-trous, not OIDN or DLSS.
 
 ### Courtyard · 64 spp · 96 × 64 → 192 × 128
 
-![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for courtyard at 64 spp](figures/joint-epoch59-courtyard-64spp.png)
+[![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for courtyard at 64 spp](figures/joint-epoch59-courtyard-64spp.png)](figures/joint-epoch59-courtyard-64spp.png)
 
 The AI reduces noise, but the glass object and reflections remain inaccurate.
 AI alone has higher PSNR and SSIM than a-trous and either combined pipeline;
@@ -48,14 +54,14 @@ the glass object still differs from the reference.
 
 ### Corridor · 64 spp · 64 × 64 → 128 × 128
 
-![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for corridor at 64 spp](figures/joint-epoch59-corridor-64spp.png)
+[![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for corridor at 64 spp](figures/joint-epoch59-corridor-64spp.png)](figures/joint-epoch59-corridor-64spp.png)
 
 The AI improves the columns and lighting; thin structures, reflections and sharp
 edges remain softer than the reference. Both combined pipelines reduce PSNR and SSIM compared with AI alone.
 
 ### Shelves · 64 spp · 64 × 64 → 128 × 128
 
-![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for shelves at 64 spp](figures/joint-epoch59-shelves-64spp.png)
+[![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for shelves at 64 spp](figures/joint-epoch59-shelves-64spp.png)](figures/joint-epoch59-shelves-64spp.png)
 
 The AI produces cleaner surfaces and more distinct objects, with residual blur on
 small shelf details. Both combined pipelines reduce PSNR and SSIM compared with AI alone.

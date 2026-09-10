@@ -25,14 +25,14 @@ validation averages 29.82 dB PSNR / 0.9173 SSIM, compared with 25.98 dB / 0.8768
 for a-trous plus bilinear 2× enlargement. Full quality requirements remain unmet,
 and an end-to-end rendering speed advantage is not established.
 
-![Epoch-59 comparison: noisy input, a-trous denoiser, high-sample reference, AI reconstruction, AI followed by denoising, denoising followed by AI, and full-render processing](ml/reports/figures/joint-epoch59-corridor-64spp.png)
+[![Epoch-59 comparison: noisy input, a-trous denoiser, high-sample reference, AI reconstruction, AI followed by denoising, denoising followed by AI, and full-render processing](ml/reports/figures/joint-epoch59-corridor-64spp.png)](ml/reports/figures/joint-epoch59-corridor-64spp.png)
 
 *Corridor validation example · 64 samples/pixel at 64 × 64 → 128 × 128.
 Reference: 2,048 samples/pixel. Common exposure; enlarged for inspection.
 The AI improves noise and structure while retaining some blur and reflection errors.
-The second row compares AI alone, AI then denoising, and denoising then AI.
-The lower two rows add full-render → AI, full-render → a-trous,
-full-render → a-trous → AI, and full-render → AI → a-trous diagnostics.*
+The five rows show baselines, reference versus AI, both low-sample processing orders,
+and the four full-render diagnostics: full-render → AI, full-render → a-trous,
+full-render → a-trous → AI, and full-render → AI → a-trous diagnostics. Click the image to inspect the full-size version.*
 
 ![Training loss, native image quality and HDR error through 69 epochs](ml/reports/figures/joint-training-history.png)
 
