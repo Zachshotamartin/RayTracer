@@ -29,6 +29,9 @@ and an end-to-end rendering speed advantage is not established.
 2,048 spp. Full-render AI variants: 1,920 × 1,920. Each image below is a separate
 PNG; click it to open its native resolution. All use the same exposure.*
 
+<details>
+<summary>Corridor — view all 10 comparisons</summary>
+
 **1. 64-spp input + bilinear 2×**
 
 [![Corridor: 64-spp input + bilinear 2×](ml/reports/figures/joint-epoch59-corridor-hd-noisy.png)](ml/reports/figures/joint-epoch59-corridor-hd-noisy.png)
@@ -68,6 +71,8 @@ PNG; click it to open its native resolution. All use the same exposure.*
 **10. Full render → AI → a-trous**
 
 [![Corridor: Full render → AI → a-trous](ml/reports/figures/joint-epoch59-corridor-hd-full-render-ai-atrous.png)](ml/reports/figures/joint-epoch59-corridor-hd-full-render-ai-atrous.png)
+
+</details>
 
 ![Training loss, native image quality and HDR error through 69 epochs](ml/reports/figures/joint-training-history.png)
 

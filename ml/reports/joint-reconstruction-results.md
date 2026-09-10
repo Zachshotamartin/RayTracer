@@ -22,7 +22,7 @@ The current model has not replaced the bundled pilot export.
 
 ## Example images
 
-Each scene has **ten separate, individually labeled images** below. Click any
+Each scene has a collapsed dropdown containing **ten separate, individually labeled images**. Click any
 image to inspect its native-resolution PNG. All use ACES-fit/sRGB at exposure zero.
 The reference and low-sample reconstructions are 960 pixels wide; full-render AI
 variants are 1,920 pixels wide. GitHub fits each image to the document width without
@@ -36,6 +36,9 @@ illustration and are not included in the historical training validation metrics.
 The denoiser here is a-trous, not OIDN or DLSS.
 
 ### Courtyard · 64 spp · 480 × 320 → 960 × 640
+
+<details>
+<summary>Courtyard — view all 10 comparisons</summary>
 
 **1. 64-spp input + bilinear 2×**
 
@@ -77,12 +80,17 @@ The denoiser here is a-trous, not OIDN or DLSS.
 
 [![Courtyard: Full render → AI → a-trous](figures/joint-epoch59-courtyard-hd-full-render-ai-atrous.png)](figures/joint-epoch59-courtyard-hd-full-render-ai-atrous.png)
 
+</details>
+
 At this resolution, the AI cleans the floor and recovers column boundaries, but
 glass and reflected light retain mottled artifacts. The actual high-sample render
 resolves those surfaces more consistently. Enlarging the old validation thumbnails
 could not reveal this distinction reliably.
 
 ### Corridor · 64 spp · 480 × 480 → 960 × 960
+
+<details>
+<summary>Corridor — view all 10 comparisons</summary>
 
 **1. 64-spp input + bilinear 2×**
 
@@ -124,11 +132,16 @@ could not reveal this distinction reliably.
 
 [![Corridor: Full render → AI → a-trous](figures/joint-epoch59-corridor-hd-full-render-ai-atrous.png)](figures/joint-epoch59-corridor-hd-full-render-ai-atrous.png)
 
+</details>
+
 The AI retains the corridor's column structure and reduces noise, while glass
 reflections and the bright patch beneath the sphere still differ from the full
 render. The score averages the whole image, including its large flat regions.
 
 ### Shelves · 64 spp · 480 × 480 → 960 × 960
+
+<details>
+<summary>Shelves — view all 10 comparisons</summary>
 
 **1. 64-spp input + bilinear 2×**
 
@@ -169,6 +182,8 @@ render. The score averages the whole image, including its large flat regions.
 **10. Full render → AI → a-trous**
 
 [![Shelves: Full render → AI → a-trous](figures/joint-epoch59-shelves-hd-full-render-ai-atrous.png)](figures/joint-epoch59-shelves-hd-full-render-ai-atrous.png)
+
+</details>
 
 Scores are PSNR / SSIM; higher is better.
 
