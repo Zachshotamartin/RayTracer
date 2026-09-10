@@ -1,54 +1,113 @@
 [
   {
-    "scene": "courtyard-1spp",
-    "selection": "First manifest validation row per selected scene family and sample budget, before inference",
+    "scene": "courtyard-64spp",
+    "selection": "Retained the original metadata-selected validation scene configuration and reference; switched to its existing 64-spp input for a cleaner gallery at user request, without selection by model score.",
     "epoch": 59,
     "checkpoint_sha256": "750510e58d6ea0b61db7c967a42b20d52d9a5e79f4996faaa12376536c60b384",
     "metrics": {
       "noisy": {
-        "linear_mse": 0.40478258425607216,
-        "log_mae": 0.05457713082432747,
-        "display_mse": 0.014631521576675762,
-        "psnr": 18.347105079148164,
-        "ssim": 0.5911793566518604
+        "linear_mse": 0.18151954646885493,
+        "log_mae": 0.02510634809732437,
+        "display_mse": 0.005889876577963603,
+        "psnr": 22.298938057342834,
+        "ssim": 0.8573659657913124
       },
       "atrous": {
-        "linear_mse": 0.38734727509376743,
-        "log_mae": 0.04311279579997063,
-        "display_mse": 0.01101188798569357,
-        "psnr": 19.581382149542065,
-        "ssim": 0.7670583957371951
+        "linear_mse": 0.18328192194372528,
+        "log_mae": 0.027063244953751564,
+        "display_mse": 0.006175989871679878,
+        "psnr": 22.092934248933606,
+        "ssim": 0.8631722133570209
       },
       "epoch59": {
-        "linear_mse": 0.38120188431820595,
-        "log_mae": 0.03590290993452072,
-        "display_mse": 0.007718216719919618,
-        "psnr": 21.124830310323347,
-        "ssim": 0.7675897109840765
+        "linear_mse": 0.027705952763218324,
+        "log_mae": 0.010858297348022461,
+        "display_mse": 0.0016067711347750161,
+        "psnr": 27.940459788575506,
+        "ssim": 0.9358499632178773
       },
       "ai_atrous": {
-        "linear_mse": 0.3800140301467128,
-        "log_mae": 0.03335626423358917,
-        "display_mse": 0.006912282797226144,
-        "psnr": 21.60378502189694,
-        "ssim": 0.818200420888726
+        "linear_mse": 0.029709145612002403,
+        "log_mae": 0.01414396334439516,
+        "display_mse": 0.0023778931850255945,
+        "psnr": 26.238076577895953,
+        "ssim": 0.9081364234313162
       },
       "atrous_ai": {
-        "linear_mse": 0.3820529235976977,
-        "log_mae": 0.03612314164638519,
-        "display_mse": 0.007383680852354042,
-        "psnr": 21.31727083252049,
-        "ssim": 0.8209604613876061
+        "linear_mse": 0.02973068764626747,
+        "log_mae": 0.014500770717859268,
+        "display_mse": 0.0021411673147513437,
+        "psnr": 26.693493948101246,
+        "ssim": 0.9152478505858239
       }
     },
+    "display": "Common ACES/sRGB, exposure 0; nearest-neighbor magnification",
+    "post_denoising": {
+      "algorithm": "raytracer_ml.data.resample.atrous",
+      "iterations": 3,
+      "space": "linear HDR at predicted output resolution",
+      "guides": "Nearest-neighbor 2x of noisy input center albedo, normal, depth and validity",
+      "reference_used_by_filter": false,
+      "settings_tuned_on_examples": false
+    },
+    "pre_denoising": {
+      "algorithm": "Saved input-resolution a-trous baseline",
+      "replacement": "Only RGB channels 0:3; original guides and sampling statistics retained",
+      "checkpoint": "Unchanged epoch 59",
+      "trained_on_denoised_inputs": false,
+      "reference_used_by_pipeline": false
+    },
     "row": {
-      "id": "s1-g0033-v000-r96x64-n0-s1",
+      "id": "s1-g0033-v000-r96x64-n0-s64",
       "family": "courtyard",
-      "samples": 1,
+      "samples": 64,
       "reference_samples": 2048,
       "split": "val",
       "scale": 2,
       "reference_sha256": "1b1a3d09d977857a8a40626681d2a409d425fe964834fff46d8353ac707c52bf"
+    }
+  },
+  {
+    "scene": "corridor-64spp",
+    "selection": "Retained the original metadata-selected validation scene configuration and reference; switched to its existing 64-spp input for a cleaner gallery at user request, without selection by model score.",
+    "epoch": 59,
+    "checkpoint_sha256": "750510e58d6ea0b61db7c967a42b20d52d9a5e79f4996faaa12376536c60b384",
+    "metrics": {
+      "noisy": {
+        "linear_mse": 0.07378369891981704,
+        "log_mae": 0.022864943370223045,
+        "display_mse": 0.005429518455788512,
+        "psnr": 22.65238686298359,
+        "ssim": 0.8656628093071598
+      },
+      "atrous": {
+        "linear_mse": 0.07592172832803155,
+        "log_mae": 0.0260959193110466,
+        "display_mse": 0.006031378990944271,
+        "psnr": 22.195833811121297,
+        "ssim": 0.854131020046331
+      },
+      "epoch59": {
+        "linear_mse": 0.012426129316802132,
+        "log_mae": 0.011056524701416492,
+        "display_mse": 0.0015319104917328396,
+        "psnr": 28.14766609430665,
+        "ssim": 0.947097932195733
+      },
+      "ai_atrous": {
+        "linear_mse": 0.018314433211005444,
+        "log_mae": 0.01631382666528225,
+        "display_mse": 0.002894653735503814,
+        "psnr": 25.384033800381147,
+        "ssim": 0.8912925642519953
+      },
+      "atrous_ai": {
+        "linear_mse": 0.01407704427492021,
+        "log_mae": 0.01609920524060726,
+        "display_mse": 0.0023482419963522494,
+        "psnr": 26.2925714921963,
+        "ssim": 0.9116981397019672
+      }
     },
     "display": "Common ACES/sRGB, exposure 0; nearest-neighbor magnification",
     "post_denoising": {
@@ -65,126 +124,58 @@
       "checkpoint": "Unchanged epoch 59",
       "trained_on_denoised_inputs": false,
       "reference_used_by_pipeline": false
-    }
-  },
-  {
-    "scene": "corridor-4spp",
-    "selection": "First manifest validation row per selected scene family and sample budget, before inference",
-    "epoch": 59,
-    "checkpoint_sha256": "750510e58d6ea0b61db7c967a42b20d52d9a5e79f4996faaa12376536c60b384",
-    "metrics": {
-      "noisy": {
-        "linear_mse": 0.0963259770034141,
-        "log_mae": 0.03584657981991768,
-        "display_mse": 0.008122175480008027,
-        "psnr": 20.903276317905885,
-        "ssim": 0.6880374659388525
-      },
-      "atrous": {
-        "linear_mse": 0.09420672862223667,
-        "log_mae": 0.030078381299972534,
-        "display_mse": 0.006560480855728207,
-        "psnr": 21.83064327493871,
-        "ssim": 0.8053129651256611
-      },
-      "epoch59": {
-        "linear_mse": 0.056914831732175764,
-        "log_mae": 0.02179131656885147,
-        "display_mse": 0.003733548176571085,
-        "psnr": 24.27878240295552,
-        "ssim": 0.8621771153822925
-      },
-      "ai_atrous": {
-        "linear_mse": 0.05815484512505622,
-        "log_mae": 0.023253103718161583,
-        "display_mse": 0.00448372347934686,
-        "psnr": 23.4836117910491,
-        "ssim": 0.8409428262859165
-      },
-      "atrous_ai": {
-        "linear_mse": 0.056148529269612536,
-        "log_mae": 0.022584855556488037,
-        "display_mse": 0.0037386788606254763,
-        "psnr": 24.272818376133806,
-        "ssim": 0.8678865125648537
-      }
     },
     "row": {
-      "id": "s1-g0034-v000-r64x64-n0-s4",
+      "id": "s1-g0034-v000-r64x64-n0-s64",
       "family": "corridor",
-      "samples": 4,
+      "samples": 64,
       "reference_samples": 2048,
       "split": "val",
       "scale": 2,
       "reference_sha256": "e0e8ba7a4c5e2607f20a25862df3d0efc61f116b770c665b4747f765e9b62db1"
-    },
-    "display": "Common ACES/sRGB, exposure 0; nearest-neighbor magnification",
-    "post_denoising": {
-      "algorithm": "raytracer_ml.data.resample.atrous",
-      "iterations": 3,
-      "space": "linear HDR at predicted output resolution",
-      "guides": "Nearest-neighbor 2x of noisy input center albedo, normal, depth and validity",
-      "reference_used_by_filter": false,
-      "settings_tuned_on_examples": false
-    },
-    "pre_denoising": {
-      "algorithm": "Saved input-resolution a-trous baseline",
-      "replacement": "Only RGB channels 0:3; original guides and sampling statistics retained",
-      "checkpoint": "Unchanged epoch 59",
-      "trained_on_denoised_inputs": false,
-      "reference_used_by_pipeline": false
     }
   },
   {
-    "scene": "shelves-16spp",
-    "selection": "First manifest validation row per selected scene family and sample budget, before inference",
+    "scene": "shelves-64spp",
+    "selection": "Retained the original metadata-selected validation scene configuration and reference; switched to its existing 64-spp input for a cleaner gallery at user request, without selection by model score.",
     "epoch": 59,
     "checkpoint_sha256": "750510e58d6ea0b61db7c967a42b20d52d9a5e79f4996faaa12376536c60b384",
     "metrics": {
       "noisy": {
-        "linear_mse": 0.021095915771026135,
-        "log_mae": 0.016792574897408485,
-        "display_mse": 0.002630828845554416,
-        "psnr": 25.799074049926386,
-        "ssim": 0.8534317625123968
+        "linear_mse": 0.018766648825730797,
+        "log_mae": 0.014349080622196198,
+        "display_mse": 0.0022848091309987367,
+        "psnr": 26.41150074288355,
+        "ssim": 0.9003500833525976
       },
       "atrous": {
-        "linear_mse": 0.021059529242469326,
-        "log_mae": 0.01578974537551403,
-        "display_mse": 0.0025692284816658836,
-        "psnr": 25.90197272178034,
-        "ssim": 0.8957273883449913
+        "linear_mse": 0.019021711702525142,
+        "log_mae": 0.015264268033206463,
+        "display_mse": 0.002467301493098547,
+        "psnr": 26.077777784434772,
+        "ssim": 0.9052357098148859
       },
       "epoch59": {
-        "linear_mse": 0.01171760782191033,
-        "log_mae": 0.010852104984223843,
-        "display_mse": 0.0014039740756916854,
-        "psnr": 28.52640911357206,
-        "ssim": 0.9372538694647128
+        "linear_mse": 0.0070217740379841034,
+        "log_mae": 0.008624854497611523,
+        "display_mse": 0.0010516075495208843,
+        "psnr": 29.781463047418903,
+        "ssim": 0.9551846600958912
       },
       "ai_atrous": {
-        "linear_mse": 0.012122830692814354,
-        "log_mae": 0.011541378684341908,
-        "display_mse": 0.0016115487203845038,
-        "psnr": 27.92756560350652,
-        "ssim": 0.9232963376192559
+        "linear_mse": 0.007586571152380407,
+        "log_mae": 0.01013551652431488,
+        "display_mse": 0.001343424339854856,
+        "psnr": 28.71786787517976,
+        "ssim": 0.937524814009095
       },
       "atrous_ai": {
-        "linear_mse": 0.011781235040410282,
-        "log_mae": 0.011618309654295444,
-        "display_mse": 0.0015128718480542224,
-        "psnr": 28.201978585201463,
-        "ssim": 0.929422855089108
+        "linear_mse": 0.0072655619167790115,
+        "log_mae": 0.010240621864795685,
+        "display_mse": 0.001246008040277674,
+        "psnr": 29.044791552394813,
+        "ssim": 0.9438154098125083
       }
-    },
-    "row": {
-      "id": "s1-g0036-v000-r64x64-n0-s16",
-      "family": "shelves",
-      "samples": 16,
-      "reference_samples": 2048,
-      "split": "val",
-      "scale": 2,
-      "reference_sha256": "6dac0acc6ce8a6c71d1e0a4108fb5bb019a877211a12166618a1e08a41132f01"
     },
     "display": "Common ACES/sRGB, exposure 0; nearest-neighbor magnification",
     "post_denoising": {
@@ -201,6 +192,15 @@
       "checkpoint": "Unchanged epoch 59",
       "trained_on_denoised_inputs": false,
       "reference_used_by_pipeline": false
+    },
+    "row": {
+      "id": "s1-g0036-v000-r64x64-n0-s64",
+      "family": "shelves",
+      "samples": 64,
+      "reference_samples": 2048,
+      "split": "val",
+      "scale": 2,
+      "reference_sha256": "6dac0acc6ce8a6c71d1e0a4108fb5bb019a877211a12166618a1e08a41132f01"
     }
   }
 ]

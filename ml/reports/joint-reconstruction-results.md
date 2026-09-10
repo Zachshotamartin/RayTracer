@@ -30,40 +30,42 @@ same ACES-fit/sRGB transform at exposure zero, with nearest-neighbor magnificati
 for inspection. The model performs actual 2× reconstruction; display magnification
 does not add detail. Spp means samples per pixel.
 
-Examples were selected by metadata before inference: the first native validation
-manifest row for courtyard/1 spp, corridor/4 spp and shelves/16 spp. They were not
-chosen by model score. Different scenes and resolutions mean this gallery is not
-a controlled sample-count sweep. The denoiser here is a-trous, not OIDN or DLSS.
+The gallery uses existing **64-spp inputs** for the same three scene configurations
+and independent references selected for the original gallery. The original scenes
+were chosen by metadata before inference, not by model score; their sample budget
+was increased for a cleaner visual comparison. No images were re-rendered. Different
+scenes and resolutions mean this gallery is not a controlled sample-count sweep.
+The denoiser here is a-trous, not OIDN or DLSS.
 
-### Courtyard · 1 spp · 96 × 64 → 192 × 128
+### Courtyard · 64 spp · 96 × 64 → 192 × 128
 
-![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for courtyard at 1 spp](figures/joint-epoch59-courtyard-1spp.png)
+![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for courtyard at 64 spp](figures/joint-epoch59-courtyard-64spp.png)
 
 The AI reduces noise, but the glass object and reflections remain inaccurate.
-AI-only SSIM is almost tied with the denoiser. Post-denoising improves PSNR and
-SSIM here, although the glass object still differs substantially from the reference.
+AI alone has higher PSNR and SSIM than a-trous and either combined pipeline;
+the glass object still differs from the reference.
 
-### Corridor · 4 spp · 64 × 64 → 128 × 128
+### Corridor · 64 spp · 64 × 64 → 128 × 128
 
-![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for corridor at 4 spp](figures/joint-epoch59-corridor-4spp.png)
+![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for corridor at 64 spp](figures/joint-epoch59-corridor-64spp.png)
 
 The AI improves the columns and lighting; thin structures, reflections and sharp
-edges remain softer than the reference. Post-denoising worsens both PSNR and SSIM.
+edges remain softer than the reference. Both combined pipelines reduce PSNR and SSIM compared with AI alone.
 
-### Shelves · 16 spp · 64 × 64 → 128 × 128
+### Shelves · 64 spp · 64 × 64 → 128 × 128
 
-![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for shelves at 16 spp](figures/joint-epoch59-shelves-16spp.png)
+![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for shelves at 64 spp](figures/joint-epoch59-shelves-64spp.png)
 
 The AI produces cleaner surfaces and more distinct objects, with residual blur on
-small shelf details. Post-denoising worsens both PSNR and SSIM.
+small shelf details. Both combined pipelines reduce PSNR and SSIM compared with AI alone.
 
 Scores are PSNR / SSIM; higher is better.
 
 | Example | A-trous | AI | AI → a-trous | A-trous → AI |
 | --- | ---: | ---: | ---: | ---: |
-| Courtyard, 1 spp | 19.58 dB / 0.7671 | 21.12 dB / 0.7676 | 21.60 dB / 0.8182 | 21.32 dB / 0.8210 |
-| Corridor, 4 spp | 21.83 dB / 0.8053 | 24.28 dB / 0.8622 | 23.48 dB / 0.8409 | 24.27 dB / 0.8679 |
-| Shelves, 16 spp | 25.90 dB / 0.8957 | 28.53 dB / 0.9373 | 27.93 dB / 0.9233 | 28.20 dB / 0.9294 |
+| Courtyard, 64 spp | 22.09 dB / 0.8632 | 27.94 dB / 0.9358 | 26.24 dB / 0.9081 | 26.69 dB / 0.9152 |
+| Corridor, 64 spp | 22.20 dB / 0.8541 | 28.15 dB / 0.9471 | 25.38 dB / 0.8913 | 26.29 dB / 0.9117 |
+| Shelves, 64 spp | 26.08 dB / 0.9052 | 29.78 dB / 0.9552 | 28.72 dB / 0.9375 | 29.04 dB / 0.9438 |
 
 ### Post-denoising procedure
 
@@ -76,7 +78,7 @@ The filter reads predicted radiance and these guides; it does not treat the inpu
 noise variance as a calibrated estimate of AI residual error.
 
 The same fixed settings were used for all three examples, without tuning against
-their scores. Post-denoising helps the courtyard but hurts the other two examples;
+their scores. Post-denoising reduces PSNR and SSIM in all three 64-spp examples;
 it is an illustration, not a new default inference mode. The training charts below
 still measure **AI alone**, and no broader quality or latency claim is made for this
 post-processing experiment.
@@ -93,11 +95,11 @@ an inference-only experiment with a changed input distribution; the retained
 sampling statistics describe the original samples, not the filter's residual error.
 It is not a separately trained denoise-then-upscale model.
 
-On these examples, pre-denoising improves courtyard PSNR/SSIM over AI alone,
-improves corridor SSIM with essentially unchanged PSNR, and worsens shelves
-PSNR/SSIM. Neither ordering is consistently best. The original selection and
-training charts still measure AI alone; these three comparisons do not qualify
-either combination as a new default or establish a timing advantage.
+On these 64-spp examples, AI alone has the highest PSNR and SSIM of the compared
+methods. Pre-denoising also reduces both metrics compared with AI alone. These
+three comparisons do not qualify either combination as a new default or establish
+a timing advantage. The training charts retain the full original validation
+sample-budget range and measure AI alone; they are unchanged by this gallery update.
 
 ## Training and remaining quality gaps
 
