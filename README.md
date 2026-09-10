@@ -30,8 +30,9 @@ and an end-to-end rendering speed advantage is not established.
 *Corridor validation example · 64 samples/pixel at 64 × 64 → 128 × 128.
 Reference: 2,048 samples/pixel. Common exposure; enlarged for inspection.
 The AI improves noise and structure while retaining some blur and reflection errors.
-The middle row compares AI alone, AI then denoising, and denoising then AI.
-The bottom row adds full-render → AI and full-render → a-trous diagnostics.*
+The second row compares AI alone, AI then denoising, and denoising then AI.
+The lower two rows add full-render → AI, full-render → a-trous,
+full-render → a-trous → AI, and full-render → AI → a-trous diagnostics.*
 
 ![Training loss, native image quality and HDR error through 69 epochs](ml/reports/figures/joint-training-history.png)
 

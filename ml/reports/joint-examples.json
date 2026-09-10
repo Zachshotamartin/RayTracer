@@ -95,6 +95,36 @@
         ],
         "guides": "Full-resolution reference center albedo, normal, depth and validity"
       },
+      "atrous_ai": {
+        "order": [
+          "full render",
+          "atrous",
+          "AI"
+        ],
+        "iterations": 3,
+        "replacement": "Only RGB replaced by filtered full render; measured full-render guides and statistics retained",
+        "output_size": [
+          384,
+          256
+        ],
+        "checkpoint_epoch": 59,
+        "trained_on_denoised_inputs": false
+      },
+      "ai_atrous": {
+        "order": [
+          "full render",
+          "AI",
+          "atrous"
+        ],
+        "iterations": 3,
+        "filter_space": "Linear HDR at AI output resolution, before display reduction",
+        "guides": "Nearest-neighbor 2x replication of full-render center albedo, normal, depth and validity",
+        "output_size": [
+          384,
+          256
+        ],
+        "checkpoint_epoch": 59
+      },
       "quality_scores_reported": false
     }
   },
@@ -194,6 +224,36 @@
         ],
         "guides": "Full-resolution reference center albedo, normal, depth and validity"
       },
+      "atrous_ai": {
+        "order": [
+          "full render",
+          "atrous",
+          "AI"
+        ],
+        "iterations": 3,
+        "replacement": "Only RGB replaced by filtered full render; measured full-render guides and statistics retained",
+        "output_size": [
+          256,
+          256
+        ],
+        "checkpoint_epoch": 59,
+        "trained_on_denoised_inputs": false
+      },
+      "ai_atrous": {
+        "order": [
+          "full render",
+          "AI",
+          "atrous"
+        ],
+        "iterations": 3,
+        "filter_space": "Linear HDR at AI output resolution, before display reduction",
+        "guides": "Nearest-neighbor 2x replication of full-render center albedo, normal, depth and validity",
+        "output_size": [
+          256,
+          256
+        ],
+        "checkpoint_epoch": 59
+      },
       "quality_scores_reported": false
     }
   },
@@ -292,6 +352,36 @@
           128
         ],
         "guides": "Full-resolution reference center albedo, normal, depth and validity"
+      },
+      "atrous_ai": {
+        "order": [
+          "full render",
+          "atrous",
+          "AI"
+        ],
+        "iterations": 3,
+        "replacement": "Only RGB replaced by filtered full render; measured full-render guides and statistics retained",
+        "output_size": [
+          256,
+          256
+        ],
+        "checkpoint_epoch": 59,
+        "trained_on_denoised_inputs": false
+      },
+      "ai_atrous": {
+        "order": [
+          "full render",
+          "AI",
+          "atrous"
+        ],
+        "iterations": 3,
+        "filter_space": "Linear HDR at AI output resolution, before display reduction",
+        "guides": "Nearest-neighbor 2x replication of full-render center albedo, normal, depth and validity",
+        "output_size": [
+          256,
+          256
+        ],
+        "checkpoint_epoch": 59
       },
       "quality_scores_reported": false
     }

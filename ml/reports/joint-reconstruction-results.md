@@ -21,12 +21,12 @@ The current model has not replaced the bundled pilot export.
 
 ## Example images
 
-Every grid contains eight images. The top row shows noisy input with bilinear 2×
+Every grid contains ten images. The top row shows noisy input with bilinear 2×
 enlargement, a-trous denoising with bilinear 2× enlargement, and an independent
-**2,048-spp reference** at the target resolution. The middle row shows epoch-59
+**2,048-spp reference** at the target resolution. The second row shows epoch-59
 learned reconstruction, that same prediction followed by a-trous denoising, and
-a-trous denoising followed by the same AI model. The bottom row adds full-render
-processing with AI and a-trous, described below. All panels use the
+a-trous denoising followed by the same AI model. The lower two rows add full-render
+processing with AI, a-trous, and both sequential orders, described below. All panels use the
 same ACES-fit/sRGB transform at exposure zero, with nearest-neighbor magnification
 for inspection. The model performs actual 2× reconstruction; display magnification
 does not add detail. Spp means samples per pixel.
@@ -104,7 +104,7 @@ sample-budget range and measure AI alone; they are unchanged by this gallery upd
 
 ## Full-render processing diagnostics
 
-The final two panels start from the existing **2,048-spp reference itself**, using
+The final four panels start from the existing **2,048-spp reference itself**, using
 its own full-resolution measured feature buffers. They show what additional
 processing does to an already high-sample render; they are excluded from all
 reconstruction scores and training charts. No new rays or training were required.
@@ -120,11 +120,27 @@ panels do not establish quality at that resolution or a rendering speedup.
 resolution with its own center albedo, normal, depth and validity guides. It can
 smooth remaining noise and also soften fine detail.
 
-| Scene | Full render → AI, original output size | Full render → a-trous |
-| --- | --- | --- |
-| Courtyard | [PNG](figures/joint-epoch59-courtyard-64spp-full-render-ai.png) | [PNG](figures/joint-epoch59-courtyard-64spp-full-render-atrous.png) |
-| Corridor | [PNG](figures/joint-epoch59-corridor-64spp-full-render-ai.png) | [PNG](figures/joint-epoch59-corridor-64spp-full-render-atrous.png) |
-| Shelves | [PNG](figures/joint-epoch59-shelves-64spp-full-render-ai.png) | [PNG](figures/joint-epoch59-shelves-64spp-full-render-atrous.png) |
+**Full render → a-trous → AI** first filters the full-resolution linear HDR
+render with three a-trous iterations, then replaces only the RGB channels in its
+feature buffers and runs the unchanged epoch-59 model. Full-render geometry and
+sampling statistics are retained. This input is both higher-sample and pre-denoised,
+unlike the noisy inputs used for training.
+
+**Full render → AI → a-trous** first runs the same AI model on the full render,
+then filters its linear HDR prediction with three iterations at the AI's actual
+output resolution. Guides are nearest-neighbor 2× replications of the full render's
+center albedo, normal, depth and validity. Filtering happens before display reduction;
+replicated guides cannot provide new subpixel geometry or calibrated AI-error variance.
+
+Both sequences produce the same output dimensions as full render → AI and use the
+same area reduction for the gallery. Full-size PNGs are linked below. They remain
+reference-fed diagnostics, with no reconstruction scores or timing claims.
+
+| Scene | Full render → AI | Full render → a-trous | Full render → a-trous → AI | Full render → AI → a-trous |
+| --- | --- | --- | --- | --- |
+| Courtyard | [PNG](figures/joint-epoch59-courtyard-64spp-full-render-ai.png) | [PNG](figures/joint-epoch59-courtyard-64spp-full-render-atrous.png) | [PNG](figures/joint-epoch59-courtyard-64spp-full-render-atrous-ai.png) | [PNG](figures/joint-epoch59-courtyard-64spp-full-render-ai-atrous.png) |
+| Corridor | [PNG](figures/joint-epoch59-corridor-64spp-full-render-ai.png) | [PNG](figures/joint-epoch59-corridor-64spp-full-render-atrous.png) | [PNG](figures/joint-epoch59-corridor-64spp-full-render-atrous-ai.png) | [PNG](figures/joint-epoch59-corridor-64spp-full-render-ai-atrous.png) |
+| Shelves | [PNG](figures/joint-epoch59-shelves-64spp-full-render-ai.png) | [PNG](figures/joint-epoch59-shelves-64spp-full-render-atrous.png) | [PNG](figures/joint-epoch59-shelves-64spp-full-render-atrous-ai.png) | [PNG](figures/joint-epoch59-shelves-64spp-full-render-ai-atrous.png) |
 
 ## Training and remaining quality gaps
 
