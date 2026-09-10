@@ -21,9 +21,10 @@ The current model has not replaced the bundled pilot export.
 
 ## Example images
 
-Every grid uses the same order: noisy input with bilinear 2× enlargement, a-trous
-denoising with bilinear 2× enlargement, epoch-59 learned reconstruction, and an
-independent **2,048-spp reference** at the target resolution. All panels use the
+Every grid contains five images. The top row shows noisy input with bilinear 2×
+enlargement, a-trous denoising with bilinear 2× enlargement, and an independent
+**2,048-spp reference** at the target resolution. The bottom row shows epoch-59
+learned reconstruction and that same prediction followed by a-trous denoising. All panels use the
 same ACES-fit/sRGB transform at exposure zero, with nearest-neighbor magnification
 for inspection. The model performs actual 2× reconstruction; display magnification
 does not add detail. Spp means samples per pixel.
@@ -35,30 +36,47 @@ a controlled sample-count sweep. The denoiser here is a-trous, not OIDN or DLSS.
 
 ### Courtyard · 1 spp · 96 × 64 → 192 × 128
 
-![Noisy, a-trous, epoch-59 AI and reference comparison for courtyard at 1 spp](figures/joint-epoch59-courtyard-1spp.png)
+![Noisy, a-trous, reference, epoch-59 AI and AI-plus-denoising comparison for courtyard at 1 spp](figures/joint-epoch59-courtyard-1spp.png)
 
 The AI reduces noise, but the glass object and reflections remain inaccurate.
-Its SSIM is almost tied with the denoiser on this example.
+AI-only SSIM is almost tied with the denoiser. Post-denoising improves PSNR and
+SSIM here, although the glass object still differs substantially from the reference.
 
 ### Corridor · 4 spp · 64 × 64 → 128 × 128
 
-![Noisy, a-trous, epoch-59 AI and reference comparison for corridor at 4 spp](figures/joint-epoch59-corridor-4spp.png)
+![Noisy, a-trous, reference, epoch-59 AI and AI-plus-denoising comparison for corridor at 4 spp](figures/joint-epoch59-corridor-4spp.png)
 
 The AI improves the columns and lighting; thin structures, reflections and sharp
-edges remain softer than the reference.
+edges remain softer than the reference. Post-denoising worsens both PSNR and SSIM.
 
 ### Shelves · 16 spp · 64 × 64 → 128 × 128
 
-![Noisy, a-trous, epoch-59 AI and reference comparison for shelves at 16 spp](figures/joint-epoch59-shelves-16spp.png)
+![Noisy, a-trous, reference, epoch-59 AI and AI-plus-denoising comparison for shelves at 16 spp](figures/joint-epoch59-shelves-16spp.png)
 
 The AI produces cleaner surfaces and more distinct objects, with residual blur on
-small shelf details.
+small shelf details. Post-denoising worsens both PSNR and SSIM.
 
-| Example | A-trous PSNR / SSIM | AI PSNR / SSIM |
-| --- | ---: | ---: |
-| Courtyard, 1 spp | 19.58 dB / 0.7671 | 21.12 dB / 0.7676 |
-| Corridor, 4 spp | 21.83 dB / 0.8053 | 24.28 dB / 0.8622 |
-| Shelves, 16 spp | 25.90 dB / 0.8957 | 28.53 dB / 0.9373 |
+| Example | A-trous PSNR / SSIM | AI PSNR / SSIM | AI + a-trous PSNR / SSIM |
+| --- | ---: | ---: | ---: |
+| Courtyard, 1 spp | 19.58 dB / 0.7671 | 21.12 dB / 0.7676 | 21.60 dB / 0.8182 |
+| Corridor, 4 spp | 21.83 dB / 0.8053 | 24.28 dB / 0.8622 | 23.48 dB / 0.8409 |
+| Shelves, 16 spp | 25.90 dB / 0.8957 | 28.53 dB / 0.9373 | 27.93 dB / 0.9233 |
+
+### Post-denoising procedure
+
+The fifth panel applies the existing `raytracer_ml.data.resample.atrous` filter
+with **three iterations** to the AI's linear HDR output at its predicted resolution.
+Center albedo, normal, depth and validity guides are enlarged 2× from the noisy
+input using nearest-neighbor replication. No high-resolution reference guides or
+extra rays are used. These replicated guides cannot supply missing subpixel geometry.
+The filter reads predicted radiance and these guides; it does not treat the input's
+noise variance as a calibrated estimate of AI residual error.
+
+The same fixed settings were used for all three examples, without tuning against
+their scores. Post-denoising helps the courtyard but hurts the other two examples;
+it is an illustration, not a new default inference mode. The training charts below
+still measure **AI alone**, and no broader quality or latency claim is made for this
+post-processing experiment.
 
 ## Training and remaining quality gaps
 

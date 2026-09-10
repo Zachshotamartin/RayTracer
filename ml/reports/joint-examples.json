@@ -25,6 +25,13 @@
         "display_mse": 0.007718216719919618,
         "psnr": 21.124830310323347,
         "ssim": 0.7675897109840765
+      },
+      "ai_atrous": {
+        "linear_mse": 0.3800140301467128,
+        "log_mae": 0.03335626423358917,
+        "display_mse": 0.006912282797226144,
+        "psnr": 21.60378502189694,
+        "ssim": 0.818200420888726
       }
     },
     "row": {
@@ -36,7 +43,15 @@
       "scale": 2,
       "reference_sha256": "1b1a3d09d977857a8a40626681d2a409d425fe964834fff46d8353ac707c52bf"
     },
-    "display": "Common ACES/sRGB, exposure 0; nearest-neighbor magnification"
+    "display": "Common ACES/sRGB, exposure 0; nearest-neighbor magnification",
+    "post_denoising": {
+      "algorithm": "raytracer_ml.data.resample.atrous",
+      "iterations": 3,
+      "space": "linear HDR at predicted output resolution",
+      "guides": "Nearest-neighbor 2x of noisy input center albedo, normal, depth and validity",
+      "reference_used_by_filter": false,
+      "settings_tuned_on_examples": false
+    }
   },
   {
     "scene": "corridor-4spp",
@@ -64,6 +79,13 @@
         "display_mse": 0.003733548176571085,
         "psnr": 24.27878240295552,
         "ssim": 0.8621771153822925
+      },
+      "ai_atrous": {
+        "linear_mse": 0.05815484512505622,
+        "log_mae": 0.023253103718161583,
+        "display_mse": 0.00448372347934686,
+        "psnr": 23.4836117910491,
+        "ssim": 0.8409428262859165
       }
     },
     "row": {
@@ -75,7 +97,15 @@
       "scale": 2,
       "reference_sha256": "e0e8ba7a4c5e2607f20a25862df3d0efc61f116b770c665b4747f765e9b62db1"
     },
-    "display": "Common ACES/sRGB, exposure 0; nearest-neighbor magnification"
+    "display": "Common ACES/sRGB, exposure 0; nearest-neighbor magnification",
+    "post_denoising": {
+      "algorithm": "raytracer_ml.data.resample.atrous",
+      "iterations": 3,
+      "space": "linear HDR at predicted output resolution",
+      "guides": "Nearest-neighbor 2x of noisy input center albedo, normal, depth and validity",
+      "reference_used_by_filter": false,
+      "settings_tuned_on_examples": false
+    }
   },
   {
     "scene": "shelves-16spp",
@@ -103,6 +133,13 @@
         "display_mse": 0.0014039740756916854,
         "psnr": 28.52640911357206,
         "ssim": 0.9372538694647128
+      },
+      "ai_atrous": {
+        "linear_mse": 0.012122830692814354,
+        "log_mae": 0.011541378684341908,
+        "display_mse": 0.0016115487203845038,
+        "psnr": 27.92756560350652,
+        "ssim": 0.9232963376192559
       }
     },
     "row": {
@@ -114,6 +151,14 @@
       "scale": 2,
       "reference_sha256": "6dac0acc6ce8a6c71d1e0a4108fb5bb019a877211a12166618a1e08a41132f01"
     },
-    "display": "Common ACES/sRGB, exposure 0; nearest-neighbor magnification"
+    "display": "Common ACES/sRGB, exposure 0; nearest-neighbor magnification",
+    "post_denoising": {
+      "algorithm": "raytracer_ml.data.resample.atrous",
+      "iterations": 3,
+      "space": "linear HDR at predicted output resolution",
+      "guides": "Nearest-neighbor 2x of noisy input center albedo, normal, depth and validity",
+      "reference_used_by_filter": false,
+      "settings_tuned_on_examples": false
+    }
   }
 ]

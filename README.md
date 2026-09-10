@@ -25,11 +25,12 @@ validation averages 29.82 dB PSNR / 0.9173 SSIM, compared with 25.98 dB / 0.8768
 for a-trous plus bilinear 2× enlargement. Full quality requirements remain unmet,
 and an end-to-end rendering speed advantage is not established.
 
-![Epoch-59 comparison: noisy input, a-trous denoiser, learned 2x reconstruction and high-sample reference](ml/reports/figures/joint-epoch59-corridor-4spp.png)
+![Epoch-59 comparison: noisy input, a-trous denoiser, high-sample reference, AI reconstruction and AI followed by denoising](ml/reports/figures/joint-epoch59-corridor-4spp.png)
 
 *Corridor validation example · 4 samples/pixel at 64 × 64 → 128 × 128.
 Reference: 2,048 samples/pixel. Common exposure; enlarged for inspection.
-The AI improves noise and structure while retaining some blur and reflection errors.*
+The AI improves noise and structure while retaining some blur and reflection errors.
+The fifth panel adds denoising after AI; it worsens this corridor example.*
 
 ![Training loss, native image quality and HDR error through 69 epochs](ml/reports/figures/joint-training-history.png)
 
