@@ -11,7 +11,8 @@ The 508,172-parameter model learned from **59,992 reused examples**: 57,344 synt
 area-reduced pairs and 2,648 native 2× pairs. The split contains 44,376 training,
 7,808 validation and 7,808 sealed-test examples. Epoch validation measures 3,904
 first-noise examples: 3,584 synthetic and 320 native, plus 576 preservation views.
-No new renders were generated for this study or gallery. See the
+Training reused existing renders. The later HD gallery below uses six new renders
+of the same selected scene configurations, without modifying the training dataset. See the
 [reuse contract](../../docs/joint-reuse-training.md) for provenance and limitations.
 
 **Full quality qualification has not passed.** Native low-sample reconstruction
@@ -32,47 +33,65 @@ Rows show, from left to right:
 5. Full render → a-trous → AI; full render → AI → a-trous.
 
 All panels use the same ACES-fit/sRGB transform at exposure zero and
-nearest-neighbor magnification for inspection. The AI performs actual 2×
-reconstruction; display enlargement does not add detail. Full-render AI outputs
+native 960-pixel-wide panels. The AI performs actual 2× reconstruction from
+480-pixel-wide inputs. The comparison grid has 2,008 pixels of width and can be
+opened at full size; individual PNGs below preserve the actual output dimensions. Full-render AI outputs
 are fitted to the reference dimensions for comparison as described below.
 Spp means samples per pixel.
 
-The gallery uses existing **64-spp inputs** for the same three scene configurations
-and independent references selected for the original gallery. The original scenes
-were chosen by metadata before inference, not by model score; their sample budget
-was increased for a cleaner visual comparison. No images were re-rendered. Different
-scenes and resolutions mean this gallery is not a controlled sample-count sweep.
+The gallery now uses **fresh 480-pixel-wide, 64-spp inputs** and independent
+**960-pixel-wide, 2,048-spp references**. These replace the earlier enlarged
+128–192-pixel validation thumbnails. Scene configurations and seeds are preserved;
+examples were not selected by score. These higher-resolution renders are a separate
+illustration and are not included in the historical training validation metrics.
 The denoiser here is a-trous, not OIDN or DLSS.
 
-### Courtyard · 64 spp · 96 × 64 → 192 × 128
+### Courtyard · 64 spp · 480 × 320 → 960 × 640
 
-[![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for courtyard at 64 spp](figures/joint-epoch59-courtyard-64spp.png)](figures/joint-epoch59-courtyard-64spp.png)
+[![Actual full-resolution courtyard render at 2048 spp](figures/joint-epoch59-courtyard-hd-reference.png)](figures/joint-epoch59-courtyard-hd-reference.png)
 
-The AI reduces noise, but the glass object and reflections remain inaccurate.
-AI alone has higher PSNR and SSIM than a-trous and either combined pipeline;
-the glass object still differs from the reference.
+[![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for courtyard at 64 spp](figures/joint-epoch59-courtyard-hd.png)](figures/joint-epoch59-courtyard-hd.png)
 
-### Corridor · 64 spp · 64 × 64 → 128 × 128
+At this resolution, the AI cleans the floor and recovers column boundaries, but
+glass and reflected light retain mottled artifacts. The actual high-sample render
+resolves those surfaces more consistently. Enlarging the old validation thumbnails
+could not reveal this distinction reliably.
 
-[![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for corridor at 64 spp](figures/joint-epoch59-corridor-64spp.png)](figures/joint-epoch59-corridor-64spp.png)
+### Corridor · 64 spp · 480 × 480 → 960 × 960
 
-The AI improves the columns and lighting; thin structures, reflections and sharp
-edges remain softer than the reference. Both combined pipelines reduce PSNR and SSIM compared with AI alone.
+[![Actual full-resolution corridor render at 2048 spp](figures/joint-epoch59-corridor-hd-reference.png)](figures/joint-epoch59-corridor-hd-reference.png)
 
-### Shelves · 64 spp · 64 × 64 → 128 × 128
+[![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for corridor at 64 spp](figures/joint-epoch59-corridor-hd.png)](figures/joint-epoch59-corridor-hd.png)
 
-[![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for shelves at 64 spp](figures/joint-epoch59-shelves-64spp.png)](figures/joint-epoch59-shelves-64spp.png)
+The AI retains the corridor's column structure and reduces noise, while glass
+reflections and the bright patch beneath the sphere still differ from the full
+render. The score averages the whole image, including its large flat regions.
 
-The AI produces cleaner surfaces and more distinct objects, with residual blur on
-small shelf details. Both combined pipelines reduce PSNR and SSIM compared with AI alone.
+### Shelves · 64 spp · 480 × 480 → 960 × 960
+
+[![Actual full-resolution shelves render at 2048 spp](figures/joint-epoch59-shelves-hd-reference.png)](figures/joint-epoch59-shelves-hd-reference.png)
+
+[![Noisy, a-trous, reference, epoch-59 AI and both AI-denoising orders comparison for shelves at 64 spp](figures/joint-epoch59-shelves-hd.png)](figures/joint-epoch59-shelves-hd.png)
 
 Scores are PSNR / SSIM; higher is better.
 
 | Example | A-trous | AI | AI → a-trous | A-trous → AI |
 | --- | ---: | ---: | ---: | ---: |
-| Courtyard, 64 spp | 22.09 dB / 0.8632 | 27.94 dB / 0.9358 | 26.24 dB / 0.9081 | 26.69 dB / 0.9152 |
-| Corridor, 64 spp | 22.20 dB / 0.8541 | 28.15 dB / 0.9471 | 25.38 dB / 0.8913 | 26.29 dB / 0.9117 |
-| Shelves, 64 spp | 26.08 dB / 0.9052 | 29.78 dB / 0.9552 | 28.72 dB / 0.9375 | 29.04 dB / 0.9438 |
+| Courtyard, 64 spp | 27.98 dB / 0.9293 | 33.99 dB / 0.9524 | 32.65 dB / 0.9512 | 32.46 dB / 0.9516 |
+| Corridor, 64 spp | 30.56 dB / 0.9475 | 37.51 dB / 0.9654 | 33.84 dB / 0.9550 | 34.02 dB / 0.9589 |
+| Shelves, 64 spp | 33.28 dB / 0.9667 | 39.14 dB / 0.9828 | 35.72 dB / 0.9735 | 36.13 dB / 0.9750 |
+
+### Individual images at native output size
+
+The base reference and low-sample reconstructions are 960 pixels wide. Full-render
+AI variants are 1,920 pixels wide. These links open the original PNGs without the
+comparison grid's fitting step.
+
+| Scene | Raw + 2× | A-trous + 2× | AI | AI → a-trous | A-trous → AI |
+| --- | --- | --- | --- | --- | --- |
+| Courtyard | [PNG](figures/joint-epoch59-courtyard-hd-noisy.png) | [PNG](figures/joint-epoch59-courtyard-hd-atrous.png) | [PNG](figures/joint-epoch59-courtyard-hd-epoch59.png) | [PNG](figures/joint-epoch59-courtyard-hd-ai-atrous.png) | [PNG](figures/joint-epoch59-courtyard-hd-atrous-ai.png) |
+| Corridor | [PNG](figures/joint-epoch59-corridor-hd-noisy.png) | [PNG](figures/joint-epoch59-corridor-hd-atrous.png) | [PNG](figures/joint-epoch59-corridor-hd-epoch59.png) | [PNG](figures/joint-epoch59-corridor-hd-ai-atrous.png) | [PNG](figures/joint-epoch59-corridor-hd-atrous-ai.png) |
+| Shelves | [PNG](figures/joint-epoch59-shelves-hd-noisy.png) | [PNG](figures/joint-epoch59-shelves-hd-atrous.png) | [PNG](figures/joint-epoch59-shelves-hd-epoch59.png) | [PNG](figures/joint-epoch59-shelves-hd-ai-atrous.png) | [PNG](figures/joint-epoch59-shelves-hd-atrous-ai.png) |
 
 ### Post-denoising procedure
 
@@ -85,8 +104,7 @@ The filter reads predicted radiance and these guides; it does not treat the inpu
 noise variance as a calibrated estimate of AI residual error.
 
 The same fixed settings were used for all three examples, without tuning against
-their scores. Post-denoising reduces PSNR and SSIM in all three 64-spp examples;
-it is an illustration, not a new default inference mode. The training charts below
+their scores. This is an illustration, not a new default inference mode. The training charts below
 still measure **AI alone**, and no broader quality or latency claim is made for this
 post-processing experiment.
 
@@ -102,23 +120,22 @@ an inference-only experiment with a changed input distribution; the retained
 sampling statistics describe the original samples, not the filter's residual error.
 It is not a separately trained denoise-then-upscale model.
 
-On these 64-spp examples, AI alone has the highest PSNR and SSIM of the compared
-methods. Pre-denoising also reduces both metrics compared with AI alone. These
-three comparisons do not qualify either combination as a new default or establish
-a timing advantage. The training charts retain the full original validation
-sample-budget range and measure AI alone; they are unchanged by this gallery update.
+The table above measures these newly rendered HD examples, not the previous
+small-image gallery. Training charts retain the original validation range and
+measure AI alone. Neither these three views nor their processing combinations
+establish a general quality or timing advantage.
 
 ## Full-render processing diagnostics
 
-The final four panels start from the existing **2,048-spp reference itself**, using
+The final four panels start from the newly rendered **2,048-spp reference itself**, using
 its own full-resolution measured feature buffers. They show what additional
 processing does to an already high-sample render; they are excluded from all
-reconstruction scores and training charts. No new rays or training were required.
+reconstruction scores and training charts. The base render required new rays;
+these processing steps required no further rendering or training.
 
 **Full render → AI** uses the unchanged epoch-59 model and produces another 2×
-upscale: 384 × 256 for courtyard and 256 × 256 for corridor and shelves. The grid
-area-reduces that output to the reference dimensions before common display
-magnification. The full-size outputs below preserve the actual AI output pixels.
+upscale: 1,920 × 1,280 for courtyard and 1,920 × 1,920 for corridor and shelves.
+The grid area-reduces that output to the reference dimensions for comparison. The full-size outputs below preserve the actual AI output pixels.
 A 2,048-spp input is outside this model's training sample-budget range, so these
 panels do not establish quality at that resolution or a rendering speedup.
 
@@ -144,9 +161,9 @@ reference-fed diagnostics, with no reconstruction scores or timing claims.
 
 | Scene | Full render → AI | Full render → a-trous | Full render → a-trous → AI | Full render → AI → a-trous |
 | --- | --- | --- | --- | --- |
-| Courtyard | [PNG](figures/joint-epoch59-courtyard-64spp-full-render-ai.png) | [PNG](figures/joint-epoch59-courtyard-64spp-full-render-atrous.png) | [PNG](figures/joint-epoch59-courtyard-64spp-full-render-atrous-ai.png) | [PNG](figures/joint-epoch59-courtyard-64spp-full-render-ai-atrous.png) |
-| Corridor | [PNG](figures/joint-epoch59-corridor-64spp-full-render-ai.png) | [PNG](figures/joint-epoch59-corridor-64spp-full-render-atrous.png) | [PNG](figures/joint-epoch59-corridor-64spp-full-render-atrous-ai.png) | [PNG](figures/joint-epoch59-corridor-64spp-full-render-ai-atrous.png) |
-| Shelves | [PNG](figures/joint-epoch59-shelves-64spp-full-render-ai.png) | [PNG](figures/joint-epoch59-shelves-64spp-full-render-atrous.png) | [PNG](figures/joint-epoch59-shelves-64spp-full-render-atrous-ai.png) | [PNG](figures/joint-epoch59-shelves-64spp-full-render-ai-atrous.png) |
+| Courtyard | [PNG](figures/joint-epoch59-courtyard-hd-full-render-ai.png) | [PNG](figures/joint-epoch59-courtyard-hd-full-render-atrous.png) | [PNG](figures/joint-epoch59-courtyard-hd-full-render-atrous-ai.png) | [PNG](figures/joint-epoch59-courtyard-hd-full-render-ai-atrous.png) |
+| Corridor | [PNG](figures/joint-epoch59-corridor-hd-full-render-ai.png) | [PNG](figures/joint-epoch59-corridor-hd-full-render-atrous.png) | [PNG](figures/joint-epoch59-corridor-hd-full-render-atrous-ai.png) | [PNG](figures/joint-epoch59-corridor-hd-full-render-ai-atrous.png) |
+| Shelves | [PNG](figures/joint-epoch59-shelves-hd-full-render-ai.png) | [PNG](figures/joint-epoch59-shelves-hd-full-render-atrous.png) | [PNG](figures/joint-epoch59-shelves-hd-full-render-atrous-ai.png) | [PNG](figures/joint-epoch59-shelves-hd-full-render-ai-atrous.png) |
 
 ## Training and remaining quality gaps
 
@@ -175,12 +192,29 @@ Total tracing, preprocessing and inference latency has not been qualified for th
 
 - [69-epoch chart data](joint-training-history.json): aggregate, native/synthetic
   and budget metrics, learning rates, selection history and eligibility.
-- [Example metadata and exact scores](joint-examples.json): IDs, reference and
-  checkpoint SHA-256 hashes, display policy and selection procedure.
+- [HD example metadata and exact scores](joint-examples.json): render settings,
+  reference, renderer and checkpoint SHA-256 hashes, display and selection policies.
+- [HD gallery generator](../../scripts/render_joint_gallery.py) and committed
+  [scene configurations](gallery-scenes): six actual renders, all ten processing
+  methods and native-size PNGs. Requires the local epoch-59 checkpoint and ML environment.
 - [Chart generator](../../scripts/plot_joint_results.py): run with Python and
   `matplotlib==3.10.6`; reads committed metrics and requires no renderer or SSD.
 - Parent training source: `745ecbbb136a59045f51cbf42e410f7c2f2d1811`.
 - Extension and inference source: `de7e2eb0a086e36b700c59ac8a9f81d4334189ca`.
+
+To regenerate the HD gallery with the local epoch-59 checkpoint:
+
+```sh
+cmake --build build -j 8
+PYTHONPATH=ml/src ml/.venv/bin/python scripts/render_joint_gallery.py \
+  --checkpoint /path/to/epoch-000059.pt
+```
+
+The script validates a tiny schema-2 feature export before expensive rendering.
+Use `--assemble-only` to reuse completed HDR renders in `artifacts/gallery-hd`.
+The working HDR buffers and checkpoint stay local; native PNGs, scene configurations
+and recorded metrics are committed. Rendering takes several minutes per scene on
+this Mac at 2,048 spp.
 
 From the repository root, regenerate the charts with:
 

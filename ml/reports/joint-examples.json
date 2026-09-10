@@ -1,389 +1,530 @@
 [
   {
-    "scene": "courtyard-64spp",
-    "selection": "Retained the original metadata-selected validation scene configuration and reference; switched to its existing 64-spp input for a cleaner gallery at user request, without selection by model score.",
+    "scene": "courtyard",
+    "selection": "Same original metadata-selected validation scene configuration, newly rendered at gallery resolution; not chosen by score",
     "epoch": 59,
     "checkpoint_sha256": "750510e58d6ea0b61db7c967a42b20d52d9a5e79f4996faaa12376536c60b384",
-    "metrics": {
-      "noisy": {
-        "linear_mse": 0.18151954646885493,
-        "log_mae": 0.02510634809732437,
-        "display_mse": 0.005889876577963603,
-        "psnr": 22.298938057342834,
-        "ssim": 0.8573659657913124
+    "scene_config": "gallery-scenes/courtyard.json",
+    "input_size": [
+      480,
+      320
+    ],
+    "reference_size": [
+      960,
+      640
+    ],
+    "input_samples": 64,
+    "reference_samples": 2048,
+    "reference_pfm_sha256": "aecefbb0a68a9789b068ad9d4a6140aac5a69aee52e5ae02cc1e0ff684c7ff75",
+    "renderer_sha256": "309c5cae7a62407fc222c15932c0cc407ac8f856cee7df49891ce0667602c6c1",
+    "render_stats": {
+      "input": {
+        "scene": "families-v3-courtyard-edges",
+        "seed": 1003294392193930594,
+        "width": 480,
+        "height": 320,
+        "samples": 64,
+        "requested_samples": 64,
+        "max_depth": 16,
+        "workers": 8,
+        "bvh": true,
+        "objects": 15,
+        "render_seconds": 1.732886584,
+        "feature_rays": 153600,
+        "scene_fingerprint": "1f603a3606a8cac3",
+        "scene_seed": null,
+        "bvh_build_seconds": 2.45e-05,
+        "path_rays": 22225733,
+        "shadow_rays": 7441445,
+        "exposure": 0,
+        "mesh_path": "",
+        "denoised": false,
+        "output_scale": 1,
+        "upscale_seconds": 0,
+        "reconstructed": false,
+        "model": "",
+        "neural_provider_requested": "cpu",
+        "neural_error": "",
+        "neural_seconds": 0,
+        "neural_packing_seconds": 0,
+        "neural_inference_seconds": 0,
+        "neural_output_seconds": 0,
+        "neural_input_bytes": 0,
+        "neural_tiles": 0,
+        "neural_threads": 2,
+        "model_load_seconds": 0,
+        "pipeline_seconds": 2.075695208,
+        "benchmark_iteration": 0,
+        "denoise_seconds": 0,
+        "image_write_seconds": 0.015985875,
+        "glass_shadows": "physical",
+        "caustic_photons": 0,
+        "caustic_radius": 0.12,
+        "emitted_photons": 0,
+        "stored_photons": 0,
+        "photon_rays": 0,
+        "photon_seconds": 0,
+        "output_format": ".pfm",
+        "sampler": "splitmix64-per-pixel-v1",
+        "integrator": "path-mis-ggx-v2",
+        "display": "aces-fit-srgb",
+        "hdr_encoding": "linear-no-exposure"
       },
-      "atrous": {
-        "linear_mse": 0.18328192194372528,
-        "log_mae": 0.027063244953751564,
-        "display_mse": 0.006175989871679878,
-        "psnr": 22.092934248933606,
-        "ssim": 0.8631722133570209
-      },
-      "epoch59": {
-        "linear_mse": 0.027705952763218324,
-        "log_mae": 0.010858297348022461,
-        "display_mse": 0.0016067711347750161,
-        "psnr": 27.940459788575506,
-        "ssim": 0.9358499632178773
-      },
-      "ai_atrous": {
-        "linear_mse": 0.029709145612002403,
-        "log_mae": 0.01414396334439516,
-        "display_mse": 0.0023778931850255945,
-        "psnr": 26.238076577895953,
-        "ssim": 0.9081364234313162
-      },
-      "atrous_ai": {
-        "linear_mse": 0.02973068764626747,
-        "log_mae": 0.014500770717859268,
-        "display_mse": 0.0021411673147513437,
-        "psnr": 26.693493948101246,
-        "ssim": 0.9152478505858239
+      "reference": {
+        "scene": "families-v3-courtyard-edges",
+        "seed": 268028326411190846,
+        "width": 960,
+        "height": 640,
+        "samples": 2048,
+        "requested_samples": 2048,
+        "max_depth": 16,
+        "workers": 8,
+        "bvh": true,
+        "objects": 15,
+        "render_seconds": 229.1144949,
+        "feature_rays": 614400,
+        "scene_fingerprint": "ca3b96251e0dd20b",
+        "scene_seed": null,
+        "bvh_build_seconds": 2.9708e-05,
+        "path_rays": 2844233917,
+        "shadow_rays": 952420526,
+        "exposure": 0,
+        "mesh_path": "",
+        "denoised": false,
+        "output_scale": 1,
+        "upscale_seconds": 0,
+        "reconstructed": false,
+        "model": "",
+        "neural_provider_requested": "cpu",
+        "neural_error": "",
+        "neural_seconds": 0,
+        "neural_packing_seconds": 0,
+        "neural_inference_seconds": 0,
+        "neural_output_seconds": 0,
+        "neural_input_bytes": 0,
+        "neural_tiles": 0,
+        "neural_threads": 2,
+        "model_load_seconds": 0,
+        "pipeline_seconds": 230.786586,
+        "benchmark_iteration": 0,
+        "denoise_seconds": 0,
+        "image_write_seconds": 0.071016416,
+        "glass_shadows": "physical",
+        "caustic_photons": 0,
+        "caustic_radius": 0.12,
+        "emitted_photons": 0,
+        "stored_photons": 0,
+        "photon_rays": 0,
+        "photon_seconds": 0,
+        "output_format": ".pfm",
+        "sampler": "splitmix64-per-pixel-v1",
+        "integrator": "path-mis-ggx-v2",
+        "display": "aces-fit-srgb",
+        "hdr_encoding": "linear-no-exposure"
       }
     },
-    "display": "Common ACES/sRGB, exposure 0; nearest-neighbor magnification",
-    "post_denoising": {
-      "algorithm": "raytracer_ml.data.resample.atrous",
-      "iterations": 3,
-      "space": "linear HDR at predicted output resolution",
-      "guides": "Nearest-neighbor 2x of noisy input center albedo, normal, depth and validity",
-      "reference_used_by_filter": false,
-      "settings_tuned_on_examples": false
-    },
-    "pre_denoising": {
-      "algorithm": "Saved input-resolution a-trous baseline",
-      "replacement": "Only RGB channels 0:3; original guides and sampling statistics retained",
-      "checkpoint": "Unchanged epoch 59",
-      "trained_on_denoised_inputs": false,
-      "reference_used_by_pipeline": false
-    },
-    "row": {
-      "id": "s1-g0033-v000-r96x64-n0-s64",
-      "family": "courtyard",
-      "samples": 64,
-      "reference_samples": 2048,
-      "split": "val",
-      "scale": 2,
-      "reference_sha256": "1b1a3d09d977857a8a40626681d2a409d425fe964834fff46d8353ac707c52bf"
-    },
-    "full_render_processing": {
-      "purpose": "Reference-fed visual diagnostics only; excluded from reconstruction metrics and training charts",
-      "input": "Existing 2048-spp full-resolution reference RGB and its own 27-channel measured feature buffers",
-      "reference_sha256": "1b1a3d09d977857a8a40626681d2a409d425fe964834fff46d8353ac707c52bf",
-      "ai": {
-        "checkpoint_epoch": 59,
-        "input_size": [
-          192,
-          128
-        ],
-        "output_size": [
-          384,
-          256
-        ],
-        "grid_display": "Area-reduced to reference dimensions before common nearest-neighbor display magnification",
-        "training_distribution": "2048-spp input is outside the training sample-budget range"
+    "metrics": {
+      "noisy": {
+        "linear_mse": 0.036107449153838456,
+        "log_mae": 0.009996251203119755,
+        "display_mse": 0.0016320128333108033,
+        "psnr": 27.87276430499956,
+        "ssim": 0.8752689086551392
       },
       "atrous": {
-        "iterations": 3,
-        "input_size": [
-          192,
-          128
-        ],
-        "output_size": [
-          192,
-          128
-        ],
-        "guides": "Full-resolution reference center albedo, normal, depth and validity"
+        "linear_mse": 0.03630707549118771,
+        "log_mae": 0.00843380019068718,
+        "display_mse": 0.001590437599465596,
+        "psnr": 27.98483365688582,
+        "ssim": 0.9293471535690672
       },
-      "atrous_ai": {
-        "order": [
-          "full render",
-          "atrous",
-          "AI"
-        ],
-        "iterations": 3,
-        "replacement": "Only RGB replaced by filtered full render; measured full-render guides and statistics retained",
-        "output_size": [
-          384,
-          256
-        ],
-        "checkpoint_epoch": 59,
-        "trained_on_denoised_inputs": false
+      "epoch59": {
+        "linear_mse": 0.0050240895087460165,
+        "log_mae": 0.0043337405659258366,
+        "display_mse": 0.0003987718528142386,
+        "psnr": 33.99275503817921,
+        "ssim": 0.9523873415937402
       },
       "ai_atrous": {
-        "order": [
-          "full render",
-          "AI",
-          "atrous"
-        ],
-        "iterations": 3,
-        "filter_space": "Linear HDR at AI output resolution, before display reduction",
-        "guides": "Nearest-neighbor 2x replication of full-render center albedo, normal, depth and validity",
-        "output_size": [
-          384,
-          256
-        ],
-        "checkpoint_epoch": 59
+        "linear_mse": 0.0053182742295762725,
+        "log_mae": 0.004819297697395086,
+        "display_mse": 0.0005435430838351428,
+        "psnr": 32.647660259470015,
+        "ssim": 0.951161345767337
       },
-      "quality_scores_reported": false
-    }
+      "atrous_ai": {
+        "linear_mse": 0.0055577641058475276,
+        "log_mae": 0.0054567595943808556,
+        "display_mse": 0.000567672591907428,
+        "psnr": 32.45902073663808,
+        "ssim": 0.9516428017196227
+      }
+    },
+    "display": "Common ACES/sRGB exposure zero. Reference-resolution PNGs are native pixels; 1920-pixel AI diagnostics are area-reduced only in the grid.",
+    "full_render_processing": {
+      "reference_fed": true,
+      "quality_scores_reported": false,
+      "ai_output_size": [
+        1920,
+        1280
+      ],
+      "atrous_iterations": 3,
+      "atrous_ai": "Filter full render, replace RGB only, retain measured guides/statistics, then epoch-59 AI",
+      "ai_atrous": "Epoch-59 AI then filter at actual output resolution with nearest-neighbor 2x full-render guides",
+      "limitations": "2048-spp and pre-denoised inputs are outside the training distribution; retained variance is not calibrated AI/filter error"
+    },
+    "evaluation_scope": "Three new higher-resolution illustrations, excluded from historical epoch metrics; no timing or generalization qualification"
   },
   {
-    "scene": "corridor-64spp",
-    "selection": "Retained the original metadata-selected validation scene configuration and reference; switched to its existing 64-spp input for a cleaner gallery at user request, without selection by model score.",
+    "scene": "corridor",
+    "selection": "Same original metadata-selected validation scene configuration, newly rendered at gallery resolution; not chosen by score",
     "epoch": 59,
     "checkpoint_sha256": "750510e58d6ea0b61db7c967a42b20d52d9a5e79f4996faaa12376536c60b384",
-    "metrics": {
-      "noisy": {
-        "linear_mse": 0.07378369891981704,
-        "log_mae": 0.022864943370223045,
-        "display_mse": 0.005429518455788512,
-        "psnr": 22.65238686298359,
-        "ssim": 0.8656628093071598
+    "scene_config": "gallery-scenes/corridor.json",
+    "input_size": [
+      480,
+      480
+    ],
+    "reference_size": [
+      960,
+      960
+    ],
+    "input_samples": 64,
+    "reference_samples": 2048,
+    "reference_pfm_sha256": "3bfe05e289218875a6f1571519c30c3f3c7da73fc761b31258c7f17c321a1810",
+    "renderer_sha256": "309c5cae7a62407fc222c15932c0cc407ac8f856cee7df49891ce0667602c6c1",
+    "render_stats": {
+      "input": {
+        "scene": "families-v3-corridor-edges",
+        "seed": 773126520955361776,
+        "width": 480,
+        "height": 480,
+        "samples": 64,
+        "requested_samples": 64,
+        "max_depth": 16,
+        "workers": 8,
+        "bvh": true,
+        "objects": 20,
+        "render_seconds": 6.4408475,
+        "feature_rays": 230400,
+        "scene_fingerprint": "750cff6453d1e8b3",
+        "scene_seed": null,
+        "bvh_build_seconds": 1.6291e-05,
+        "path_rays": 73500870,
+        "shadow_rays": 36722374,
+        "exposure": 0,
+        "mesh_path": "",
+        "denoised": false,
+        "output_scale": 1,
+        "upscale_seconds": 0,
+        "reconstructed": false,
+        "model": "",
+        "neural_provider_requested": "cpu",
+        "neural_error": "",
+        "neural_seconds": 0,
+        "neural_packing_seconds": 0,
+        "neural_inference_seconds": 0,
+        "neural_output_seconds": 0,
+        "neural_input_bytes": 0,
+        "neural_tiles": 0,
+        "neural_threads": 2,
+        "model_load_seconds": 0,
+        "pipeline_seconds": 7.107687542,
+        "benchmark_iteration": 0,
+        "denoise_seconds": 0,
+        "image_write_seconds": 0.021652,
+        "glass_shadows": "physical",
+        "caustic_photons": 0,
+        "caustic_radius": 0.12,
+        "emitted_photons": 0,
+        "stored_photons": 0,
+        "photon_rays": 0,
+        "photon_seconds": 0,
+        "output_format": ".pfm",
+        "sampler": "splitmix64-per-pixel-v1",
+        "integrator": "path-mis-ggx-v2",
+        "display": "aces-fit-srgb",
+        "hdr_encoding": "linear-no-exposure"
       },
-      "atrous": {
-        "linear_mse": 0.07592172832803155,
-        "log_mae": 0.0260959193110466,
-        "display_mse": 0.006031378990944271,
-        "psnr": 22.195833811121297,
-        "ssim": 0.854131020046331
-      },
-      "epoch59": {
-        "linear_mse": 0.012426129316802132,
-        "log_mae": 0.011056524701416492,
-        "display_mse": 0.0015319104917328396,
-        "psnr": 28.14766609430665,
-        "ssim": 0.947097932195733
-      },
-      "ai_atrous": {
-        "linear_mse": 0.018314433211005444,
-        "log_mae": 0.01631382666528225,
-        "display_mse": 0.002894653735503814,
-        "psnr": 25.384033800381147,
-        "ssim": 0.8912925642519953
-      },
-      "atrous_ai": {
-        "linear_mse": 0.01407704427492021,
-        "log_mae": 0.01609920524060726,
-        "display_mse": 0.0023482419963522494,
-        "psnr": 26.2925714921963,
-        "ssim": 0.9116981397019672
+      "reference": {
+        "scene": "families-v3-corridor-edges",
+        "seed": 989608119354094734,
+        "width": 960,
+        "height": 960,
+        "samples": 2048,
+        "requested_samples": 2048,
+        "max_depth": 16,
+        "workers": 8,
+        "bvh": true,
+        "objects": 20,
+        "render_seconds": 717.8043081,
+        "feature_rays": 921600,
+        "scene_fingerprint": "fff604be304183e7",
+        "scene_seed": null,
+        "bvh_build_seconds": 2.9458e-05,
+        "path_rays": 9407867178,
+        "shadow_rays": 4699958324,
+        "exposure": 0,
+        "mesh_path": "",
+        "denoised": false,
+        "output_scale": 1,
+        "upscale_seconds": 0,
+        "reconstructed": false,
+        "model": "",
+        "neural_provider_requested": "cpu",
+        "neural_error": "",
+        "neural_seconds": 0,
+        "neural_packing_seconds": 0,
+        "neural_inference_seconds": 0,
+        "neural_output_seconds": 0,
+        "neural_input_bytes": 0,
+        "neural_tiles": 0,
+        "neural_threads": 2,
+        "model_load_seconds": 0,
+        "pipeline_seconds": 720.5832426,
+        "benchmark_iteration": 0,
+        "denoise_seconds": 0,
+        "image_write_seconds": 0.085609125,
+        "glass_shadows": "physical",
+        "caustic_photons": 0,
+        "caustic_radius": 0.12,
+        "emitted_photons": 0,
+        "stored_photons": 0,
+        "photon_rays": 0,
+        "photon_seconds": 0,
+        "output_format": ".pfm",
+        "sampler": "splitmix64-per-pixel-v1",
+        "integrator": "path-mis-ggx-v2",
+        "display": "aces-fit-srgb",
+        "hdr_encoding": "linear-no-exposure"
       }
     },
-    "display": "Common ACES/sRGB, exposure 0; nearest-neighbor magnification",
-    "post_denoising": {
-      "algorithm": "raytracer_ml.data.resample.atrous",
-      "iterations": 3,
-      "space": "linear HDR at predicted output resolution",
-      "guides": "Nearest-neighbor 2x of noisy input center albedo, normal, depth and validity",
-      "reference_used_by_filter": false,
-      "settings_tuned_on_examples": false
-    },
-    "pre_denoising": {
-      "algorithm": "Saved input-resolution a-trous baseline",
-      "replacement": "Only RGB channels 0:3; original guides and sampling statistics retained",
-      "checkpoint": "Unchanged epoch 59",
-      "trained_on_denoised_inputs": false,
-      "reference_used_by_pipeline": false
-    },
-    "row": {
-      "id": "s1-g0034-v000-r64x64-n0-s64",
-      "family": "corridor",
-      "samples": 64,
-      "reference_samples": 2048,
-      "split": "val",
-      "scale": 2,
-      "reference_sha256": "e0e8ba7a4c5e2607f20a25862df3d0efc61f116b770c665b4747f765e9b62db1"
-    },
-    "full_render_processing": {
-      "purpose": "Reference-fed visual diagnostics only; excluded from reconstruction metrics and training charts",
-      "input": "Existing 2048-spp full-resolution reference RGB and its own 27-channel measured feature buffers",
-      "reference_sha256": "e0e8ba7a4c5e2607f20a25862df3d0efc61f116b770c665b4747f765e9b62db1",
-      "ai": {
-        "checkpoint_epoch": 59,
-        "input_size": [
-          128,
-          128
-        ],
-        "output_size": [
-          256,
-          256
-        ],
-        "grid_display": "Area-reduced to reference dimensions before common nearest-neighbor display magnification",
-        "training_distribution": "2048-spp input is outside the training sample-budget range"
+    "metrics": {
+      "noisy": {
+        "linear_mse": 0.009942650001844392,
+        "log_mae": 0.008171453140676022,
+        "display_mse": 0.0009255691120646674,
+        "psnr": 30.335911470162273,
+        "ssim": 0.8556625541322961
       },
       "atrous": {
-        "iterations": 3,
-        "input_size": [
-          128,
-          128
-        ],
-        "output_size": [
-          128,
-          128
-        ],
-        "guides": "Full-resolution reference center albedo, normal, depth and validity"
+        "linear_mse": 0.010075829758811888,
+        "log_mae": 0.006363521795719862,
+        "display_mse": 0.0008792615760209057,
+        "psnr": 30.558819052186887,
+        "ssim": 0.9475319308593452
       },
-      "atrous_ai": {
-        "order": [
-          "full render",
-          "atrous",
-          "AI"
-        ],
-        "iterations": 3,
-        "replacement": "Only RGB replaced by filtered full render; measured full-render guides and statistics retained",
-        "output_size": [
-          256,
-          256
-        ],
-        "checkpoint_epoch": 59,
-        "trained_on_denoised_inputs": false
+      "epoch59": {
+        "linear_mse": 0.0017681062056532028,
+        "log_mae": 0.0036778110079467297,
+        "display_mse": 0.00017748863488307646,
+        "psnr": 37.50829450865731,
+        "ssim": 0.9653587260654298
       },
       "ai_atrous": {
-        "order": [
-          "full render",
-          "AI",
-          "atrous"
-        ],
-        "iterations": 3,
-        "filter_space": "Linear HDR at AI output resolution, before display reduction",
-        "guides": "Nearest-neighbor 2x replication of full-render center albedo, normal, depth and validity",
-        "output_size": [
-          256,
-          256
-        ],
-        "checkpoint_epoch": 59
+        "linear_mse": 0.003763579163488822,
+        "log_mae": 0.0044251782819628716,
+        "display_mse": 0.00041344942874507333,
+        "psnr": 33.83577603790029,
+        "ssim": 0.9550188461252782
       },
-      "quality_scores_reported": false
-    }
+      "atrous_ai": {
+        "linear_mse": 0.002778361076131133,
+        "log_mae": 0.005074469372630119,
+        "display_mse": 0.0003958595366409994,
+        "psnr": 34.02458888022052,
+        "ssim": 0.9589090974924325
+      }
+    },
+    "display": "Common ACES/sRGB exposure zero. Reference-resolution PNGs are native pixels; 1920-pixel AI diagnostics are area-reduced only in the grid.",
+    "full_render_processing": {
+      "reference_fed": true,
+      "quality_scores_reported": false,
+      "ai_output_size": [
+        1920,
+        1920
+      ],
+      "atrous_iterations": 3,
+      "atrous_ai": "Filter full render, replace RGB only, retain measured guides/statistics, then epoch-59 AI",
+      "ai_atrous": "Epoch-59 AI then filter at actual output resolution with nearest-neighbor 2x full-render guides",
+      "limitations": "2048-spp and pre-denoised inputs are outside the training distribution; retained variance is not calibrated AI/filter error"
+    },
+    "evaluation_scope": "Three new higher-resolution illustrations, excluded from historical epoch metrics; no timing or generalization qualification"
   },
   {
-    "scene": "shelves-64spp",
-    "selection": "Retained the original metadata-selected validation scene configuration and reference; switched to its existing 64-spp input for a cleaner gallery at user request, without selection by model score.",
+    "scene": "shelves",
+    "selection": "Same original metadata-selected validation scene configuration, newly rendered at gallery resolution; not chosen by score",
     "epoch": 59,
     "checkpoint_sha256": "750510e58d6ea0b61db7c967a42b20d52d9a5e79f4996faaa12376536c60b384",
-    "metrics": {
-      "noisy": {
-        "linear_mse": 0.018766648825730797,
-        "log_mae": 0.014349080622196198,
-        "display_mse": 0.0022848091309987367,
-        "psnr": 26.41150074288355,
-        "ssim": 0.9003500833525976
+    "scene_config": "gallery-scenes/shelves.json",
+    "input_size": [
+      480,
+      480
+    ],
+    "reference_size": [
+      960,
+      960
+    ],
+    "input_samples": 64,
+    "reference_samples": 2048,
+    "reference_pfm_sha256": "d32c83e44b8dd1142f9cda3150dbb6175c9cd5611ca2b4d7dffc2a030635a3ad",
+    "renderer_sha256": "309c5cae7a62407fc222c15932c0cc407ac8f856cee7df49891ce0667602c6c1",
+    "render_stats": {
+      "input": {
+        "scene": "families-v3-shelves-edges",
+        "seed": 1053429762086278233,
+        "width": 480,
+        "height": 480,
+        "samples": 64,
+        "requested_samples": 64,
+        "max_depth": 16,
+        "workers": 8,
+        "bvh": true,
+        "objects": 59,
+        "render_seconds": 2.40118825,
+        "feature_rays": 230400,
+        "scene_fingerprint": "5b9c4ae766ac428c",
+        "scene_seed": null,
+        "bvh_build_seconds": 2.5208e-05,
+        "path_rays": 27360469,
+        "shadow_rays": 9003431,
+        "exposure": 0,
+        "mesh_path": "",
+        "denoised": false,
+        "output_scale": 1,
+        "upscale_seconds": 0,
+        "reconstructed": false,
+        "model": "",
+        "neural_provider_requested": "cpu",
+        "neural_error": "",
+        "neural_seconds": 0,
+        "neural_packing_seconds": 0,
+        "neural_inference_seconds": 0,
+        "neural_output_seconds": 0,
+        "neural_input_bytes": 0,
+        "neural_tiles": 0,
+        "neural_threads": 2,
+        "model_load_seconds": 0,
+        "pipeline_seconds": 3.334621792,
+        "benchmark_iteration": 0,
+        "denoise_seconds": 0,
+        "image_write_seconds": 0.045185667,
+        "glass_shadows": "physical",
+        "caustic_photons": 0,
+        "caustic_radius": 0.12,
+        "emitted_photons": 0,
+        "stored_photons": 0,
+        "photon_rays": 0,
+        "photon_seconds": 0,
+        "output_format": ".pfm",
+        "sampler": "splitmix64-per-pixel-v1",
+        "integrator": "path-mis-ggx-v2",
+        "display": "aces-fit-srgb",
+        "hdr_encoding": "linear-no-exposure"
       },
-      "atrous": {
-        "linear_mse": 0.019021711702525142,
-        "log_mae": 0.015264268033206463,
-        "display_mse": 0.002467301493098547,
-        "psnr": 26.077777784434772,
-        "ssim": 0.9052357098148859
-      },
-      "epoch59": {
-        "linear_mse": 0.0070217740379841034,
-        "log_mae": 0.008624854497611523,
-        "display_mse": 0.0010516075495208843,
-        "psnr": 29.781463047418903,
-        "ssim": 0.9551846600958912
-      },
-      "ai_atrous": {
-        "linear_mse": 0.007586571152380407,
-        "log_mae": 0.01013551652431488,
-        "display_mse": 0.001343424339854856,
-        "psnr": 28.71786787517976,
-        "ssim": 0.937524814009095
-      },
-      "atrous_ai": {
-        "linear_mse": 0.0072655619167790115,
-        "log_mae": 0.010240621864795685,
-        "display_mse": 0.001246008040277674,
-        "psnr": 29.044791552394813,
-        "ssim": 0.9438154098125083
+      "reference": {
+        "scene": "families-v3-shelves-edges",
+        "seed": 1030169072580897155,
+        "width": 960,
+        "height": 960,
+        "samples": 2048,
+        "requested_samples": 2048,
+        "max_depth": 16,
+        "workers": 8,
+        "bvh": true,
+        "objects": 59,
+        "render_seconds": 293.5404752,
+        "feature_rays": 921600,
+        "scene_fingerprint": "eba7c346ba57e5d0",
+        "scene_seed": null,
+        "bvh_build_seconds": 0.00011225,
+        "path_rays": 3501873830,
+        "shadow_rays": 1151896424,
+        "exposure": 0,
+        "mesh_path": "",
+        "denoised": false,
+        "output_scale": 1,
+        "upscale_seconds": 0,
+        "reconstructed": false,
+        "model": "",
+        "neural_provider_requested": "cpu",
+        "neural_error": "",
+        "neural_seconds": 0,
+        "neural_packing_seconds": 0,
+        "neural_inference_seconds": 0,
+        "neural_output_seconds": 0,
+        "neural_input_bytes": 0,
+        "neural_tiles": 0,
+        "neural_threads": 2,
+        "model_load_seconds": 0,
+        "pipeline_seconds": 295.7064502,
+        "benchmark_iteration": 0,
+        "denoise_seconds": 0,
+        "image_write_seconds": 0.068223209,
+        "glass_shadows": "physical",
+        "caustic_photons": 0,
+        "caustic_radius": 0.12,
+        "emitted_photons": 0,
+        "stored_photons": 0,
+        "photon_rays": 0,
+        "photon_seconds": 0,
+        "output_format": ".pfm",
+        "sampler": "splitmix64-per-pixel-v1",
+        "integrator": "path-mis-ggx-v2",
+        "display": "aces-fit-srgb",
+        "hdr_encoding": "linear-no-exposure"
       }
     },
-    "display": "Common ACES/sRGB, exposure 0; nearest-neighbor magnification",
-    "post_denoising": {
-      "algorithm": "raytracer_ml.data.resample.atrous",
-      "iterations": 3,
-      "space": "linear HDR at predicted output resolution",
-      "guides": "Nearest-neighbor 2x of noisy input center albedo, normal, depth and validity",
-      "reference_used_by_filter": false,
-      "settings_tuned_on_examples": false
-    },
-    "pre_denoising": {
-      "algorithm": "Saved input-resolution a-trous baseline",
-      "replacement": "Only RGB channels 0:3; original guides and sampling statistics retained",
-      "checkpoint": "Unchanged epoch 59",
-      "trained_on_denoised_inputs": false,
-      "reference_used_by_pipeline": false
-    },
-    "row": {
-      "id": "s1-g0036-v000-r64x64-n0-s64",
-      "family": "shelves",
-      "samples": 64,
-      "reference_samples": 2048,
-      "split": "val",
-      "scale": 2,
-      "reference_sha256": "6dac0acc6ce8a6c71d1e0a4108fb5bb019a877211a12166618a1e08a41132f01"
-    },
-    "full_render_processing": {
-      "purpose": "Reference-fed visual diagnostics only; excluded from reconstruction metrics and training charts",
-      "input": "Existing 2048-spp full-resolution reference RGB and its own 27-channel measured feature buffers",
-      "reference_sha256": "6dac0acc6ce8a6c71d1e0a4108fb5bb019a877211a12166618a1e08a41132f01",
-      "ai": {
-        "checkpoint_epoch": 59,
-        "input_size": [
-          128,
-          128
-        ],
-        "output_size": [
-          256,
-          256
-        ],
-        "grid_display": "Area-reduced to reference dimensions before common nearest-neighbor display magnification",
-        "training_distribution": "2048-spp input is outside the training sample-budget range"
+    "metrics": {
+      "noisy": {
+        "linear_mse": 0.0054634974220282755,
+        "log_mae": 0.005359852686524391,
+        "display_mse": 0.0004898889628308041,
+        "psnr": 33.09902345062295,
+        "ssim": 0.9251247399985063
       },
       "atrous": {
-        "iterations": 3,
-        "input_size": [
-          128,
-          128
-        ],
-        "output_size": [
-          128,
-          128
-        ],
-        "guides": "Full-resolution reference center albedo, normal, depth and validity"
+        "linear_mse": 0.005922133527711283,
+        "log_mae": 0.0042395442724227905,
+        "display_mse": 0.0004695131689851449,
+        "psnr": 33.28352222061612,
+        "ssim": 0.9666769014884494
       },
-      "atrous_ai": {
-        "order": [
-          "full render",
-          "atrous",
-          "AI"
-        ],
-        "iterations": 3,
-        "replacement": "Only RGB replaced by filtered full render; measured full-render guides and statistics retained",
-        "output_size": [
-          256,
-          256
-        ],
-        "checkpoint_epoch": 59,
-        "trained_on_denoised_inputs": false
+      "epoch59": {
+        "linear_mse": 0.0014570802668479718,
+        "log_mae": 0.0023641041480004787,
+        "display_mse": 0.00012194067177633904,
+        "psnr": 39.13851416760765,
+        "ssim": 0.9827753003805323
       },
       "ai_atrous": {
-        "order": [
-          "full render",
-          "AI",
-          "atrous"
-        ],
-        "iterations": 3,
-        "filter_space": "Linear HDR at AI output resolution, before display reduction",
-        "guides": "Nearest-neighbor 2x replication of full-render center albedo, normal, depth and validity",
-        "output_size": [
-          256,
-          256
-        ],
-        "checkpoint_epoch": 59
+        "linear_mse": 0.0029287855094704634,
+        "log_mae": 0.0029624938033521175,
+        "display_mse": 0.00026776247921201637,
+        "psnr": 35.72250279500318,
+        "ssim": 0.9735061778088131
       },
-      "quality_scores_reported": false
-    }
+      "atrous_ai": {
+        "linear_mse": 0.002294399634992851,
+        "log_mae": 0.003207072149962187,
+        "display_mse": 0.00024384726235352722,
+        "psnr": 36.128821158215665,
+        "ssim": 0.9750159515399585
+      }
+    },
+    "display": "Common ACES/sRGB exposure zero. Reference-resolution PNGs are native pixels; 1920-pixel AI diagnostics are area-reduced only in the grid.",
+    "full_render_processing": {
+      "reference_fed": true,
+      "quality_scores_reported": false,
+      "ai_output_size": [
+        1920,
+        1920
+      ],
+      "atrous_iterations": 3,
+      "atrous_ai": "Filter full render, replace RGB only, retain measured guides/statistics, then epoch-59 AI",
+      "ai_atrous": "Epoch-59 AI then filter at actual output resolution with nearest-neighbor 2x full-render guides",
+      "limitations": "2048-spp and pre-denoised inputs are outside the training distribution; retained variance is not calibrated AI/filter error"
+    },
+    "evaluation_scope": "Three new higher-resolution illustrations, excluded from historical epoch metrics; no timing or generalization qualification"
   }
 ]

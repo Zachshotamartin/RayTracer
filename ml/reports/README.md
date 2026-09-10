@@ -3,7 +3,8 @@
 ## Latest joint 2× reconstruction study
 
 The **[epoch-59 gallery and training charts](joint-reconstruction-results.md)**
-show three native validation scenes at 64 samples/pixel, with noisy input,
+show three validation scene configurations freshly rendered at 480 pixels wide
+and 64 samples/pixel, against 960-pixel-wide references, with noisy input,
 a-trous, AI, both AI/denoising orders, 2,048-spp references, and full-render processing panels. The run stopped at epoch 69; epoch 59
 is the selected best. Full quality qualification and rendering speedup remain open.
 

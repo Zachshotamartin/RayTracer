@@ -25,12 +25,20 @@ validation averages 29.82 dB PSNR / 0.9173 SSIM, compared with 25.98 dB / 0.8768
 for a-trous plus bilinear 2× enlargement. Full quality requirements remain unmet,
 and an end-to-end rendering speed advantage is not established.
 
-[![Epoch-59 comparison: noisy input, a-trous denoiser, high-sample reference, AI reconstruction, AI followed by denoising, denoising followed by AI, and full-render processing](ml/reports/figures/joint-epoch59-corridor-64spp.png)](ml/reports/figures/joint-epoch59-corridor-64spp.png)
+[![Full corridor path-traced render at 960 by 960 pixels and 2048 samples per pixel](ml/reports/figures/joint-epoch59-corridor-hd-reference.png)](ml/reports/figures/joint-epoch59-corridor-hd-reference.png)
 
-*Corridor validation example · 64 samples/pixel at 64 × 64 → 128 × 128.
-Reference: 2,048 samples/pixel. Common exposure; enlarged for inspection.
+<details>
+<summary>Compare all ten rendering and AI pipelines</summary>
+
+[![Epoch-59 comparison: noisy input, a-trous denoiser, high-sample reference, AI reconstruction, AI followed by denoising, denoising followed by AI, and full-render processing](ml/reports/figures/joint-epoch59-corridor-hd.png)](ml/reports/figures/joint-epoch59-corridor-hd.png)
+
+</details>
+
+
+*Corridor gallery render · 64 samples/pixel at 480 × 480 → 960 × 960.
+Reference: an actual 960 × 960 render at 2,048 samples/pixel. Common exposure.
 The AI improves noise and structure while retaining some blur and reflection errors.
-The five rows show baselines, reference versus AI, both low-sample processing orders,
+Expand the comparison above: its five rows show baselines, reference versus AI, both low-sample processing orders,
 and the four full-render diagnostics: full-render → AI, full-render → a-trous,
 full-render → a-trous → AI, and full-render → AI → a-trous diagnostics. Click the image to inspect the full-size version.*
 
